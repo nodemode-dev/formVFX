@@ -15,4 +15,4 @@ if not defined CARGO_NET_GIT_FETCH_WITH_CLI set "CARGO_NET_GIT_FETCH_WITH_CLI=tr
 pushd native\fvx-core
 maturin develop %PROFILE% %FEATURES% || ( popd & exit /b 1 )
 popd
-python -c "import fvx_core; e = fvx_core.Engine(); print('[formvfx] core', fvx_core.__version__, 'ready:', e.capabilities()['commands'], 'commands')"
+python -c "import json, fvx_core; c = json.loads(fvx_core.Engine().capabilities()); print('[formvfx] core', fvx_core.__version__, 'ready:', c['commands'], 'commands,', c['effects']['total'], 'effects')"
