@@ -2,7 +2,7 @@
 
 Motion graphics and visual effects for the desktop and the browser, in the form family beside formvis and formcut. Compositions, layers, keyframes and the Graph Editor, 306 effects, text animators, shape layers, masks, Roto Brush, paint, puppet pins, 3D cameras and lights, tracking and stabilizing, expressions, scripting, Essential Graphics and a Render Queue, with an agent harness so Claude Code, Codex and Cursor can drive every tool from formvfx's embedded terminal.
 
-Version 0.1.0 · Apache-2.0 · compositing engine: formvfx's own, in Rust (`native/fvx-core`)
+Version 0.2.0 · Apache-2.0 · compositing engine: formvfx's own, in Rust (`native/fvx-core`)
 
 ## Quick start
 
