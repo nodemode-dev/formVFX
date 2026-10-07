@@ -24,6 +24,16 @@ Open http://localhost:5230, choose **Open the demo project** on the start screen
 - **From anywhere**: `./formvfx agents install` (or the Agents panel) sets the three clients up for your account.
 - **Command line**: `./formvfx state`, `commands FILTER`, `describe ID`, `exec ID 'JSON'`, `batch 'JSON'`, `frame OUT.png --time S`, `render --wait`.
 
+## Desktop
+
+```bash
+./formvfx install-desktop   # PyInstaller and the Tauri CLI (Linux also needs the webkit2gtk-4.1 packages)
+./formvfx desktop dev       # the app, with the engine frozen as its sidecar
+./formvfx desktop build     # DMG, AppImage, deb, MSI and setup bundles in src-tauri/target/release/bundle
+```
+
+Tagging `vX.Y.Z` builds macOS, Linux and Windows bundles in GitHub Actions and opens a draft release.
+
 ## Commands
 
 | Command | Does |
@@ -31,15 +41,32 @@ Open http://localhost:5230, choose **Open the demo project** on the start screen
 | `./formvfx` / `boot` | engine and interface for development |
 | `install`, `install-native` | everything, or only the Rust core (`--dev`, `--gpu`) |
 | `serve` | the built interface from the engine |
+| `install-desktop`, `freeze`, `desktop dev`, `desktop build` | the desktop app |
 | `doctor` | checks the toolchain and ports |
 | `mcp` | the MCP server over stdio |
 | `agents install|sync|status` | client setup; regenerate the skill references from the engine |
+| `counts [--check]` | the code size table below |
 | `clean [--all]` | remove build output |
 
 ## Layout
 
 `native/fvx-core` (the compositing engine, Rust, PyO3) · `backend` (FastAPI engine service, MCP, terminal) · `frontend` (TypeScript and Vite interface) · `setup` (scripts) · `.claude/skills/formvfx-harness` (the agent skill, mirrored to `.agents/skills`).
 
-## Status
+## Parity
 
-0.1.0 is the first build: the editor, the engine service and the agent substrate. The desktop app (Tauri), the frozen engine sidecar and the release workflows land next.
+[`docs/PARITY.md`](docs/PARITY.md) grades formvfx against After Effects 26.5 on 72 traced capability rows: 46 Full, 22 Partial, 4 None, a score of 79%. It lists where formvfx trails, in priority order, and where it leads. The wiki (`.docs/wiki`) covers getting started, agents, the architecture, the desktop app and releasing.
+
+## Code size
+
+| Area | Files | Lines |
+| --- | ---: | ---: |
+| Compositing core (Rust, PyO3) | 142 | 69,371 |
+| Engine service (Python) | 29 | 1,959 |
+| Interface (TypeScript) | 37 | 8,124 |
+| Interface styles (CSS) | 8 | 1,661 |
+| Desktop shell (Rust, Tauri) | 1 | 137 |
+| Setup and CLI | 34 | 827 |
+| Agent skill (Markdown, hand-written) | 16 | 720 |
+| Total | 267 | 82,799 |
+
+Non-blank lines in tracked files; generated skill references excluded. `./formvfx counts` prints this table.
