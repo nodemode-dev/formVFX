@@ -1,0 +1,6 @@
+# formvfx for Codex in this repository (trusted projects only). From any folder: ./formvfx agents install codex.
+[mcp_servers.formvfx]
+command = "sh"
+args = ["-c", "exec \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/formvfx\" mcp"]
+startup_timeout_sec = 90
+tool_timeout_sec = 900
