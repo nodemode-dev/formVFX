@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+set -e
+cd "$(dirname "$0")"
+usage() {
+  printf 'formvfx %s · motion graphics and visual effects\n' "$(sed -n "s/^export const VERSION = '\(.*\)';$/\1/p" frontend/src/version.ts 2>/dev/null)"
+  cat << 'EOF'
+
+usage: ./formvfx [command] [options]
+
+  (none) | boot         boot the engine (8230) and the interface (5230) together
+  install [--dev]       install the engine service, build the compositing core and install the interface
+  install-native [--dev] [--gpu]  rebuild the compositing core (native/fvx-core) into the engine's venv
+  install-desktop       install PyInstaller and check the Rust and Tauri toolchain
+  backend               boot the engine only
+  frontend              boot the interface only
+  build                 production build of the interface into frontend/dist
+  serve                 serve the built interface from the engine on 127.0.0.1:8230
+  freeze                freeze the engine (with the core) into the Tauri sidecar binary
+  desktop dev|build     run or bundle the desktop app
+  doctor                check the toolchain, installs and ports
+
+  exec ID [JSON]        run one formvfx command in the running app (prints the JSON result)
+  batch JSON|FILE       run several commands as one undo step
+  commands [FILTER]     list the commands (id, label, params)
+  describe ID           one command with its JSON Schema
+  state                 the open project, active comp, selection and time
+  frame OUT.png [--time S] [--comp C] [--max N]  save a rendered frame
+  render [--wait]       render the Render Queue
+
+  mcp                   formvfx over MCP's stdio transport (starts the engine when needed)
+  agents install|sync|status  set Claude Code, Codex and Cursor up (install), refresh the skills (sync)
+  counts [--check]      code sizes for the README
+  clean [--all]         remove build output (--all also venv and node_modules)
+  help                  this text
+EOF
+}
+cmd="${1:-boot}"
+[ $# -gt 0 ] && shift
+case "$cmd" in
+  boot|dev) exec setup/boot_all "$@" ;;
+  install) exec setup/install_all "$@" ;;
+  install-native) exec setup/build_native "$@" ;;
+  install-desktop) exec setup/install_desktop "$@" ;;
+  backend) exec setup/boot_backend "$@" ;;
+  frontend) exec setup/boot_frontend "$@" ;;
+  build) exec setup/build_frontend "$@" ;;
+  serve) exec setup/serve "$@" ;;
+  freeze) exec setup/freeze_backend "$@" ;;
+  desktop)
+    sub="${1:-dev}"
+    [ $# -gt 0 ] && shift
+    case "$sub" in
+      dev) exec setup/desktop_dev "$@" ;;
+      build) exec setup/desktop_build "$@" ;;
+      *) usage; exit 2 ;;
+    esac ;;
+  doctor) exec setup/doctor "$@" ;;
+  exec|batch|commands|describe|state|frame|render) exec python3 setup/fx.py "$cmd" "$@" ;;
+  mcp) exec python3 setup/mcp_stdio.py "$@" ;;
+  agents) exec python3 setup/agents.py "$@" ;;
+  counts) exec python3 setup/line_counts.py "$@" ;;
+  clean) exec setup/clean "$@" ;;
+  help|-h|--help) usage ;;
+  *) printf '[formvfx] unknown command: %s\n\n' "$cmd"; usage; exit 2 ;;
+esac

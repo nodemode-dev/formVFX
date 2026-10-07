@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -e
+source "$(dirname "$0")/lib.sh"
+fx_say "installing the engine service"
+( cd "$FORMVFX_ROOT/backend" && ./oc_install )
+fx_say "building the compositing engine (the first build takes a few minutes)"
+"$FORMVFX_ROOT/setup/build_native" "$@" || fx_die "the compositing core did not build; run ./formvfx doctor"
+fx_say "installing the interface"
+( cd "$FORMVFX_ROOT/frontend" && ./oc_install )
+[ -f "$FORMVFX_ROOT/backend/.env" ] || cp "$FORMVFX_ROOT/backend/.env.example" "$FORMVFX_ROOT/backend/.env"
+fx_say "done. Boot with ./formvfx"

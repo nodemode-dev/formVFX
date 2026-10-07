@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+source "$(dirname "$0")/lib.sh"
+fail=0
+ok() { printf '  ok     %s\n' "$1"; }
+bad() { printf '  FAIL   %s · %s\n' "$1" "$2"; fail=1; }
+warn() { printf '  warn   %s · %s\n' "$1" "$2"; }
+fx_say "doctor · $(fx_os)"
+if command -v node >/dev/null 2>&1 && node -e 'const [m,n]=process.versions.node.split(".").map(Number);process.exit((m===20&&n>=19)||(m===22&&n>=12)||m>=23?0:1)'; then ok "node $(node -v)"; else bad "node" "Node 20.19+ or 22.12+ is required"; fi
+if command -v npm >/dev/null 2>&1; then ok "npm"; else bad "npm" "install npm"; fi
+if py="$(fx_python)"; then ok "python $("$py" -V 2>&1 | awk '{print $2}')"; else bad "python" "Python 3.12+ is required"; fi
+if command -v cargo >/dev/null 2>&1; then ok "rust $(rustc --version | awk '{print $2}')"; else bad "rust" "the compositing core needs Rust 1.95+ from https://rustup.rs"; fi
+if [ -f "$FORMVFX_ROOT/backend/venv/bin/activate" ]; then ok "engine venv"; else warn "engine venv" "run ./formvfx install"; fi
+vpy="$FORMVFX_ROOT/backend/venv/bin/python"
+if [ -x "$vpy" ]; then
+  if "$vpy" -c "import fvx_core" >/dev/null 2>&1; then ok "compositing core $("$vpy" -c 'import fvx_core; print(fvx_core.__version__)')"; else bad "compositing core" "run ./formvfx install-native"; fi
+fi
+if [ -d "$FORMVFX_ROOT/frontend/node_modules" ]; then ok "interface node_modules"; else warn "interface deps" "run ./formvfx install"; fi
+for a in claude codex cursor-agent; do
+  if command -v "$a" >/dev/null 2>&1; then ok "agent $a"; else warn "agent $a" "not on PATH (optional)"; fi
+done
+for port in 5230 "${FORMVFX_PORT:-8230}"; do
+  if (exec 3<>"/dev/tcp/127.0.0.1/$port") 2>/dev/null; then warn "port $port" "already in use"; else ok "port $port free"; fi
+done
+if [ "$fail" = 0 ]; then fx_say "ready"; else fx_say "fix the FAIL lines above"; fi
+exit "$fail"

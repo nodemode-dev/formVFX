@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -e
+source "$(dirname "$0")/lib.sh"
+cd "$FORMVFX_ROOT/frontend"
+[ -d node_modules ] || npm install
+npm run build
+fx_say "built frontend/dist"
