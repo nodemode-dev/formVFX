@@ -1,0 +1,15 @@
+[build-system]
+requires = ["maturin>=1.15,<2"]
+build-backend = "maturin"
+
+[project]
+name = "fvx-core"
+version = "0.1.0"
+description = "formvfx's own compositing engine for the formvfx engine service"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.10"
+
+[tool.maturin]
+bindings = "pyo3"
+module-name = "fvx_core"
+features = ["python"]
