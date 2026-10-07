@@ -10,4 +10,4 @@ The MCP server is configured here in `.codex/config.toml` (Codex) and `.cursor/m
 
 ## Changing formvfx's code
 
-Read `CLAUDE.md`, then `frontend/HASHOUT_LOG.md` and `backend/HASHOUT_LOG.md`. After changing MCP tools or engine commands, run `./formvfx agents sync`.
+Read `CLAUDE.md` and `.claude/skills/formvfx-skillset/SKILL.md`, then `frontend/HASHOUT_LOG.md` and `backend/HASHOUT_LOG.md`. After changing MCP tools or engine commands, run `./formvfx agents sync`.

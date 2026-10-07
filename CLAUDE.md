@@ -6,7 +6,7 @@ Motion graphics and visual effects (an After Effects alternative) in the form fa
 
 **Making motion graphics with formvfx** (a title, an animation, an effect, a render): use the `formvfx` MCP server (`.mcp.json` runs `./formvfx mcp`, which starts the engine when needed) with the `formvfx-harness` skill in `.claude/skills/formvfx-harness`. Start with `status`, build with `batch`, look with `render_frame` and `contact_sheet`. The first change asks the person once in the formvfx window; agents started from formvfx's Terminal panel never ask.
 
-**Changing formvfx's code**: read the living logs `frontend/HASHOUT_LOG.md` and `backend/HASHOUT_LOG.md` before editing.
+**Changing formvfx's code**: route through `.claude/skills/formvfx-skillset/SKILL.md` (subsystem map, rules, specialists) and read the living logs `frontend/HASHOUT_LOG.md` and `backend/HASHOUT_LOG.md` before editing.
 
 ## Layout
 
