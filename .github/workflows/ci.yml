@@ -1,0 +1,110 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_NET_GIT_FETCH_WITH_CLI: 'true'
+
+jobs:
+  interface:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run build
+
+  engine:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: native/fvx-core
+      - name: Engine venv and the compositing core (dev profile)
+        run: |
+          (cd backend && ./oc_install)
+          ./formvfx install-native --dev
+      - name: Compile and self-check
+        run: |
+          source backend/venv/bin/activate
+          cd backend
+          python -m compileall -q app formvfx_engine.py
+          python formvfx_engine.py --selfcheck
+      - name: Skill references are in step with the engine
+        run: ./formvfx agents sync --check
+      - name: Boot the engine, probe HTTP and MCP
+        env:
+          FORMVFX_AGENTS: allow
+          FORMVFX_DATA_DIR: ${{ runner.temp }}/fxdata
+        run: |
+          source backend/venv/bin/activate
+          (cd backend && python -m uvicorn app.main:app --host 127.0.0.1 --port 8230 &)
+          for i in $(seq 1 60); do curl -sf -H 'x-formvfx-local: 1' http://127.0.0.1:8230/api/health && break; sleep 1; done
+          printf '%s\n' \
+            '{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":"2025-06-18","clientInfo":{"name":"ci"},"capabilities":{}}}' \
+            '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' \
+            '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"execute","arguments":{"command":"comp.new","params":{"name":"CI"}}}}' \
+            '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"render_frame","arguments":{"max_size":320}}}' \
+            | FORMVFX_URL=http://127.0.0.1:8230 python setup/mcp_stdio.py > mcp.out
+          python - <<'PY'
+          import json
+          lines = [json.loads(l) for l in open('mcp.out')]
+          tools = lines[1]['result']['tools']
+          assert len(tools) >= 20, len(tools)
+          assert not lines[2]['result'].get('isError'), lines[2]
+          assert any(c['type'] == 'image' for c in lines[3]['result']['content']), lines[3]
+          print('mcp ok:', len(tools), 'tools')
+          PY
+
+  scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Shell syntax
+        run: |
+          for f in formvfx formvfx_oc_install backend/oc_install backend/boot_backend frontend/oc_install frontend/boot_frontend setup/*; do
+            case "$f" in *.bat|*.py|*.sh) continue ;; esac
+            bash -n "$f"
+          done
+          bash -n setup/lib.sh
+      - name: No pictographs or em dashes
+        run: python3 setup/lint_text.py .
+      - name: Python syntax of the setup scripts
+        run: python3 -m py_compile setup/*.py
+
+  desktop-shell:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - name: Webview packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - name: cargo check the Tauri shell
+        run: |
+          mkdir -p frontend/dist
+          printf '<!doctype html><title>formvfx</title>' > frontend/dist/index.html
+          touch "src-tauri/binaries/formvfx-engine-$(rustc -vV | awk '/^host:/ {print $2}')"
+          cd src-tauri && cargo check --locked
