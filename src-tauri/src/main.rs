@@ -72,7 +72,8 @@ fn main() {
                 .shell()
                 .sidecar("formvfx-engine")
                 .expect("sidecar binary is bundled")
-                .env("FORMVFX_PORT", "0");
+                .env("FORMVFX_PORT", "0")
+                .env("FORMVFX_PARENT_PID", std::process::id().to_string());
             if let Some(project) = project_argument() {
                 sidecar = sidecar.env("FORMVFX_OPEN", project);
             }

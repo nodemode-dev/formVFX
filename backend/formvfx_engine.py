@@ -2,6 +2,8 @@ import json
 import os
 import socket
 import sys
+import threading
+import time
 from pathlib import Path
 
 
@@ -24,8 +26,49 @@ def selfcheck() -> int:
     return 0 if report["ok"] else 1
 
 
+def _alive(pid: int) -> bool:
+    if os.name == "nt":
+        import ctypes
+
+        handle = ctypes.windll.kernel32.OpenProcess(0x00100000, False, pid)
+        if not handle:
+            return False
+        try:
+            return ctypes.windll.kernel32.WaitForSingleObject(handle, 0) != 0
+        finally:
+            ctypes.windll.kernel32.CloseHandle(handle)
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+def _watch_parent() -> None:
+    raw = os.environ.get("FORMVFX_PARENT_PID", "").strip()
+    if not raw.isdigit():
+        return
+    pid = int(raw)
+
+    def loop() -> None:
+        while _alive(pid):
+            time.sleep(1.0)
+        try:
+            from app.core import discovery
+
+            discovery.withdraw()
+        finally:
+            os._exit(0)
+
+    threading.Thread(target=loop, name="formvfx-parent-watch", daemon=True).start()
+
+
 def serve(headless: bool) -> None:
     import uvicorn
+
+    _watch_parent()
 
     dist = _bundle() / "frontend_dist"
     if (dist / "index.html").is_file():
