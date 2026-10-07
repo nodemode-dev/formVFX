@@ -30,6 +30,7 @@ class EngineHost:
         self._ready = threading.Event()
         self._thread: threading.Thread | None = None
         self._source = "ui"
+        self._touched = False
         self.frames = concurrent.futures.ThreadPoolExecutor(max_workers=2, thread_name_prefix="formvfx-frame")
         self.jobs = concurrent.futures.ThreadPoolExecutor(max_workers=2, thread_name_prefix="formvfx-job")
 
@@ -72,13 +73,15 @@ class EngineHost:
             if item is _STOP:
                 break
             if item is not None:
-                fn, fut, source = item
+                fn, fut, source, touches = item
                 if fut.set_running_or_notify_cancel():
                     self._source = source
                     try:
                         fut.set_result(fn(self.engine))
                     except BaseException as exc:
                         fut.set_exception(exc)
+                    if touches:
+                        self._touched = True
             now = time.time()
             if now - last_tick >= 0.1:
                 last_tick = now
@@ -105,20 +108,22 @@ class EngineHost:
                 continue
             ev["source"] = self._source
             self.bus.publish(ev)
-        if rev != self.revision:
+        if rev != self.revision or self._touched:
+            edited = rev != self.revision
             self.revision = rev
-            self.bus.publish({"type": "changed", "revision": rev, "source": self._source})
+            self._touched = False
+            self.bus.publish({"type": "changed", "revision": rev, "edited": edited, "source": self._source})
 
-    def submit(self, fn: Callable[[Any], Any], source: str = "ui") -> concurrent.futures.Future:
+    def submit(self, fn: Callable[[Any], Any], source: str = "ui", touches: bool = False) -> concurrent.futures.Future:
         fut: concurrent.futures.Future = concurrent.futures.Future()
         if self.engine is None:
             fut.set_exception(EngineError(self.error or "the compositing core is not loaded"))
             return fut
-        self._q.put((fn, fut, source))
+        self._q.put((fn, fut, source, touches))
         return fut
 
-    async def call(self, fn: Callable[[Any], Any], source: str = "ui") -> Any:
-        return await asyncio.wrap_future(self.submit(fn, source))
+    async def call(self, fn: Callable[[Any], Any], source: str = "ui", touches: bool = False) -> Any:
+        return await asyncio.wrap_future(self.submit(fn, source, touches))
 
     def call_sync(self, fn: Callable[[Any], Any], source: str = "ui", timeout: float = 600) -> Any:
         return self.submit(fn, source).result(timeout)

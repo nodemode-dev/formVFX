@@ -26,8 +26,10 @@ def _dumps(params: Any) -> str:
 async def execute(command: str, params: Any = None, source: str = "ui") -> Any:
     if not isinstance(command, str) or not command:
         raise RpcError("missing `command`", -32602)
+    from ..agent.consent import query_command
+
     try:
-        raw = await host.call(lambda e: e.execute(command, _dumps(params)), source)
+        raw = await host.call(lambda e: e.execute(command, _dumps(params)), source, touches=not query_command(command))
     except ValueError as exc:
         host.note(source, command, False, str(exc))
         raise RpcError(str(exc)) from None
@@ -83,6 +85,9 @@ async def dispatch(method: str, params: Any, source: str = "ui") -> Any:
             return _effects_cache
         if method == "gesture.begin":
             return await host.call(lambda e: e.begin_gesture(), source)
+        if method == "state.touch":
+            await host.call(lambda e: None, source, touches=True)
+            return True
         if method == "gesture.end":
             await host.call(lambda e: e.end_gesture(), source)
             return True
