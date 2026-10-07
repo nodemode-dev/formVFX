@@ -1,4 +1,5 @@
 import asyncio
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -9,6 +10,7 @@ from . import __version__
 from .agent import workspace
 from .core import config, discovery
 from .core.security import LocalOnly
+from .engine import rpc as engine_rpc
 from .engine.host import host
 from .routers import agents, files, live, mcp, rpc, system, terminal, viewer
 
@@ -23,6 +25,12 @@ async def lifespan(app: FastAPI):
         workspace.ensure()
     except OSError:
         pass
+    opening = os.environ.get("FORMVFX_OPEN", "").strip()
+    if opening:
+        try:
+            await engine_rpc.execute("file.open", {"path": opening}, "desktop")
+        except Exception:
+            pass
     if not config.DESKTOP:
         try:
             discovery.publish(f"http://127.0.0.1:{config.PORT}", __version__)

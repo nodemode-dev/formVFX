@@ -53,12 +53,14 @@ def _shim(base: Path) -> None:
     if os.name == "nt":
         line = " ".join(f'"{c}"' for c in cmd)
         backend = str(Path(__file__).resolve().parents[2])
-        _write(bindir / "formvfx.cmd", f"@echo off\r\nset \"PYTHONPATH={backend};%PYTHONPATH%\"\r\n{line} %*\r\n")
+        env = "" if config.FROZEN else f"set \"PYTHONPATH={backend};%PYTHONPATH%\"\r\n"
+        _write(bindir / "formvfx.cmd", f"@echo off\r\n{env}{line} %*\r\n")
     else:
         quoted = " ".join("'" + c.replace("'", "'\\''") + "'" for c in cmd)
         backend = str(Path(__file__).resolve().parents[2]).replace("'", "'\\''")
         p = bindir / "formvfx"
-        _write(p, f"#!/bin/sh\nPYTHONPATH='{backend}'${{PYTHONPATH:+:$PYTHONPATH}} exec {quoted} \"$@\"\n")
+        env = "" if config.FROZEN else f"PYTHONPATH='{backend}'${{PYTHONPATH:+:$PYTHONPATH}} "
+        _write(p, f"#!/bin/sh\n{env}exec {quoted} \"$@\"\n")
         p.chmod(p.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
 

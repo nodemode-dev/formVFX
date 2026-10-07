@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -e
+source "$(dirname "$0")/lib.sh"
+fx_venv
+python -c "import PyInstaller" 2>/dev/null || fx_die "PyInstaller missing, run ./formvfx install-desktop"
+python -c "import fvx_core" 2>/dev/null || fx_die "the compositing core is not built, run ./formvfx install-native"
+triple="$(fx_target_triple)" || fx_die "rustc not found; install Rust or set FORMVFX_TARGET"
+[ -f "$FORMVFX_ROOT/frontend/dist/index.html" ] || "$FORMVFX_ROOT/setup/build_frontend"
+cd "$FORMVFX_ROOT/backend"
+sep=":"
+[ "$(fx_os)" = windows ] && sep=";"
+ext="$(fx_exe)"
+rm -rf build/pyinstaller dist-engine
+pyinstaller --noconfirm --clean --onefile --name formvfx-engine \
+  --distpath dist-engine --workpath build/pyinstaller --specpath build/pyinstaller \
+  --add-data "$FORMVFX_ROOT/frontend/dist${sep}frontend_dist" \
+  --add-data "$FORMVFX_ROOT/backend/app/agent/templates${sep}agent_templates" \
+  --add-data "$FORMVFX_ROOT/.claude/skills${sep}skills" \
+  --collect-all fvx_core --collect-submodules app --collect-submodules uvicorn \
+  "$FORMVFX_ROOT/backend/formvfx_engine.py"
+mkdir -p "$FORMVFX_ROOT/src-tauri/binaries"
+out="$FORMVFX_ROOT/src-tauri/binaries/formvfx-engine-${triple}${ext}"
+rm -f "$out"
+cp "dist-engine/formvfx-engine${ext}" "$out"
+chmod +x "$out"
+"$out" --selfcheck
+fx_say "sidecar ready: $out"

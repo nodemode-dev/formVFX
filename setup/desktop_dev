@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -e
+source "$(dirname "$0")/lib.sh"
+triple="$(fx_target_triple)" || fx_die "rustc not found; run ./formvfx install-desktop"
+[ -x "$FORMVFX_ROOT/src-tauri/binaries/formvfx-engine-${triple}$(fx_exe)" ] || "$FORMVFX_ROOT/setup/freeze_backend"
+cd "$FORMVFX_ROOT"
+exec frontend/node_modules/.bin/tauri dev "$@"

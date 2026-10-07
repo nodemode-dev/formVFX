@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -e
+source "$(dirname "$0")/lib.sh"
+"$FORMVFX_ROOT/setup/build_frontend"
+"$FORMVFX_ROOT/setup/freeze_backend"
+cd "$FORMVFX_ROOT"
+frontend/node_modules/.bin/tauri build "$@"
+fx_say "bundles are in src-tauri/target/release/bundle"

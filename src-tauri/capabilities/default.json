@@ -1,0 +1,10 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "The interface talks HTTP to its engine on loopback; through Tauri it opens native file dialogs.",
+  "windows": ["splash", "main"],
+  "remote": {
+    "urls": ["http://127.0.0.1:*"]
+  },
+  "permissions": ["core:default", "dialog:default"]
+}
