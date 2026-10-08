@@ -23,6 +23,7 @@ export interface UiEvents {
   reveal: { props?: unknown; kind?: string; layers?: unknown };
   find: string;
   focusPanel: string;
+  pasted: boolean;
 }
 
 interface Picker {

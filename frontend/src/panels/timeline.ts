@@ -9,6 +9,7 @@ import { PropEditor } from '../ui/prop-editor';
 import { promptName } from '../ui/dialogs';
 import { GraphView } from './graph';
 import { PeakCache } from '../engine/peaks';
+import { applyTextPreset } from './effects-presets';
 
 const ROW = 24;
 const WAVE_ROWS = 3;
@@ -271,7 +272,7 @@ export class TimelinePanel implements Panel {
     this.tracks.addEventListener('contextmenu', (e) => this.tracksMenu(e));
     this.tracks.addEventListener('dblclick', (e) => this.tracksDbl(e));
     this.rowsEl.addEventListener('dragover', (e) => {
-      if (e.dataTransfer?.types.includes('application/x-formvfx-item') || e.dataTransfer?.types.includes('application/x-formvfx-effect')) e.preventDefault();
+      if (e.dataTransfer?.types.includes('application/x-formvfx-item') || e.dataTransfer?.types.includes('application/x-formvfx-effect') || e.dataTransfer?.types.includes('application/x-formvfx-text-preset')) e.preventDefault();
     });
     this.rowsEl.addEventListener('drop', (e) => void this.drop(e));
     this.tracks.addEventListener('dragover', (e) => {
@@ -1275,6 +1276,12 @@ export class TimelinePanel implements Panel {
     e.preventDefault();
     const item = e.dataTransfer?.getData('application/x-formvfx-item');
     const effect = e.dataTransfer?.getData('application/x-formvfx-effect');
+    const preset = e.dataTransfer?.getData('application/x-formvfx-text-preset');
+    if (preset) {
+      const { row } = this.trackPos(e as unknown as PointerEvent);
+      if (row?.layer.type === 'Text') await applyTextPreset(this.ctx, preset, [row.layer.id]);
+      return;
+    }
     const { row, x } = this.trackPos(e as unknown as PointerEvent);
     if (item) {
       const index = row?.kind === 'layer' ? row.layer.index : (this.ctx.store.layers.length || 0) + 1;

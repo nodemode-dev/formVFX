@@ -145,6 +145,7 @@ class App {
     };
     this.buildHome();
     this.bindEngine();
+    document.addEventListener('paste', (e) => void this.paste(e));
     ctx.ui.on('showPanel', (id) => this.dock.show(id));
     ctx.ui.on('focusPanel', (id) => this.dock.focus(id));
     ctx.start();
@@ -373,6 +374,30 @@ class App {
     ctx.client.events.on('activity', (ev) => {
       if (String(ev.source) !== 'ui' && ev.ok === false) toast(`${String(ev.source).replace(/^mcp:/, '')}: ${ev.error}`, 'error');
     });
+  }
+
+  private async paste(e: ClipboardEvent): Promise<void> {
+    ctx.ui.emit('pasted', true);
+    const t = e.target as HTMLElement | null;
+    if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || t?.isContentEditable || t?.closest?.('.fx-term-host, .xterm, .cv-scrim')) return;
+    if (this.viewer.isTyping) return;
+    e.preventDefault();
+    const d = e.clipboardData;
+    const svg = (d?.getData('image/svg+xml') || d?.getData('text/plain') || '').trim();
+    if (/^(<\?xml[^>]*>\s*)?(<!--[\s\S]*?-->\s*)*(<!DOCTYPE[^>]*>\s*)?<svg[\s>]/i.test(svg)) {
+      if (!ctx.store.comp) {
+        toast('Open a composition to paste vector artwork into', 'error');
+        return;
+      }
+      try {
+        const r = await ctx.client.call<{ layer: number; skipped: string[] }>('clipboard.pasteSvg', { svg });
+        toast(r.skipped?.length ? `Pasted as shapes; skipped ${r.skipped.length} element${r.skipped.length === 1 ? '' : 's'} (${r.skipped.slice(0, 3).join(', ')})` : 'Pasted vector artwork as a shape layer', 'info');
+      } catch (err) {
+        toast(err instanceof Error ? err.message : String(err), 'error');
+      }
+      return;
+    }
+    void ctx.invoke('edit.paste');
   }
 
   private frontend(command: string, params: Record<string, unknown>): void {

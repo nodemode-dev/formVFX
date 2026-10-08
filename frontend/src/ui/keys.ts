@@ -49,6 +49,7 @@ export function comboOf(e: KeyboardEvent): string {
 export class Keys {
   private table = new Map<string, Binding>();
   private last: { combo: string; at: number } = { combo: '', at: 0 };
+  private pasteWait = 0;
   handlers: {
     reveal: (kind: string) => void;
     palette: () => void;
@@ -62,6 +63,7 @@ export class Keys {
   constructor(private readonly ctx: Ctx) {
     ctx.client.events.on('open', () => void this.load());
     window.addEventListener('keydown', (e) => this.down(e));
+    ctx.ui.on('pasted', () => window.clearTimeout(this.pasteWait));
   }
 
   async load(): Promise<void> {
@@ -126,6 +128,11 @@ export class Keys {
       e.preventDefault();
       const focus = this.handlers.focused();
       void this.ctx.invoke(focus === 'project' ? 'project.delete' : 'edit.clear');
+      return;
+    }
+    if (combo === 'Cmd+V') {
+      window.clearTimeout(this.pasteWait);
+      this.pasteWait = window.setTimeout(() => void this.ctx.invoke('edit.paste'), 120);
       return;
     }
     const b = this.table.get(combo);
