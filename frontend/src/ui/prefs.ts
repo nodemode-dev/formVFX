@@ -25,6 +25,17 @@ interface PrefPage {
   items: PrefItem[];
 }
 
+interface Perf {
+  multiFrame: boolean;
+  reservedCores: number;
+  cores: number;
+  previewFrames: number;
+  renderThreads: number;
+  activeRenderThreads: number;
+  gpu: boolean;
+  gpuStatus: { enabled: boolean; adapter: string | null; reason: string | null };
+}
+
 const TITLES: Record<string, string> = {
   interface: 'Interface', general: 'General', startup: 'Startup & Repair', project: 'Project', composition: 'Composition', previews: 'Previews', appearance: 'Appearance',
   grids: 'Grids & Guides', labels: 'Labels', type: 'Type', import: 'Import', export: 'Export', audio: 'Audio', disk: 'Disk & Cache', memory: 'Memory & CPU',
@@ -84,26 +95,21 @@ export class Preferences {
     this.current = id;
     this.renderNav();
     const pane = this.pane as HTMLElement;
-    pane.replaceChildren();
     if (id === 'interface') {
+      pane.replaceChildren();
       this.interfacePage(pane);
       return;
     }
     const page = this.pages.find((p) => p.id === id);
     if (!page) return;
+    const perf = id === 'memory' ? this.ctx.client.call<Perf>('engine.performance', {}).catch(() => null) : Promise.resolve(null);
     const values = await Promise.all(page.items.map((i) => (i.key ? this.ctx.client.exec<unknown>('prefs.get', { key: i.key }).catch(() => undefined) : Promise.resolve(undefined))));
-    page.items.forEach((item, idx) => pane.appendChild(this.row(item, values[idx])));
-    if (id === 'memory') await this.performance(pane);
+    const p = await perf;
+    if (this.current !== id) return;
+    pane.replaceChildren(...page.items.map((item, idx) => this.row(item, values[idx])), ...(p ? this.performance(p) : []));
   }
 
-  private async performance(pane: HTMLElement): Promise<void> {
-    type Perf = { multiFrame: boolean; reservedCores: number; cores: number; previewFrames: number; renderThreads: number; activeRenderThreads: number };
-    let p: Perf;
-    try {
-      p = await this.ctx.client.call<Perf>('engine.performance', {});
-    } catch {
-      return;
-    }
+  private performance(p: Perf): HTMLElement[] {
     const section = el('<div class="fx-prefs-section">Multi-Frame Rendering</div>');
     const on = el<HTMLLabelElement>('<label class="fx-prefs-row"><span class="fx-prefs-label">Enable Multi-Frame Rendering</span><span class="fx-prefs-ctl"><input type="checkbox" class="fx-check" data-automation-id="preferences.multiFrame"></span></label>');
     const reserve = el<HTMLLabelElement>('<label class="fx-prefs-row"><span class="fx-prefs-label">CPU Cores Reserved for Other Applications</span><span class="fx-prefs-ctl"><input class="cv-input fx-prefs-num" type="number" step="1" min="0" data-automation-id="preferences.reservedCores"><span class="fx-prefs-unit">cores</span></span></label>');
@@ -126,8 +132,22 @@ export class Preferences {
     };
     box.addEventListener('change', () => void save({ multiFrame: box.checked }));
     num.addEventListener('change', () => void save({ reservedCores: Math.max(0, Math.round(Number(num.value) || 0)) }));
+    const gpuSection = el('<div class="fx-prefs-section">GPU Acceleration</div>');
+    const gpuRow = el<HTMLLabelElement>('<label class="fx-prefs-row"><span class="fx-prefs-label">Use the GPU for Previews and Renders</span><span class="fx-prefs-ctl"><input type="checkbox" class="fx-check" data-automation-id="preferences.gpu"></span></label>');
+    const gpuBox = q<HTMLInputElement>(gpuRow, 'input');
+    const gpuNote = el('<p class="fx-note fx-prefs-note" data-automation-id="preferences.gpuStatus"></p>');
+    const showGpu = (v: Perf): void => {
+      gpuBox.checked = v.gpu;
+      const s = v.gpuStatus;
+      setText(gpuNote, s.enabled ? `Rendering on ${s.adapter ?? 'the GPU'}. Each composition goes to the GPU or the CPU, whichever is faster for it; a project set to Mercury Software Only (File > Project Settings) stays on the CPU.` : `On the CPU: ${s.reason ?? 'the GPU is off'}.`);
+    };
+    gpuBox.addEventListener('change', () => {
+      setText(gpuNote, gpuBox.checked ? 'Starting the GPU...' : 'Switching to the CPU...');
+      void this.ctx.client.call<Perf>('engine.performance', { gpu: gpuBox.checked }).then(showGpu, () => undefined);
+    });
     show(p);
-    pane.append(section, on, reserve, note);
+    showGpu(p);
+    return [section, on, reserve, note, gpuSection, gpuRow, gpuNote];
   }
 
   private set(key: string, value: unknown): void {

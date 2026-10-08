@@ -75,6 +75,11 @@ Living context for the interface. Code carries almost no comments; the reasoning
 
 - `panels/tracker.ts`: `TrackerPanel` extends the generic `CommandPanel` for `tracker` and prepends one Planar Track section, built once. The mask and target selects are refilled only when their option lists change (a JSON signature); the target defaults to the layer above the source each time the source changes. Mask names come from the source layer's property tree (`store.wantTrees('planar', [id])`), else Mask 1..n. The run calls `track.planar` and keeps its message in the status line until the source changes.
 
+## Settings pages (0.8.0)
+
+- `Preferences.show` builds a page off the DOM and swaps it in with one `replaceChildren` once its values (and, for Memory & CPU, `engine.performance`) have arrived; the old page stays until then, and a page left before its values arrive is dropped. It used to empty the pane first and append the Multi-Frame Rendering rows after a second request, so the page blinked empty and then grew.
+- Memory & CPU > GPU Acceleration: the checkbox sends `engine.performance {gpu}` and the note shows the adapter or the reason the CPU is used.
+
 ## Boot ground
 
 - The critical style paints only `html` (`#0a0a0a`, then the boot script's profile ground); `body` is transparent until `tokens.css` gives it `--bg-primary`. Painting `body` too showed `#0a0a0a` for the first frames before the Studio ground `#111111`.
