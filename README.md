@@ -1,6 +1,6 @@
 # formvfx
 
-Motion graphics and visual effects for the desktop and the browser, in the form family beside formvis and formcut. Compositions, layers, keyframes and the Graph Editor, 306 effects, text animators, shape layers, masks, Roto Brush, paint, puppet pins, 3D cameras and lights, tracking and stabilizing, expressions, scripting, Essential Graphics and a Render Queue, with an agent harness so Claude Code, Codex and Cursor can drive every tool from formvfx's embedded terminal.
+Motion graphics and visual effects for the desktop and the browser, in the form family beside formvis and formcut. Compositions, layers, keyframes and the Graph Editor, 306 effects, text animators with 177 presets, shape layers and SVG paste, masks, Roto Brush, paint, puppet pins, 3D cameras and lights, tracking and stabilizing, expressions, scripting, Essential Graphics and a Render Queue, with an agent harness so Claude Code, Codex and Cursor can drive every tool from formvfx's embedded terminal.
 
 Version 0.5.0 · Apache-2.0 · compositing engine: formvfx's own, in Rust (`native/fvx-core`)
 
@@ -46,15 +46,16 @@ Tagging `vX.Y.Z` builds macOS, Linux and Windows bundles in GitHub Actions and o
 | `mcp` | the MCP server over stdio |
 | `agents install|sync|status` | client setup; regenerate the skill references from the engine |
 | `counts [--check]` | the code size table below |
+| `presets [--check]` | regenerate the text animation preset library (`presets/text-animators.json`) |
 | `clean [--all]` | remove build output |
 
 ## Layout
 
-`native/fvx-core` (the compositing engine, Rust, PyO3) · `backend` (FastAPI engine service, MCP, terminal) · `frontend` (TypeScript and Vite interface) · `setup` (scripts) · `.claude/skills/formvfx-harness` (the agent skill, mirrored to `.agents/skills`).
+`native/fvx-core` (the compositing engine, Rust, PyO3) · `backend` (FastAPI engine service, MCP, terminal) · `frontend` (TypeScript and Vite interface) · `setup` (scripts) · `presets` (the text animation preset library) · `.claude/skills/formvfx-harness` (the agent skill, mirrored to `.agents/skills`).
 
 ## Parity
 
-[`docs/PARITY.md`](docs/PARITY.md) grades formvfx against After Effects 26.5 on 72 traced capability rows: 57 Full, 11 Partial, 4 None, a score of 87%. It lists where formvfx trails, in priority order, and where it leads. The wiki (`.docs/wiki`) covers getting started, agents, the architecture, the desktop app and releasing.
+[`docs/PARITY.md`](docs/PARITY.md) grades formvfx against After Effects 26.5 on 72 traced capability rows: 59 Full, 9 Partial, 4 None, a score of 88%. It lists where formvfx trails, in priority order, and where it leads. The wiki (`.docs/wiki`) covers getting started, agents, the architecture, the desktop app and releasing.
 
 ## Code size
 

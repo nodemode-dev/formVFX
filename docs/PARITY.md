@@ -1,6 +1,6 @@
 # formvfx against After Effects
 
-formvfx 0.5.0 measured line by line against Adobe After Effects 26.5 (September 2026), the way the form family measures itself: each capability is traced through formvfx's data model and engine command, the interface that exposes it, and the render or export path that applies it.
+formvfx 0.6.0 measured line by line against Adobe After Effects 26.5 (September 2026), the way the form family measures itself: each capability is traced through formvfx's data model and engine command, the interface that exposes it, and the render or export path that applies it.
 
 - **Full** · implemented and wired from the interface through to the render or export.
 - **Partial** · present but narrower than After Effects, or reachable only as a command form where After Effects gives direct manipulation.
@@ -18,6 +18,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 | formvfx 0.3.0 | 72 | 50 | 18 | 4 | 59 of 72 (82%) |
 | formvfx 0.4.0 | 72 | 53 | 15 | 4 | 60.5 of 72 (84%) |
 | formvfx 0.5.0 | 72 | 57 | 11 | 4 | 62.5 of 72 (87%) |
+| formvfx 0.6.0 | 72 | 59 | 9 | 4 | 63.5 of 72 (88%) |
 
 ## Rows
 
@@ -73,7 +74,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 | 26 | Text animators with range, wiggly and expression selectors | Full | `layer.addTextAnimator`, `layer.addTextSelector` | yes |
 | 27 | Text on a path, per-character 3D | Full | `text/pathOptions`, `layer.enablePerChar3D` | path |
 | 28 | OpenType features and variable font axes | Full | `layer.setText` OpenType keys and `variations`, `text.animatorFontAxes` | no |
-| 29 | Text animation preset library | Partial | `layer.applyTextPreset` with 8 presets; After Effects ships hundreds | typewriter |
+| 29 | Text animation preset library | Full | 169 presets in 13 categories (Animate In and Out, Blurs, Fill and Stroke, Lights and Optical, Mechanical, Multi-Line, Organic, Rotation, Scale, Tracking, 3D Text, Miscellaneous) in `presets/text-animators.json`, applied as live text animators (`text.applyLibraryPreset`, `text_preset`), plus the engine's 8 (`layer.applyTextPreset`); Effects & Presets > Animation Presets, double-click or drag onto a text layer | all 169 swept on rendered frames, double-click, drag |
 
 ### Shapes
 
@@ -82,7 +83,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 | 30 | Shape layers: groups, paths, fills, strokes, gradient fills | Full | `layer.newShape`, `shape.newPath`, `layer.addShapeItem` | yes |
 | 31 | Shape operators: Trim Paths, Repeater, Offset, Pucker and Bloat, Twist, Zig Zag, Wiggle, Merge, Round Corners | Full | `layer.addShapeItem {kind}` | trim, repeater |
 | 32 | Dashes, tapered and wavy strokes | Full | `shape.dashes.*`, `shape.stroke.taper`, `shape.stroke.wave` | no |
-| 33 | Shapes and masks from text and from vector layers; Illustrator and SVG paste as shapes | Partial | `layer.create {op}`; no clipboard paste of vector content | no |
+| 33 | Shapes and masks from text and from vector layers; Illustrator and SVG paste as shapes | Full | `layer.create {op}`; SVG markup on the clipboard pastes as one editable shape layer (Cmd+V, `clipboard.pasteSvg`, `shapes_from_svg`) from any app that copies SVG as text: Illustrator with Include SVG Code, Figma's Copy as SVG, a code editor | paste, MCP |
 
 ### Masks, rotoscoping and paint
 
@@ -165,7 +166,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 
 ### Platform (not scored)
 
-| Capability | After Effects 26.5 | formvfx 0.5.0 |
+| Capability | After Effects 26.5 | formvfx 0.6.0 |
 | --- | --- | --- |
 | Desktop operating systems | macOS, Windows (x64, ARM) | macOS, Windows, Linux (Tauri) |
 | In a browser | no | yes (`./formvfx serve`) |
@@ -176,7 +177,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 
 1. GPU rendering on by default (63).
 2. AI and model-backed tools: Roto Brush 3 quality, Object Matte (36, 37).
-3. Content: the text animation preset library (29), vector paste as shapes (33), planar tracking (58).
+3. Tracking: a planar solver (58).
 4. Ecosystem: `.mogrt`, `.ffx`, After Effects SDK plug-ins, Cinema 4D, Substance, Curl Noise (9, 24, 46, 47, 50, 53).
 
 ## Where formvfx leads
