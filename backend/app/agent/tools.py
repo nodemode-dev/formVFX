@@ -89,8 +89,8 @@ TOOLS = [
           {"layer": _LAYER, "effect": {"type": "string"}, "params": {"type": "object", "additionalProperties": True}, "comp": _COMP}, ["layer", "effect"]),
     _tool("list_effects", "The effects (306) by category with ids; with detail, their parameters (id, name, default, control). Filter by name, id or category.",
           {"query": {"type": "string"}, "category": {"type": "string"}, "detail": {"type": "boolean", "default": False}, "limit": {"type": "integer", "minimum": 1, "maximum": 400, "default": 60}}, read=True, idempotent=True),
-    _tool("render_frame", "Renders one frame of a composition and returns it as an image so you can see it. Use it after changes and at the moments that matter.",
-          {"comp": _COMP, "time": _TIME, "max_size": {"type": "integer", "minimum": 64, "maximum": 2048, "default": 960}, "transparent": {"type": "boolean", "default": False}}, read=True, idempotent=True),
+    _tool("render_frame", "Renders one frame of a composition and returns it as an image so you can see it. Use it after changes and at the moments that matter. For a 3D comp, view renders from a 3D view (top, front, left, right, back, bottom, default, custom1-3) instead of the active camera, to check layout in space.",
+          {"comp": _COMP, "time": _TIME, "max_size": {"type": "integer", "minimum": 64, "maximum": 2048, "default": 960}, "transparent": {"type": "boolean", "default": False}, "view": {"type": "string", "enum": ["activeCamera", "default", "front", "left", "top", "back", "right", "bottom", "custom1", "custom2", "custom3"]}}, read=True, idempotent=True),
     _tool("contact_sheet", "Renders several frames across a time span into one image grid (each labelled with its time) to check motion and timing in one look.",
           {"comp": _COMP, "start": {"type": "number"}, "end": {"type": "number"}, "count": {"type": "integer", "minimum": 2, "maximum": 24, "default": 8}, "max_size": {"type": "integer", "minimum": 64, "maximum": 640, "default": 320}}, read=True, idempotent=True),
     _tool("render", "Renders a composition to a file through the Render Queue and waits for it: format h264, prores, hevc, av1, webm, gif, png, jpeg, tiff, exr, wav or aiff; output is an absolute path (default: the renders folder).",
@@ -315,6 +315,8 @@ async def _call(name: str, a: dict, source: str) -> dict:
         p = {"maxSide": int(a.get("max_size") or 960), "transparent": bool(a.get("transparent")), "display": False, **_comp_param(a)}
         if a.get("time") is not None:
             p["time"] = a["time"]
+        if a.get("view"):
+            p["view3d"] = a["view"]
         out = await rpc.render_png(p, source)
         t = a.get("time")
         return image(out["png"], f"{out['width']} x {out['height']}" + (f" at {t} s" if t is not None else " at the current time"))

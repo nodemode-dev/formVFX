@@ -69,4 +69,4 @@ Then `transform/orientation` `[90, 0, 0]` and a y below the card on the floor, `
 
 ## Check
 
-Render frames at the start, middle and end of every camera move; perspective errors (a layer behind the camera, a floor seen edge-on, clipping) only show from the camera's point of view.
+Render frames at the start, middle and end of every camera move; perspective errors (a layer behind the camera, a floor seen edge-on, clipping) only show from the camera's point of view. To check where layers sit in space, `render_frame {view: "top"}` (or `front`, `right`) renders an orthographic view without moving the camera; the person can set the same views side by side with `view.layout {views: 2|4}`.

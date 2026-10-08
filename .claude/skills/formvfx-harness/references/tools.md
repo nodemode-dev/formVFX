@@ -122,12 +122,13 @@ Note: read-only.
 
 ## render_frame
 
-Renders one frame of a composition and returns it as an image so you can see it. Use it after changes and at the moments that matter.
+Renders one frame of a composition and returns it as an image so you can see it. Use it after changes and at the moments that matter. For a 3D comp, view renders from a 3D view (top, front, left, right, back, bottom, default, custom1-3) instead of the active camera, to check layout in space.
 
 - `comp`: id or name; Composition id or name; omit for the active composition.
 - `time`: number; Composition time in seconds; omit for the current time.
 - `max_size`: integer; default 960
 - `transparent`: boolean; default false
+- `view`: string (activeCamera | default | front | left | top | back | right | bottom | custom1 | custom2 | custom3)
 
 Note: read-only.
 

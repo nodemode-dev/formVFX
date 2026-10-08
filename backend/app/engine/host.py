@@ -31,13 +31,28 @@ class EngineHost:
         self._thread: threading.Thread | None = None
         self._source = "ui"
         self._touched = False
-        self.frames = concurrent.futures.ThreadPoolExecutor(max_workers=2, thread_name_prefix="formvfx-frame")
+        from . import performance
+
+        self.preview_frames = performance.preview_frames()
+        self.frames = concurrent.futures.ThreadPoolExecutor(max_workers=max(2, self.preview_frames), thread_name_prefix="formvfx-frame")
         self.jobs = concurrent.futures.ThreadPoolExecutor(max_workers=2, thread_name_prefix="formvfx-job")
+
+    def set_preview_frames(self, n: int) -> None:
+        n = max(1, n)
+        if n == self.preview_frames:
+            return
+        old = self.frames
+        self.preview_frames = n
+        self.frames = concurrent.futures.ThreadPoolExecutor(max_workers=max(2, n), thread_name_prefix="formvfx-frame")
+        old.shutdown(wait=False)
 
     def start(self, loop: asyncio.AbstractEventLoop) -> None:
         self.bus.bind(loop)
         if self._thread:
             return
+        from . import performance
+
+        performance.apply_env()
         self._thread = threading.Thread(target=self._run, name="formvfx-engine", daemon=True)
         self._thread.start()
         self._ready.wait(120)

@@ -105,6 +105,13 @@ async def dispatch(method: str, params: Any, source: str = "ui") -> Any:
             from .. import native
 
             return {"name": "formvfx", "version": __version__, "core": json.loads(native.version()), "capabilities": caps, "revision": host.revision, "busy": host.busy}
+        if method == "engine.performance":
+            from . import performance
+
+            if any(k in p for k in ("multiFrame", "reservedCores")):
+                saved = performance.save(p)
+                host.set_preview_frames(performance.preview_frames(saved))
+            return performance.describe()
         if method == "activity.list":
             n = int(p.get("limit") or 50)
             return list(host.activity)[-n:]

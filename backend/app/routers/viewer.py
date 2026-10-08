@@ -1,4 +1,5 @@
 import asyncio
+import collections
 import json
 import struct
 from collections import OrderedDict
@@ -51,10 +52,27 @@ async def viewer(socket: WebSocket) -> None:
                 rid = state["range_id"]
                 times = rng.get("times") or []
                 base = {k: v for k, v in rng.items() if k not in ("times", "type")}
-                while state["range_id"] == rid and not latest and state["next"] < len(times):
-                    i = state["next"]
-                    state["next"] = i + 1
-                    await send(rid, {**base, "time": times[i], "index": i}, 1)
+                window: collections.deque = collections.deque()
+                while state["range_id"] == rid and not latest and (state["next"] < len(times) or window):
+                    while state["next"] < len(times) and len(window) < host.preview_frames:
+                        i = state["next"]
+                        state["next"] = i + 1
+                        params = {**base, "time": times[i], "index": i}
+                        window.append((i, params, asyncio.ensure_future(_render(params))))
+                    i, params, fut = window.popleft()
+                    try:
+                        w, h, rev, px = await fut
+                    except Exception as exc:
+                        await socket.send_text(json.dumps({"id": rid, "error": str(exc)}))
+                        continue
+                    if state["range_id"] != rid:
+                        break
+                    await socket.send_bytes(HEADER.pack(rid, w, h, rev, float(params["time"]), 1) + px)
+                if window:
+                    if state["range_id"] == rid:
+                        state["next"] = window[0][0]
+                    for _, _, fut in window:
+                        fut.cancel()
                 if state["range_id"] == rid and state["next"] >= len(times):
                     state["range"] = None
                     await socket.send_text(json.dumps({"id": rid, "done": True}))
@@ -96,6 +114,17 @@ async def frame_png(comp: str | None = None, time: float | None = None, max: int
     if time is not None:
         params["time"] = time
     w, h, _, px = await _render(params)
+    loop = asyncio.get_running_loop()
+    png = await loop.run_in_executor(host.frames, native.encode_png, w, h, px)
+    return Response(png, media_type="image/png", headers={"cache-control": "no-store"})
+
+
+@router.get("/api/snapshot.png")
+async def snapshot_png() -> Response:
+    snap = await host.call(lambda e: e.snapshot())
+    if not snap:
+        return Response(status_code=204)
+    w, h, px = snap
     loop = asyncio.get_running_loop()
     png = await loop.run_in_executor(host.frames, native.encode_png, w, h, px)
     return Response(png, media_type="image/png", headers={"cache-control": "no-store"})

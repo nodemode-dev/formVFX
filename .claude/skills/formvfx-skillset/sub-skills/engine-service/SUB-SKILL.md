@@ -11,12 +11,12 @@ description: The FastAPI engine service in backend/app. Use for the engine threa
 | --- | --- | --- |
 | Engine thread | `app/engine/host.py` | one `Engine`, a queue of callables, 100 ms tick (events, jobs, autosave), frame and job pools, `changed` publishing with `edited` |
 | Bus | `app/engine/bus.py` | windows join and leave, `publish`, `ask_window` / `answer` for consent and UI requests |
-| JSON-RPC | `app/engine/rpc.py` | `command.execute`, `command.batch`, `command.list`, `command.describe`, `ui.state`, `ui.overlays`, `ui.graph`, `ui.flowchart`, `menu.bar`, `menu.titles`, `effects.catalog`, `gesture.begin`, `gesture.end`, `frame.png`, `engine.info`, `activity.list`, `project.json`, `state.touch` |
+| JSON-RPC | `app/engine/rpc.py` | `command.execute`, `command.batch`, `command.list`, `command.describe`, `ui.state`, `ui.overlays`, `ui.graph`, `ui.flowchart`, `engine.performance`, `menu.bar`, `menu.titles`, `effects.catalog`, `gesture.begin`, `gesture.end`, `frame.png`, `engine.info`, `activity.list`, `project.json`, `state.touch` |
 | `GET /api/health`, `/api/version`, `/api/system` | `app/routers/system.py` | liveness, version, system and capability report |
 | `POST /api/rpc` | `app/routers/rpc.py` | JSON-RPC over HTTP (notifications get 204) |
 | `WS /api/live` | `app/routers/live.py` | the interface's socket: calls, replies, server events |
 | `WS /api/viewer` | `app/routers/viewer.py` | binary frames: header `<IIIIdI` (id, width, height, revision, time, kind) then RGBA; latest wins; range requests stream RAM previews |
-| `/api/frame.png`, `/api/thumb/[item]`, `/api/audio`, `/api/peaks/[item]` | `app/routers/viewer.py` | single frames, project thumbnails, WAV for previews, waveform peaks (f32 quadruples min L, max L, min R, max R; `x-bins-per-sec`; cached by footage path or comp revision) |
+| `/api/frame.png`, `/api/thumb/[item]`, `/api/audio`, `/api/peaks/[item]`, `/api/snapshot.png` (preview ranges render `host.preview_frames` at once, see `app/engine/performance.py`) | `app/routers/viewer.py` | single frames, project thumbnails, WAV for previews, waveform peaks (f32 quadruples min L, max L, min R, max R; `x-bins-per-sec`; cached by footage path or comp revision) |
 | `/api/fs/roots`, `list`, `mkdir`, `upload`, `file` | `app/routers/files.py` | the in-app file browser and drops |
 | `/api/terminal/status`, `WS /api/terminal/ws` | `app/routers/terminal.py` | PTY (pty.fork, pywinpty on Windows) in the agent workspace with the trust token in its environment |
 | `/mcp`, `/api/agents/*` | `app/routers/mcp.py`, `app/routers/agents.py` | see `agent-substrate` |

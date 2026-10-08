@@ -29,6 +29,10 @@ Living context for the engine service. Code carries almost no comments; the reas
 - `/api/peaks/{item}` (0.4.0): the engine thread only builds the job (`peaks_job`, cheap); the summary runs on `host.jobs`. Results are kept by the job's key (footage path, or comp id and revision) in an LRU of 48, and concurrent requests for one key share one task. 204 when the item has no audio.
 - `ui.flowchart` is a read RPC; agents get the same graph through `get_comp {flowchart: true}` (layers and effects included).
 
+- Multi-frame rendering (0.5.0, `app/engine/performance.py`): `performance.json` in the data folder keeps `multiFrame` and `reservedCores` (default 0). At start the engine sets `RAYON_NUM_THREADS` to the cores left (unless the variable is already set), which also sizes the Render Queue's batches; that part applies at the next start. Previews follow at once: `/api/viewer` range requests keep up to `host.preview_frames` frame jobs in flight and send them in order; a new single-frame request cancels the window and the range resumes from its first unsent frame. Keep `reservedCores` at 0 by default: one reserved core on a two-core machine halved single-frame speed, because every frame's own pixel work shares the same rayon pool.
+- `/api/snapshot.png` serves the Take Snapshot image (`snapshot()` on the core); 204 when there is none.
+- `render_frame {view}` renders a 3D comp from a 3D view through the frame job's `view3d` parameter.
+
 ## Known gaps
 
 - None recorded at 0.3.0; the desktop sidecar freeze and the Tauri shell shipped in 0.2.0.
