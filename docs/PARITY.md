@@ -1,6 +1,6 @@
 # formvfx against After Effects
 
-formvfx 0.6.0 measured line by line against Adobe After Effects 26.5 (September 2026), the way the form family measures itself: each capability is traced through formvfx's data model and engine command, the interface that exposes it, and the render or export path that applies it.
+formvfx 0.7.0 measured line by line against Adobe After Effects 26.5 (September 2026), the way the form family measures itself: each capability is traced through formvfx's data model and engine command, the interface that exposes it, and the render or export path that applies it.
 
 - **Full** · implemented and wired from the interface through to the render or export.
 - **Partial** · present but narrower than After Effects, or reachable only as a command form where After Effects gives direct manipulation.
@@ -19,6 +19,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 | formvfx 0.4.0 | 72 | 53 | 15 | 4 | 60.5 of 72 (84%) |
 | formvfx 0.5.0 | 72 | 57 | 11 | 4 | 62.5 of 72 (87%) |
 | formvfx 0.6.0 | 72 | 59 | 9 | 4 | 63.5 of 72 (88%) |
+| formvfx 0.7.0 | 72 | 61 | 8 | 3 | 65 of 72 (90%) |
 
 ## Rows
 
@@ -100,14 +101,14 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 
 | # | Capability | formvfx | Trace | Verified |
 | ---: | --- | --- | --- | --- |
-| 40 | Effect catalogue breadth (306 effects in 21 categories, including the CC set) | Full | `effects.md`; Effects and Presets panel, Effect menu | 8 effects |
+| 40 | Effect catalogue breadth (307 effects in 21 categories, including the CC set) | Full | `effects.md`; Effects and Presets panel, Effect menu | 8 effects |
 | 41 | Keying: Keylight, Key Cleaner, Advanced Spill Suppressor | Full | `ec.keying.*`, `ec.key.*` | no |
 | 42 | Colour: Lumetri Color, Curves, Levels, Hue/Saturation, OCIO transforms | Full | `ec.color.*` | no |
 | 43 | Distortion: Warp Stabilizer, Liquify, Mesh Warp, Turbulent Displace | Full | `ec.distort.*`, `track.warpStabilizer`, `liquify.*` | no |
 | 44 | Simulation: particles, Shatter, Card Dance, CC Particle World | Full | `ec.sim.*` | no |
 | 45 | Expression controls, including dropdown, layer and 3D point | Full | `ec.control.*` | slider |
 | 46 | Third-party effect plug-ins | Partial | WebAssembly plug-ins (`effect.plugins.load`); no After Effects SDK plug-ins | no |
-| 47 | Curl Noise (26.3) | None | not in the catalogue | |
+| 47 | Curl Noise (26.3) | Full | Curl Noise Generator (`formvfx.curlNoise`): Input Noise Internal (Speed, Direction) or This Layer (Mirror at Edge), Transform, Curl Generation (Evolution, Turbulence Speed, Noise Speed, Swirl, Density, Smoothness, Vertical Bias), Flow Options (Sample Count, Sample Radius, Flow Softness, Edge Definition, Flow Falloff), View, Contrast, Brightness, Clip HDR, Channel. Other Layer input is This Layer on an adjustment layer above the source. | rendered: Internal, This Layer on an adjustment layer, vertical bias, the three views, animation over time |
 
 ### 3D
 
@@ -128,7 +129,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 | 55 | Point, stabilize, affine and perspective trackers | Full | `track.*`; track points draw on footage and their feature, search and attach regions drag (`track.setPoint`) | point track, drag |
 | 56 | Warp Stabilizer and 3D Camera Tracker | Full | `track.warpStabilizer`, `track.camera`, `camera.createFromSolve` | no |
 | 57 | Face tracking | Full | `track.mask {method: faceOutline|faceDetailed}`, `track.extractFaceMeasurements` | no |
-| 58 | Planar tracking (Mocha AE) | Partial | `perspective` tracker corner-pins; no planar solver | no |
+| 58 | Planar tracking (Mocha AE) | Full | a mask around the surface is tracked with a homography from the features inside it (`track.mask {method: perspective}`), then every frame is re-aligned to the reference frame so error does not accumulate (`native/fvx-core/src/engine/cmd/track.rs`); the surface corners become a Perspective tracker and a Corner Pin (with Grow Bounds) on the insert layer, one undo step (`track.planar`, `planar_track`, Tracker panel > Planar Track) | synthetic clip with known corners: 0.20 px mean, 0.62 px worst over 90 frames, both directions |
 
 ### Expressions and scripting
 
@@ -166,7 +167,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 
 ### Platform (not scored)
 
-| Capability | After Effects 26.5 | formvfx 0.6.0 |
+| Capability | After Effects 26.5 | formvfx 0.7.0 |
 | --- | --- | --- |
 | Desktop operating systems | macOS, Windows (x64, ARM) | macOS, Windows, Linux (Tauri) |
 | In a browser | no | yes (`./formvfx serve`) |
@@ -177,8 +178,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 
 1. GPU rendering on by default (63).
 2. AI and model-backed tools: Roto Brush 3 quality, Object Matte (36, 37).
-3. Tracking: a planar solver (58).
-4. Ecosystem: `.mogrt`, `.ffx`, After Effects SDK plug-ins, Cinema 4D, Substance, Curl Noise (9, 24, 46, 47, 50, 53).
+3. Ecosystem: `.mogrt`, `.ffx`, After Effects SDK plug-ins, Cinema 4D, Substance (9, 24, 46, 50, 53).
 
 ## Where formvfx leads
 
