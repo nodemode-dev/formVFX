@@ -71,6 +71,10 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - Effects & Presets loads `text.library` once on first show; the list is one keyed row set (`c:*presets` the root, `c:pc:<category>` at depth 1, `p:<id>` at depth 2, then the effect categories), patched in place, so twirling a category only inserts or removes its rows. Open state keys are `*presets` and `pc:<category>`. A preset applies by double-click to the selected text layers or by dragging (`application/x-formvfx-text-preset`) onto a text layer's row in the Timeline.
 - Paste: `App.paste` handles the document `paste` event outside fields, the terminal and dialogs. Clipboard text that starts as an SVG document goes to `clipboard.pasteSvg`; anything else runs `edit.paste`. `Keys` does not run `edit.paste` on Cmd+V itself: it waits 120 ms for the paste event (`ui.emit('pasted')` cancels the wait), so the layer paste still runs in webviews that send no paste event for non-editable content, and never runs twice.
 
+## Planar Track section (0.7.0)
+
+- `panels/tracker.ts`: `TrackerPanel` extends the generic `CommandPanel` for `tracker` and prepends one Planar Track section, built once. The mask and target selects are refilled only when their option lists change (a JSON signature); the target defaults to the layer above the source each time the source changes. Mask names come from the source layer's property tree (`store.wantTrees('planar', [id])`), else Mask 1..n. The run calls `track.planar` and keeps its message in the status line until the source changes.
+
 ## Boot ground
 
 - The critical style paints only `html` (`#0a0a0a`, then the boot script's profile ground); `body` is transparent until `tokens.css` gives it `--bg-primary`. Painting `body` too showed `#0a0a0a` for the first frames before the Studio ground `#111111`.

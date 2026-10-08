@@ -13,14 +13,14 @@ function keyGroups(st: UiState): Map<string, number> {
   return by;
 }
 
-function field(label: string, control: HTMLElement): HTMLElement {
+export function field(label: string, control: HTMLElement): HTMLElement {
   const row = el('<label class="fx-assist-row"><span class="fx-assist-label"></span></label>');
   setText(q(row, '.fx-assist-label'), label);
   row.append(control);
   return row;
 }
 
-function select(id: string, options: Array<[string, string]>): HTMLSelectElement {
+export function select(id: string, options: Array<[string, string]>): HTMLSelectElement {
   const s = el<HTMLSelectElement>(`<select class="fx-select fx-assist-select" data-automation-id="${id}"></select>`);
   for (const [v, label] of options) {
     const o = document.createElement('option');
