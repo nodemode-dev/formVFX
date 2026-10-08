@@ -13,7 +13,7 @@ Needs Node 20.19+ or 22.12+, Python 3.12+, and Rust 1.95+ (`https://rustup.rs`).
 ./formvfx              # boots the engine on 127.0.0.1:8230 and the interface on http://localhost:5230
 ```
 
-Windows: `formvfx.bat install`, then `formvfx.bat`. One process serving the built interface: `./formvfx serve` (http://127.0.0.1:8230).
+The GPU compositor is part of the default build and is used when the engine finds a working adapter (Settings > Memory & CPU shows which; `FORMVFX_GPU=0` keeps everything on the CPU). Windows: `formvfx.bat install`, then `formvfx.bat`. One process serving the built interface: `./formvfx serve` (http://127.0.0.1:8230).
 
 Open http://localhost:5230, choose **Open the demo project** on the start screen, and work as in After Effects: Project, Effect Controls, Composition viewer, Timeline, Effects and Presets, Preview, Character, Render Queue. Cmd or Ctrl+K searches every command and effect.
 
@@ -39,7 +39,7 @@ Tagging `vX.Y.Z` builds macOS, Linux and Windows bundles in GitHub Actions and o
 | Command | Does |
 | --- | --- |
 | `./formvfx` / `boot` | engine and interface for development |
-| `install`, `install-native` | everything, or only the Rust core (`--dev`, `--gpu`) |
+| `install`, `install-native` | everything, or only the Rust core (`--dev`; `--cpu` leaves out the GPU compositor) |
 | `serve` | the built interface from the engine |
 | `install-desktop`, `freeze`, `desktop dev`, `desktop build` | the desktop app |
 | `doctor` | checks the toolchain and ports |
@@ -55,7 +55,7 @@ Tagging `vX.Y.Z` builds macOS, Linux and Windows bundles in GitHub Actions and o
 
 ## Parity
 
-[`docs/PARITY.md`](docs/PARITY.md) grades formvfx against After Effects 26.5 on 72 traced capability rows: 61 Full, 8 Partial, 3 None, a score of 90%. It lists where formvfx trails, in priority order, and where it leads. The wiki (`.docs/wiki`) covers getting started, agents, the architecture, the desktop app and releasing.
+[`docs/PARITY.md`](docs/PARITY.md) grades formvfx against After Effects 26.5 on 72 traced capability rows: 63 Full, 6 Partial, 3 None, a score of 92%. It lists where formvfx trails, in priority order, and where it leads. The wiki (`.docs/wiki`) covers getting started, agents, the architecture, the desktop app and releasing.
 
 ## Code size
 

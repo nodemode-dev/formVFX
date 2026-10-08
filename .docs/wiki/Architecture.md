@@ -13,6 +13,8 @@ desktop shell              src-tauri              Tauri 2, runs the frozen engin
 
 `native/fvx-core` is formvfx's compositing engine, written in Rust for formvfx and loaded by `backend/app/native.py` as the `fvx_core` Python extension. It provides the project model, about 650 commands, 306 effects, the renderer, codecs and the expression and scripting engines, and its `Engine` class gives the engine service gestures for one-step drags, engine events, the UI snapshot the interface reads (including property trees), viewer overlays, graph samples, and render jobs that run without the Python lock.
 
+The GPU compositor (wgpu) is built in. At start the engine opens the adapter once in a child process (`formvfx_engine.py --gpu-probe`, the result cached in `gpu-probe.json` per engine version), so a broken driver costs the GPU, never the engine; then it attaches the GPU and every composition renders on whichever of GPU and CPU measures faster for it.
+
 ## The engine service
 
 One engine lives on one thread; everything that touches it is queued there. A tick drains engine events, polls background jobs and autosaves. Every surface (the interface socket, HTTP, MCP, the command line) goes through one JSON-RPC dispatcher, so all of them see the same commands and the same permission rules. Frames stream to the viewer as binary messages, latest request first.

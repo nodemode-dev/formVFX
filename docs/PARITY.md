@@ -1,6 +1,6 @@
 # formvfx against After Effects
 
-formvfx 0.7.0 measured line by line against Adobe After Effects 26.5 (September 2026), the way the form family measures itself: each capability is traced through formvfx's data model and engine command, the interface that exposes it, and the render or export path that applies it.
+formvfx 0.8.0 measured line by line against Adobe After Effects 26.5 (September 2026), the way the form family measures itself: each capability is traced through formvfx's data model and engine command, the interface that exposes it, and the render or export path that applies it.
 
 - **Full** · implemented and wired from the interface through to the render or export.
 - **Partial** · present but narrower than After Effects, or reachable only as a command form where After Effects gives direct manipulation.
@@ -20,6 +20,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 | formvfx 0.5.0 | 72 | 57 | 11 | 4 | 62.5 of 72 (87%) |
 | formvfx 0.6.0 | 72 | 59 | 9 | 4 | 63.5 of 72 (88%) |
 | formvfx 0.7.0 | 72 | 61 | 8 | 3 | 65 of 72 (90%) |
+| formvfx 0.8.0 | 72 | 63 | 6 | 3 | 66 of 72 (92%) |
 
 ## Rows
 
@@ -95,7 +96,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 | 36 | Roto Brush and Refine Edge | Partial | `roto.*` with classical and MobileSAM models; not Roto Brush 3's model | no |
 | 37 | Object Matte (AI subject selection and tracking) | Partial | `roto.stroke` and `roto.propagate` approximate it; no one-click subject pick | no |
 | 38 | Paint, Clone Stamp and Eraser with write-on | Full | `paint.*`; Brush, Clone and Eraser tools | write-on |
-| 39 | Content-Aware Fill | Partial | `layer.newContentAwareFill`, `contentFill.*`; methods present, quality untested | no |
+| 39 | Content-Aware Fill | Full | `layer.newContentAwareFill`, `contentFill.*`: Object, Surface and Edge Blend fills, work area or whole layer, alpha expansion, lighting correction, reference frames, a Fill layer above the source | object removed from a panning shot: 1.9 of 255 mean error in the hole against the clean plate (Object and Surface), where a single-frame inpaint is 19.5; Edge Blend fills smoothly as After Effects' does |
 
 ### Effects
 
@@ -144,7 +145,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 | # | Capability | formvfx | Trace | Verified |
 | ---: | --- | --- | --- | --- |
 | 62 | RAM preview with audio, preview resolution, loop | Full | `/api/viewer` range streaming, Preview panel, `/api/audio` | yes |
-| 63 | GPU acceleration | Partial | GPU paths behind the `gpu` build feature (`./formvfx install-native --gpu`); the default build renders on the CPU | no |
+| 63 | GPU acceleration | Full | The wgpu compositor (Metal, Vulkan, DirectX 12, OpenGL) is in the default build; the engine probes the adapter once in a separate process and attaches it, each comp then renders on the GPU or the CPU, whichever measures faster, and a project set to Mercury Software Only stays on the CPU. Settings > Memory & CPU shows the adapter and turns it off; `FORMVFX_GPU=0` too; `render_frame {backend}` forces either | Vulkan on Mesa's software rasteriser: GPU frames match the CPU reference within 1 of 255 on the demo project and a blend-mode, glow and blur comp; no hardware GPU here |
 | 64 | Multi-frame rendering, disk cache | Full | the Render Queue renders frames in parallel batches; previews render several frames at once; Settings > Memory & CPU: Enable Multi-Frame Rendering and CPU cores reserved (`engine.performance`); `cache.diskStats` | settings, preview ranges (no gain measurable on a 2-core machine) |
 
 ### Render and export
@@ -167,7 +168,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 
 ### Platform (not scored)
 
-| Capability | After Effects 26.5 | formvfx 0.7.0 |
+| Capability | After Effects 26.5 | formvfx 0.8.0 |
 | --- | --- | --- |
 | Desktop operating systems | macOS, Windows (x64, ARM) | macOS, Windows, Linux (Tauri) |
 | In a browser | no | yes (`./formvfx serve`) |
@@ -176,9 +177,8 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 
 ## Where formvfx trails, in order
 
-1. GPU rendering on by default (63).
-2. AI and model-backed tools: Roto Brush 3 quality, Object Matte (36, 37).
-3. Ecosystem: `.mogrt`, `.ffx`, After Effects SDK plug-ins, Cinema 4D, Substance (9, 24, 46, 50, 53).
+1. AI and model-backed tools: Roto Brush 3 quality, Object Matte (36, 37).
+2. Ecosystem: `.mogrt`, `.ffx`, After Effects SDK plug-ins, Cinema 4D, Substance (9, 24, 46, 50, 53).
 
 ## Where formvfx leads
 
