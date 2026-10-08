@@ -61,12 +61,12 @@ Tagging `vX.Y.Z` builds macOS, Linux and Windows bundles in GitHub Actions and o
 | Area | Files | Lines |
 | --- | ---: | ---: |
 | Compositing core (Rust, PyO3) | 142 | 69,371 |
-| Engine service (Python) | 29 | 1,993 |
-| Interface (TypeScript) | 37 | 8,124 |
+| Engine service (Python) | 29 | 1,997 |
+| Interface (TypeScript) | 37 | 8,405 |
 | Interface styles (CSS) | 8 | 1,661 |
 | Desktop shell (Rust, Tauri) | 1 | 138 |
 | Setup and CLI | 34 | 827 |
 | Agent skill (Markdown, hand-written) | 16 | 720 |
-| Total | 267 | 82,834 |
+| Total | 267 | 83,119 |
 
 Non-blank lines in tracked files; generated skill references excluded. `./formvfx counts` prints this table.
