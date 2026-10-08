@@ -91,6 +91,11 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - `trackerOptions` and `editTarget` are the two dialogs; the engine's `track.optionsDialog` and `track.editTargetDialog` frontend events open them too (they were unhandled before).
 - Project panel: a composition's context menu has Export Dynamic Link Clip (`link.export`), with the result path or the reason in a toast.
 
+## Project files (0.11.0)
+
+- `Ctx.projectExt` and `Ctx.engineName` come from `engine.info` (`capabilities.projectExtension`, `capabilities.engine`) when the socket opens. The save pickers (Save, Save As, Save a Copy) use the engine's extension and default name, `.fvxproj`.
+- Open Project and Import accept `.fvxproj`, `.ecproj` and `.ecprojx`; which ones load is the engine's call.
+
 ## Boot ground
 
 - The critical style paints only `html` (`#0a0a0a`, then the boot script's profile ground); `body` is transparent until `tokens.css` gives it `--bg-primary`. Painting `body` too showed `#0a0a0a` for the first frames before the Studio ground `#111111`.

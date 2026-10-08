@@ -35,12 +35,12 @@ interface Picker {
   when?: (p: Record<string, unknown>, c: Ctx) => boolean;
 }
 
-const MEDIA = ['mp4', 'mov', 'm4v', 'mkv', 'webm', 'avi', 'mxf', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'tif', 'tiff', 'bmp', 'exr', 'psd', 'psb', 'svg', 'pdf', 'ai', 'eps', 'wav', 'aif', 'aiff', 'mp3', 'aac', 'm4a', 'flac', 'ogg', 'opus', 'json', 'lottie', 'csv', 'tsv', 'gltf', 'glb', 'obj', 'ecproj', 'ecprojx'];
+const MEDIA = ['mp4', 'mov', 'm4v', 'mkv', 'webm', 'avi', 'mxf', 'png', 'jpg', 'jpeg', 'gif', 'webp', 'tif', 'tiff', 'bmp', 'exr', 'psd', 'psb', 'svg', 'pdf', 'ai', 'eps', 'wav', 'aif', 'aiff', 'mp3', 'aac', 'm4a', 'flac', 'ogg', 'opus', 'json', 'lottie', 'csv', 'tsv', 'gltf', 'glb', 'obj', 'fvxproj', 'ecproj', 'ecprojx'];
 
 const PICKERS: Record<string, Picker> = {
   'file.import': { key: 'paths', mode: 'open', multiple: true, ext: MEDIA },
   'file.importMultiple': { key: 'paths', mode: 'open', multiple: true, ext: MEDIA },
-  'file.open': { key: 'path', mode: 'open', ext: ['ecproj', 'ecprojx', 'json'] },
+  'file.open': { key: 'path', mode: 'open', ext: ['fvxproj', 'ecproj', 'ecprojx', 'json'] },
   'file.save': { key: 'path', mode: 'save', ext: ['ecproj'], name: 'Untitled Project.ecproj', when: (_p, c) => !c.store.state?.path },
   'file.saveAs': { key: 'path', mode: 'save', ext: ['ecproj'], name: 'Untitled Project.ecproj' },
   'file.saveCopy': { key: 'path', mode: 'save', ext: ['ecproj'], name: 'Untitled Project copy.ecproj' },
@@ -93,6 +93,8 @@ export class Ctx {
   shape = { fill: '#f97316', stroke: '#ffffff', strokeWidth: 0, useFill: true, useStroke: false };
   private effectCache: EffectSpec[] | null = null;
   focusedPanel = 'composition';
+  projectExt = 'ecproj';
+  engineName = 'fvx';
 
   start(): void {
     this.client.connect();
@@ -105,6 +107,9 @@ export class Ctx {
       const rows = await this.client.call<CommandSpec[]>('command.list', { schemas: true });
       this.specs.clear();
       for (const r of rows) this.specs.set(r.id, r);
+      const info = await this.client.call<{ capabilities?: { projectExtension?: string; engine?: string } }>('engine.info');
+      this.projectExt = info.capabilities?.projectExtension || 'ecproj';
+      this.engineName = info.capabilities?.engine || 'fvx';
     } catch (e) {
       console.warn('[formvfx] command list failed', e);
     }
@@ -143,7 +148,8 @@ export class Ctx {
     if (!command) return undefined;
     const p: Record<string, unknown> = { ...(params || {}) };
     const empty = Object.keys(p).length === 0;
-    const picker = PICKERS[command];
+    const base = PICKERS[command];
+    const picker = base && base.mode === 'save' && base.ext?.[0] === 'ecproj' ? { ...base, ext: [this.projectExt], name: base.name?.replace(/\.ecproj$/, `.${this.projectExt}`) } : base;
     if (picker && p[picker.key] === undefined && (!picker.when || picker.when(p, this))) {
       const label = this.specs.get(command)?.label?.replace(/\.\.\.$/, '') || command;
       const got = await pickFiles({ title: label, mode: picker.mode, multiple: picker.multiple, extensions: picker.ext, defaultName: picker.name });
