@@ -1,6 +1,6 @@
 ---
 name: effects-and-presets
-description: Effects in formvfx. Use to find, apply, set, animate, reorder, copy or remove any of the 306 effects (blur, colour correction, distort, generate, keying, matte, noise, perspective, simulation, stylize, time, transition, expression controls), add layer styles such as drop shadow or stroke, grade colour, pull a key, or save and apply animation presets.
+description: Effects in formvfx. Use to find, apply, set, animate, reorder, copy or remove any of the 307 effects (blur, colour correction, distort, generate, keying, matte, noise, perspective, simulation, stylize, time, transition, expression controls), add layer styles such as drop shadow or stroke, grade colour, pull a key, or save and apply animation presets.
 ---
 
 # effects-and-presets
@@ -33,6 +33,10 @@ Values to know:
 | Copy to other layers | `effect.copy {layer, effects}` then `effect.paste {layers}` |
 | Same effect on many layers | `effect.apply {effect, layers: [...]}` |
 | Colour picked from the effect's input | `effect.pickColor {layer, effect, param, x, y}` |
+
+## Curl Noise
+
+Two effects carry the name. `formvfx.curlNoise` (Curl Noise Generator, Noise and Grain) is After Effects' Curl Noise: it generates swirling flow-line noise. Input Noise Internal (Speed and Direction move it) or This Layer (the layer's luminance is the field; on an adjustment layer that is everything below, which is how After Effects' Other Layer input is done here). Shape it with Scale, Swirl, Density, Smoothness and Vertical Bias, the lines with Sample Count, Sample Radius (0 is soft noise without lines), Flow Softness and Edge Definition; View shows Input Noise, Curl Generation or Final Render, and Channel writes RGB, one colour channel or Alpha. Its motion runs on the Clock parameter, which gets a `time` expression when the effect is applied: key Clock or change the expression to retime the flow (`time * 2` doubles it), remove the expression to hold the flow still at Clock's value. `ec.noise.curlnoise` (Curl Noise) instead displaces the layer along a curl flow, like a turbulent displace.
 
 ## Layer styles
 

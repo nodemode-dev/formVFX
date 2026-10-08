@@ -2,11 +2,11 @@
 
 Generated from the formvfx engine by `./formvfx agents sync`; do not edit by hand.
 
-The `formvfx` MCP server has 24 tools. `./formvfx mcp` serves them over stdio (it starts the engine when it is not running); the engine also serves them over Streamable HTTP at `http://127.0.0.1:8230/mcp`. The shell equivalents are in the last section.
+The `formvfx` MCP server has 25 tools. `./formvfx mcp` serves them over stdio (it starts the engine when it is not running); the engine also serves them over Streamable HTTP at `http://127.0.0.1:8230/mcp`. The shell equivalents are in the last section.
 
 ## Contents
 
-`status` `list_commands` `describe_command` `execute` `batch` `get_comp` `get_layer` `get_property` `set_property` `set_keyframes` `apply_effect` `list_effects` `text_preset` `shapes_from_svg` `render_frame` `contact_sheet` `render` `project` `import_files` `history` `run_script` `ui` `wait` `guide`
+`status` `list_commands` `describe_command` `execute` `batch` `get_comp` `get_layer` `get_property` `set_property` `set_keyframes` `apply_effect` `list_effects` `text_preset` `shapes_from_svg` `planar_track` `render_frame` `contact_sheet` `render` `project` `import_files` `history` `run_script` `ui` `wait` `guide`
 
 ## status
 
@@ -111,7 +111,7 @@ Adds an effect (id like ec.blur.gaussian or its After Effects name like Gaussian
 
 ## list_effects
 
-The effects (306) by category with ids; with detail, their parameters (id, name, default, control). Filter by name, id or category.
+The effects (307) by category with ids; with detail, their parameters (id, name, default, control). Filter by name, id or category.
 
 - `query`: string
 - `category`: string
@@ -139,6 +139,20 @@ Turns SVG markup into a shape layer (paths, fills, strokes, gradients, groups an
 
 - `svg`: string; required
 - `name`: string
+- `comp`: id or name; Composition id or name; omit for the active composition.
+
+## planar_track
+
+Planar tracking: follows a flat surface (a screen, a sign, a wall, a tabletop) through footage and corner-pins another layer onto it. Draw a mask around the surface on the footage layer first (mask.new or layer.addMask, in layer pixels at the reference time). track forward, backward or both analyses the mask with the Perspective method from the reference time (a homography from features inside the mask, every frame); without track the mask must already be tracked. surface is the plane's four corners at the reference time (upper left, upper right, lower left, lower right, layer pixels; default the mask's four vertices or its bounding box). With target, a Corner Pin is keyed on that layer so its corners ride the surface; the result is also kept as a Perspective tracker on the footage for re-applying to other layers. One undo step for the corner pin (tracking is its own step).
+
+- `layer`: id or name; required; Layer id, `#n` (1 = top) or name.
+- `mask`: id or name; Mask uid, 1-based index or name (default the first mask).
+- `target`: id or name; Layer id, `#n` (1 = top) or name.
+- `surface`: array
+- `reference`: number; Composition time in seconds; omit for the current time.
+- `track`: string (forward | backward | both)
+- `start`: number
+- `end`: number
 - `comp`: id or name; Composition id or name; omit for the active composition.
 
 ## render_frame
@@ -252,7 +266,7 @@ layer.newShape {kind: rect|rounded|ellipse|polygon|star, size, position, fill, s
 
 ### effects
 
-list_effects {query} finds effects (306: blur, color correction, distort, generate, keying, matte, noise, perspective, simulation, stylize, time, transition, audio...). apply_effect {layer, effect, params: {paramId: value}} adds and sets one; get_layer shows effects/#n/... paths. Common ids: ec.blur.gaussian (Gaussian Blur: blurriness), ec.stylize.glow (Glow), ec.generate.fill (Fill: color), ec.color.curves, ec.keying.keylight. Layer styles: execute layer.style.add {layers, style: dropShadow|outerGlow|stroke|bevelEmboss...}.
+list_effects {query} finds effects (307: blur, color correction, distort, generate, keying, matte, noise, perspective, simulation, stylize, time, transition, audio...). apply_effect {layer, effect, params: {paramId: value}} adds and sets one; get_layer shows effects/#n/... paths. Common ids: ec.blur.gaussian (Gaussian Blur: blurriness), ec.stylize.glow (Glow), ec.generate.fill (Fill: color), ec.color.curves, ec.keying.keylight. Layer styles: execute layer.style.add {layers, style: dropShadow|outerGlow|stroke|bevelEmboss...}.
 
 ### masks
 
@@ -268,7 +282,7 @@ prop.setExpression {layer, path, expression}. The language is JavaScript with th
 
 ### tracking
 
-Point track: track.new {layer, kind: transform|stabilize|affine|perspective, target?} then track.analyze {layer, direction: forward, wait: true}, then track.apply {layer}. Stabilize: track.warpStabilizer {layer, wait: true}. 3D camera: track.camera {layer, wait: true}, then camera.createFromSolve {kind: text|solid|null|shadowCatcher|camera}. Masks: track.mask {layer, mask, method}. Without wait, use the wait tool.
+Point track: track.new {layer, kind: transform|stabilize|affine|perspective, target?} then track.analyze {layer, direction: forward, wait: true}, then track.apply {layer}. Stabilize: track.warpStabilizer {layer, wait: true}. 3D camera: track.camera {layer, wait: true}, then camera.createFromSolve {kind: text|solid|null|shadowCatcher|camera}. Masks: track.mask {layer, mask, method}. Planar surface (a screen, a sign): mask around it, then planar_track {layer, track: both, target}. Without wait, use the wait tool.
 
 ### render
 

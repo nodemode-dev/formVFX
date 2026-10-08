@@ -138,6 +138,9 @@ async def dispatch(method: str, params: Any, source: str = "ui") -> Any:
         if method == "clipboard.pasteSvg":
             args = {k: v for k, v in p.items() if k in ("svg", "name", "comp")}
             return await _native_edit("clipboard.pasteSvg", lambda e: e.paste_svg(_dumps(args)), source)
+        if method == "track.planar":
+            args = {k: v for k, v in p.items() if k in ("layer", "mask", "target", "surface", "reference", "track", "start", "end", "comp")}
+            return await _native_edit("track.planar", lambda e: e.planar_corner_pin(_dumps(args)), source)
         if method == "engine.performance":
             from . import performance
 
