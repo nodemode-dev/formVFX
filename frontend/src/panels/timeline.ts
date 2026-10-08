@@ -50,6 +50,7 @@ export class TimelinePanel implements Panel {
   private pps = 0;
   private start = 0;
   private drag: TDrag | null = null;
+  private pressing: Promise<void> = Promise.resolve();
   private showModes = false;
   private graphOn = false;
   private dpr = 1;
@@ -251,12 +252,16 @@ export class TimelinePanel implements Panel {
         this.draw();
       } else this.rowsEl.scrollTop += e.deltaY;
     }, { passive: false });
-    this.ruler.addEventListener('pointerdown', (e) => void this.rulerDown(e));
-    this.tracks.addEventListener('pointerdown', (e) => void this.tracksDown(e));
+    this.ruler.addEventListener('pointerdown', (e) => {
+      this.pressing = this.rulerDown(e);
+    });
+    this.tracks.addEventListener('pointerdown', (e) => {
+      this.pressing = this.tracksDown(e);
+    });
     for (const cv of [this.ruler, this.tracks]) {
       cv.addEventListener('pointermove', (e) => void this.dragMove(e));
-      cv.addEventListener('pointerup', () => this.dragEnd());
-      cv.addEventListener('pointercancel', () => this.dragEnd());
+      cv.addEventListener('pointerup', () => void this.pressing.then(() => this.dragEnd()));
+      cv.addEventListener('pointercancel', () => void this.pressing.then(() => this.dragEnd()));
     }
     this.tracks.addEventListener('contextmenu', (e) => this.tracksMenu(e));
     this.tracks.addEventListener('dblclick', (e) => this.tracksDbl(e));

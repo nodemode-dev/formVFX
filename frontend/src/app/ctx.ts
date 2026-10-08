@@ -78,8 +78,11 @@ const FORM_FIRST = new Set([
   'puppet.follow', 'puppet.recordOptions', 'layer.mask.shape', 'path.freeTransform', 'comp.crop', 'comp.trimToWorkArea',
 ]);
 
+const GESTURE_TAG = Math.random().toString(36).slice(2, 8);
+
 export class Ctx {
   readonly client = new Client();
+  private gestureSeq = 0;
   readonly store = new Store(this.client);
   readonly frames = new FrameStream();
   readonly playback = new Playback(this.client, this.store, this.frames);
@@ -127,11 +130,8 @@ export class Ctx {
   }
 
   async gesture(): Promise<string> {
-    try {
-      return await this.client.call<string>('gesture.begin');
-    } catch {
-      return `g-${Date.now()}`;
-    }
+    this.gestureSeq += 1;
+    return `w${GESTURE_TAG}-${this.gestureSeq}`;
   }
 
   endGesture(): void {
