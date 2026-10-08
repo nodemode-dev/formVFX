@@ -25,7 +25,26 @@ interface GraphProp {
 
 const COLORS = ['#ff6b6b', '#5fd068', '#5aa9ff', '#f6c453'];
 
-type GDrag = { kind: 'key'; prop: number; t0: number; v0: number; time: number; merge: string; applied: number; valueApplied: number; dim: number };
+type GDrag =
+  | { kind: 'key'; prop: number; t0: number; v0: number; time: number; merge: string; applied: number; valueApplied: number; dim: number }
+  | { kind: 'handle'; layer: number; prop: number; time: number; side: 'in' | 'out'; dim: number | null; keyTime: number; keyValue: number; span: number; speed: number; merge: string };
+
+interface Handle {
+  x: number;
+  y: number;
+  kx: number;
+  ky: number;
+  layer: number;
+  prop: GraphProp;
+  key: GraphKey;
+  side: 'in' | 'out';
+  dim: number | null;
+  keyValue: number;
+  span: number;
+  speed: number;
+}
+
+const EASED = new Set(['bezier', 'autobezier', 'continuousbezier', 'continuous']);
 
 export class GraphView {
   private readonly canvas: HTMLCanvasElement;
@@ -39,6 +58,7 @@ export class GraphView {
   private vmax = 1;
   private mode: 'value' | 'speed' = 'value';
   private drag: GDrag | null = null;
+  private pressing: Promise<void> = Promise.resolve();
   private loading = false;
   private dirty = false;
 
@@ -66,9 +86,11 @@ export class GraphView {
     for (const b of Array.from(bar.querySelectorAll<HTMLElement>('[data-c]'))) {
       b.addEventListener('click', () => void ctx.run(b.dataset.c as string, b.dataset.p ? JSON.parse(b.dataset.p) : {}));
     }
-    this.canvas.addEventListener('pointerdown', (e) => void this.down(e));
+    this.canvas.addEventListener('pointerdown', (e) => {
+      this.pressing = this.down(e);
+    });
     this.canvas.addEventListener('pointermove', (e) => this.move(e));
-    this.canvas.addEventListener('pointerup', () => this.up());
+    this.canvas.addEventListener('pointerup', () => void this.pressing.then(() => this.up()));
   }
 
   setVisible(on: boolean): void {
@@ -139,6 +161,44 @@ export class GraphView {
   private vOf(y: number, H: number): number {
     const pad = 24;
     return this.vmin + ((H - pad - y) / (H - pad * 2)) * (this.vmax - this.vmin);
+  }
+
+  private timeAt(x: number): number {
+    const x0 = this.toX(0);
+    const pps = (this.toX(1) - x0) || 1;
+    return (x - x0) / pps;
+  }
+
+  private handles(H: number): Handle[] {
+    const out: Handle[] = [];
+    for (const { layer, prop } of this.data) {
+      const keys = prop.keys;
+      keys.forEach((k, i) => {
+        const sides: Array<['in' | 'out', GraphKey | undefined]> = [['in', keys[i - 1]], ['out', keys[i + 1]]];
+        for (const [side, other] of sides) {
+          if (!other || !EASED.has((side === 'in' ? k.in : k.out).toLowerCase())) continue;
+          const eases = side === 'in' ? k.inEase : k.outEase;
+          const span = Math.abs(k.time - other.time);
+          const dir = side === 'in' ? -1 : 1;
+          if (this.mode === 'value') {
+            if (prop.spatial) continue;
+            k.value.forEach((v, d) => {
+              const ease = eases[d] ?? eases[0];
+              if (!ease) return;
+              const dt = span * ease.influence;
+              out.push({ x: this.toX(k.time + dir * dt), y: this.yOf(v + dir * ease.speed * dt, H), kx: this.toX(k.time), ky: this.yOf(v, H), layer, prop, key: k, side, dim: k.value.length > 1 ? d : null, keyValue: v, span, speed: ease.speed });
+            });
+          } else {
+            const ease = eases[0];
+            if (!ease) continue;
+            const dt = span * ease.influence;
+            const y = this.yOf(ease.speed, H);
+            out.push({ x: this.toX(k.time + dir * dt), y, kx: this.toX(k.time), ky: y, layer, prop, key: k, side, dim: null, keyValue: ease.speed, span, speed: ease.speed });
+          }
+        }
+      });
+    }
+    return out;
   }
 
   private drawNow(): void {
@@ -216,6 +276,32 @@ export class GraphView {
         }
       }
     }
+    const accent = getComputedStyle(this.host).getPropertyValue('--accent-color').trim() || '#f97316';
+    for (const h of this.handles(H)) {
+      if (this.mode === 'speed') {
+        g.fillStyle = h.key.selected ? accent : '#e8e8ee';
+        g.fillRect(h.kx - 3.5, h.ky - 3.5, 7, 7);
+      }
+      if (!h.key.selected) continue;
+      g.strokeStyle = accent;
+      g.lineWidth = 1;
+      g.beginPath();
+      g.moveTo(h.kx, h.ky);
+      g.lineTo(h.x, h.y);
+      g.stroke();
+      g.fillStyle = '#ffffff';
+      g.beginPath();
+      g.arc(h.x, h.y, 4, 0, Math.PI * 2);
+      g.fill();
+      g.strokeStyle = accent;
+      g.stroke();
+    }
+  }
+
+  private hitHandle(x: number, y: number): Handle | null {
+    const H = this.canvas.height / this.dpr;
+    for (const h of this.handles(H)) if (h.key.selected && Math.hypot(h.x - x, h.y - y) <= 7) return h;
+    return null;
   }
 
   private hit(x: number, y: number): { prop: GraphProp; key: GraphKey; dim: number } | null {
@@ -235,10 +321,21 @@ export class GraphView {
   }
 
   private async down(e: PointerEvent): Promise<void> {
-    if (this.mode !== 'value') return;
     const r = this.canvas.getBoundingClientRect();
     const x = e.clientX - r.left;
     const y = e.clientY - r.top;
+    const hh = this.hitHandle(x, y);
+    if (hh) {
+      this.canvas.setPointerCapture(e.pointerId);
+      this.drag = { kind: 'handle', layer: hh.layer, prop: hh.prop.uid, time: hh.key.layerTime, side: hh.side, dim: hh.dim, keyTime: hh.key.time, keyValue: hh.keyValue, span: hh.span, speed: hh.speed, merge: await this.ctx.gesture() };
+      return;
+    }
+    if (this.mode === 'speed') {
+      const marker = this.handles(this.canvas.height / this.dpr).find((m) => Math.hypot(m.kx - x, m.ky - y) <= 6);
+      if (marker) await this.ctx.run('keys.select', { keys: [{ layer: marker.layer, prop: marker.prop.uid, time: marker.key.layerTime }], add: e.shiftKey });
+      else void this.ctx.run('keys.select', { keys: [] }, true);
+      return;
+    }
     const h = this.hit(x, y);
     if (!h) {
       void this.ctx.run('keys.select', { keys: [] }, true);
@@ -256,6 +353,19 @@ export class GraphView {
     const H = r.height;
     const x = e.clientX - r.left;
     const y = e.clientY - r.top;
+    if (d.kind === 'handle') {
+      const dir = d.side === 'in' ? -1 : 1;
+      const dt = (this.timeAt(x) - d.keyTime) * dir;
+      const influence = Math.max(0.1, Math.min(100, (Math.max(0, dt) / Math.max(1e-6, d.span)) * 100));
+      let speed = d.speed;
+      if (this.mode === 'speed') speed = this.vOf(y, H);
+      else if (dt > 1e-4) speed = (this.vOf(y, H) - d.keyValue) / (dt * dir);
+      d.speed = speed;
+      const params: Record<string, unknown> = { layer: d.layer, prop: d.prop, time: d.time, side: d.side, speed, influence, merge: d.merge };
+      if (d.dim !== null) params.dim = d.dim;
+      void this.ctx.run('keys.setEase', params, true);
+      return;
+    }
     const comp = this.ctx.store.comp;
     const fps = comp?.frameRate || 30;
     const pxPerSec = (this.toX(1) - this.toX(0)) || 1;
