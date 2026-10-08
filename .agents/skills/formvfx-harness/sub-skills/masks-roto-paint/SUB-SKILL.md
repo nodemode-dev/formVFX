@@ -1,6 +1,6 @@
 ---
 name: masks-roto-paint
-description: Isolating and drawing on layers in formvfx. Use for masks (rectangles, ellipses, free shapes, feather, expansion, opacity, modes, inverting, animating the mask path), Roto Brush segmentation and propagation, paint, clone and eraser strokes with write-on, Puppet pins, Liquify, Auto-trace and Content-Aware Fill for removing objects from footage.
+description: Isolating and drawing on layers in formvfx. Use for masks (rectangles, ellipses, free shapes, feather, expansion, opacity, modes, inverting, animating the mask path), Roto Brush segmentation and propagation, one-click Object Matte, paint, clone and eraser strokes with write-on, Puppet pins, Liquify, Auto-trace and Content-Aware Fill for removing objects from footage.
 ---
 
 # masks-roto-paint
@@ -39,6 +39,10 @@ For separating a subject from footage:
 4. `roto.status {layer, frame}` reports progress and can return the matte; `roto.options {view: alphaOverlay}` changes what the window shows.
 
 Roto Brush 2 and 3 use a model chosen in Settings (`roto.models`, `roto.model.select`).
+
+## Object Matte (one click)
+
+For one whole object (a person, a car, a product), skip the strokes: `object_matte {action: "preview", layer, point: [x, y], time}` shows what one point on it selects (bounding box, coverage, the model's confidence) without changing anything; move the point if the box is wrong. Then `object_matte {action: "select", layer, point, time, wait: true}` seeds a Roto Brush at that point, spans the whole layer and propagates both ways; the layer's alpha is the object. It needs the MobileSAM model (`roto.models` shows it; `roto.model.download {id: mobilesam, wait: true}` installs it, about 40 MB). Correct a drifted frame with `roto.stroke` as above. People do the same with the Object Matte tool (Alt+W cycles to it): hover shows the object tinted, click selects it.
 
 ## Paint
 

@@ -95,6 +95,8 @@ TOOLS = [
           {"svg": {"type": "string"}, "name": {"type": "string"}, "comp": _COMP}, ["svg"]),
     _tool("planar_track", "Planar tracking: follows a flat surface (a screen, a sign, a wall, a tabletop) through footage and corner-pins another layer onto it. Draw a mask around the surface on the footage layer first (mask.new or layer.addMask, in layer pixels at the reference time). track forward, backward or both analyses the mask with the Perspective method from the reference time (a homography from features inside the mask, every frame); without track the mask must already be tracked. surface is the plane's four corners at the reference time (upper left, upper right, lower left, lower right, layer pixels; default the mask's four vertices or its bounding box). With target, a Corner Pin is keyed on that layer so its corners ride the surface; the result is also kept as a Perspective tracker on the footage for re-applying to other layers. One undo step for the corner pin (tracking is its own step).",
           {"layer": _LAYER, "mask": {"description": "Mask uid, 1-based index or name (default the first mask).", "anyOf": [{"type": "integer"}, {"type": "string"}]}, "target": _LAYER, "surface": {"type": "array", "items": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2}, "minItems": 4, "maxItems": 4}, "reference": _TIME, "track": {"type": "string", "enum": ["forward", "backward", "both"]}, "start": {"type": "number"}, "end": {"type": "number"}, "comp": _COMP}, ["layer"]),
+    _tool("object_matte", "Object Matte: isolates one object (a person, a car, a product) in footage from one point on it, the way After Effects' Object Matte does. action preview segments the object at time and returns its bounding box, coverage and the model's confidence without changing anything; action select puts a Roto Brush on the layer seeded at that point (one undo step), spans the whole layer and propagates it (direction both by default; wait true blocks until done, otherwise call wait). The layer's alpha becomes the object's matte. Needs the MobileSAM model (roto.model.download {id: mobilesam}).",
+          {"action": {"type": "string", "enum": ["preview", "select"]}, "layer": _LAYER, "point": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2, "description": "[x, y] in the layer's pixels"}, "time": _TIME, "direction": {"type": "string", "enum": ["both", "forward", "backward"]}, "wait": {"type": "boolean", "default": False}, "comp": _COMP}, ["action", "layer", "point"]),
     _tool("render_frame", "Renders one frame of a composition and returns it as an image so you can see it. Use it after changes and at the moments that matter. For a 3D comp, view renders from a 3D view (top, front, left, right, back, bottom, default, custom1-3) instead of the active camera, to check layout in space. backend auto (default) renders on the GPU or the CPU, whichever is faster for the comp; gpu or cpu forces one (status shows the GPU).",
           {"comp": _COMP, "time": _TIME, "max_size": {"type": "integer", "minimum": 64, "maximum": 2048, "default": 960}, "transparent": {"type": "boolean", "default": False}, "view": {"type": "string", "enum": ["activeCamera", "default", "front", "left", "top", "back", "right", "bottom", "custom1", "custom2", "custom3"]}, "backend": {"type": "string", "enum": ["auto", "gpu", "cpu"]}}, read=True, idempotent=True),
     _tool("contact_sheet", "Renders several frames across a time span into one image grid (each labelled with its time) to check motion and timing in one look.",
@@ -327,6 +329,21 @@ async def _call(name: str, a: dict, source: str) -> dict:
     if name == "shapes_from_svg":
         args = {k: a[k] for k in ("svg", "name", "comp") if a.get(k) is not None}
         return text(await rpc.dispatch("clipboard.pasteSvg", args, source))
+    if name == "object_matte":
+        layer = a.get("layer")
+        if isinstance(layer, str):
+            ci = await ex("comp.info", _comp_param(a), source)
+            row = next((r for r in ci.get("layers") or [] if f"#{r.get('index')}" == layer or r.get("name") == layer), None)
+            if not row:
+                return fail(f"no layer {layer!r}")
+            layer = row["id"]
+        if a.get("action") == "preview":
+            r = await rpc.dispatch("roto.objectPreview", {"layer": layer, "point": a.get("point"), **({"time": a["time"]} if a.get("time") is not None else {}), **_comp_param(a)}, source)
+            return text({k: r.get(k) for k in ("layer", "time", "bbox", "coverage", "score")})
+        if a.get("time") is not None:
+            await ex("time.set", {"time": a["time"], **_comp_param(a)}, source)
+        args = {"layer": layer, "point": a.get("point"), "direction": a.get("direction") or "both", "wait": bool(a.get("wait"))}
+        return text(await rpc.dispatch("roto.objectMatte", {**args, **_comp_param(a)}, source))
     if name == "planar_track":
         args = {k: a[k] for k in ("layer", "mask", "target", "surface", "reference", "track", "start", "end", "comp") if a.get(k) is not None}
         return text(await rpc.dispatch("track.planar", args, source))

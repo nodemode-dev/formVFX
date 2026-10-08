@@ -53,6 +53,44 @@ async def _native_edit(name: str, fn, source: str) -> Any:
     return json.loads(raw) if raw else None
 
 
+_NEEDS_SAM = "Object Matte uses the MobileSAM model: install it in Settings > Roto Brush (Download), or run roto.model.download {id: mobilesam}"
+
+
+async def _object_matte(p: dict, source: str) -> dict:
+    layer, point = p.get("layer"), p.get("point")
+    if layer is None or not isinstance(point, list) or len(point) != 2:
+        raise RpcError("pass `layer` and `point`: [x, y] in layer pixels on the object", -32602)
+    if isinstance(layer, str):
+        info = await execute("comp.info", {"comp": p["comp"]} if "comp" in p else {}, source)
+        rows = info.get("layers", []) if isinstance(info, dict) else []
+        found = next((r for r in rows if f"#{r.get('index')}" == layer or r.get("name") == layer), None)
+        if not found:
+            raise RpcError(f"no layer {layer!r}", -32602)
+        layer = found["id"]
+    models = (await execute("roto.models", {}, source) or {}).get("models") or []
+    sam = next((m for m in models if m.get("id") == "mobilesam"), None)
+    if not sam or not sam.get("installed"):
+        raise RpcError(_NEEDS_SAM)
+    if not sam.get("active"):
+        await execute("roto.model.select", {"id": "mobilesam", "wait": True}, source)
+    stroke = {"layer": layer, "kind": "fg", "points": [point, [point[0] + 1, point[1] + 1]], "radius": 3}
+    if p.get("frame") is not None:
+        stroke["frame"] = p["frame"]
+    steps = [
+        {"command": "roto.stroke", "params": stroke},
+        {"command": "roto.span", "params": {"layer": layer, "effect": "$1.effect", "start": -1000000, "end": 1000000}},
+    ]
+    made = await execute("engine.batch", {"steps": steps, "label": "Object Matte"}, source)
+    results = made.get("results") if isinstance(made, dict) else None
+    first = (results or [{}])[0] if isinstance(results, list) else {}
+    effect = first.get("effect") if isinstance(first, dict) else None
+    args = {"layer": layer, "direction": p.get("direction") or "both", "wait": bool(p.get("wait"))}
+    if effect is not None:
+        args["effect"] = effect
+    prop = await execute("roto.propagate", args, source)
+    return {"layer": layer, "effect": effect, "span": (results[1] if isinstance(results, list) and len(results) > 1 else {}).get("span"), "frames": prop.get("frames"), "running": prop.get("running")}
+
+
 async def render_png(params: dict, source: str = "ui") -> dict:
     from .. import native
 
@@ -138,6 +176,15 @@ async def dispatch(method: str, params: Any, source: str = "ui") -> Any:
         if method == "clipboard.pasteSvg":
             args = {k: v for k, v in p.items() if k in ("svg", "name", "comp")}
             return await _native_edit("clipboard.pasteSvg", lambda e: e.paste_svg(_dumps(args)), source)
+        if method == "roto.objectPreview":
+            args = {k: v for k, v in p.items() if k in ("layer", "point", "time", "comp")}
+            try:
+                job = await host.call(lambda e: e.object_job(_dumps(args)), source)
+                return json.loads(await asyncio.get_running_loop().run_in_executor(host.jobs, job.run))
+            except ValueError as exc:
+                raise RpcError(str(exc)) from None
+        if method == "roto.objectMatte":
+            return await _object_matte(p, source)
         if method == "track.planar":
             args = {k: v for k, v in p.items() if k in ("layer", "mask", "target", "surface", "reference", "track", "start", "end", "comp")}
             return await _native_edit("track.planar", lambda e: e.planar_corner_pin(_dumps(args)), source)

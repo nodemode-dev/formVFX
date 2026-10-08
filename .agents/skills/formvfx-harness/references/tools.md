@@ -2,11 +2,11 @@
 
 Generated from the formvfx engine by `./formvfx agents sync`; do not edit by hand.
 
-The `formvfx` MCP server has 25 tools. `./formvfx mcp` serves them over stdio (it starts the engine when it is not running); the engine also serves them over Streamable HTTP at `http://127.0.0.1:8230/mcp`. The shell equivalents are in the last section.
+The `formvfx` MCP server has 26 tools. `./formvfx mcp` serves them over stdio (it starts the engine when it is not running); the engine also serves them over Streamable HTTP at `http://127.0.0.1:8230/mcp`. The shell equivalents are in the last section.
 
 ## Contents
 
-`status` `list_commands` `describe_command` `execute` `batch` `get_comp` `get_layer` `get_property` `set_property` `set_keyframes` `apply_effect` `list_effects` `text_preset` `shapes_from_svg` `planar_track` `render_frame` `contact_sheet` `render` `project` `import_files` `history` `run_script` `ui` `wait` `guide`
+`status` `list_commands` `describe_command` `execute` `batch` `get_comp` `get_layer` `get_property` `set_property` `set_keyframes` `apply_effect` `list_effects` `text_preset` `shapes_from_svg` `planar_track` `object_matte` `render_frame` `contact_sheet` `render` `project` `import_files` `history` `run_script` `ui` `wait` `guide`
 
 ## status
 
@@ -153,6 +153,18 @@ Planar tracking: follows a flat surface (a screen, a sign, a wall, a tabletop) t
 - `track`: string (forward | backward | both)
 - `start`: number
 - `end`: number
+- `comp`: id or name; Composition id or name; omit for the active composition.
+
+## object_matte
+
+Object Matte: isolates one object (a person, a car, a product) in footage from one point on it, the way After Effects' Object Matte does. action preview segments the object at time and returns its bounding box, coverage and the model's confidence without changing anything; action select puts a Roto Brush on the layer seeded at that point (one undo step), spans the whole layer and propagates it (direction both by default; wait true blocks until done, otherwise call wait). The layer's alpha becomes the object's matte. Needs the MobileSAM model (roto.model.download {id: mobilesam}).
+
+- `action`: string (preview | select); required
+- `layer`: id or name; required; Layer id, `#n` (1 = top) or name.
+- `point`: array; required; [x, y] in the layer's pixels
+- `time`: number; Composition time in seconds; omit for the current time.
+- `direction`: string (both | forward | backward)
+- `wait`: boolean; default false
 - `comp`: id or name; Composition id or name; omit for the active composition.
 
 ## render_frame
