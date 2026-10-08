@@ -1,6 +1,6 @@
 # formvfx against After Effects
 
-formvfx 0.3.0 measured line by line against Adobe After Effects 26.5 (September 2026), the way the form family measures itself: each capability is traced through formvfx's data model and engine command, the interface that exposes it, and the render or export path that applies it.
+formvfx 0.4.0 measured line by line against Adobe After Effects 26.5 (September 2026), the way the form family measures itself: each capability is traced through formvfx's data model and engine command, the interface that exposes it, and the render or export path that applies it.
 
 - **Full** · implemented and wired from the interface through to the render or export.
 - **Partial** · present but narrower than After Effects, or reachable only as a command form where After Effects gives direct manipulation.
@@ -16,6 +16,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 | --- | ---: | ---: | ---: | ---: | ---: |
 | formvfx 0.2.0 | 72 | 46 | 22 | 4 | 57 of 72 (79%) |
 | formvfx 0.3.0 | 72 | 50 | 18 | 4 | 59 of 72 (82%) |
+| formvfx 0.4.0 | 72 | 53 | 15 | 4 | 60.5 of 72 (84%) |
 
 ## Rows
 
@@ -35,7 +36,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 | ---: | --- | --- | --- | --- |
 | 6 | Composition settings, nesting, precompose | Full | `comp.new`, `comp.settings`, `layer.precompose` | yes |
 | 7 | Work area, composition and layer markers, chapters and cue points | Full | `comp.workArea`, `markers.*`; Timeline work area bar | work area |
-| 8 | Flowchart | Partial | `comp.flowchart` returns the graph; no flowchart view | no |
+| 8 | Flowchart | Full | `comp.flowchart` opens the Flowchart panel (`ui.flowchart`): nested comps, footage and solids, optionally layers and effects, left to right or top to bottom; double-click opens a comp, Cmd or Ctrl-click reveals; agents read it with `get_comp {flowchart: true}` | yes |
 | 9 | Essential Graphics templates | Partial | `essential.*`, `.ectemplate`; not Adobe's `.mogrt` | no |
 | 10 | Responsive Design: Time | Full | `comp.responsiveTime` | no |
 
@@ -157,13 +158,13 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 | # | Capability | formvfx | Trace | Verified |
 | ---: | --- | --- | --- | --- |
 | 69 | 8, 16 and 32-bit projects, colour management, OCIO and ACES, HDR output | Full | `file.projectSettings {bitDepth, colorEngine, workingSpace, outputSpace}` | no |
-| 70 | Audio: layers, levels, effects, waveforms in the Timeline | Partial | audio layers and the 13 audio effects; no waveform in the Timeline | no |
-| 71 | Workspaces, docking, customisable shortcuts | Partial | 7 workspaces, docking and maximise; 1,144 shortcuts from `shortcuts.*`; no floating panels or shortcut editor view | workspaces |
+| 70 | Audio: layers, levels, effects, waveforms in the Timeline | Full | audio layers and the 13 audio effects; Audio > Waveform rows in the Timeline (LL, or twirl open Audio) for footage and nested comps, from peak summaries (`/api/peaks`) | waveforms |
+| 71 | Workspaces, docking, customisable shortcuts | Full | 7 workspaces, docking, maximise and floating panels (Undock Panel, saved with the workspace); Edit > Keyboard Shortcuts: a keyboard view by modifier, search, record, presets, import and export, conflicts, over 1,144 bindable commands | workspaces, float, shortcut record |
 | 72 | Viewer: guides, grids, rulers, safe zones, channels, region of interest, snapshots, multiple viewers | Partial | `view.*` commands; one Composition viewer with guides, grid, channels and safe zones | channels |
 
 ### Platform (not scored)
 
-| Capability | After Effects 26.5 | formvfx 0.3.0 |
+| Capability | After Effects 26.5 | formvfx 0.4.0 |
 | --- | --- | --- |
 | Desktop operating systems | macOS, Windows (x64, ARM) | macOS, Windows, Linux (Tauri) |
 | In a browser | no | yes (`./formvfx serve`) |
@@ -174,7 +175,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 
 1. GPU rendering on by default (63) and multi-frame rendering (64).
 2. AI and model-backed tools: Roto Brush 3 quality, Object Matte (36, 37).
-3. Audio waveforms in the Timeline (70); floating panels and a shortcut editor (71); several viewers (72).
+3. Several Composition viewers at once (72).
 4. Ecosystem: `.mogrt`, `.ffx`, After Effects SDK plug-ins, Cinema 4D, Substance, Curl Noise (9, 24, 46, 47, 50, 53).
 
 ## Where formvfx leads
