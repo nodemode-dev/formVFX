@@ -39,7 +39,7 @@ Tagging `vX.Y.Z` builds macOS, Linux and Windows bundles in GitHub Actions and o
 | Command | Does |
 | --- | --- |
 | `./formvfx` / `boot` | engine and interface for development |
-| `install`, `install-native` | everything, or only the Rust core (`--dev`; `--cpu` leaves out the GPU compositor) |
+| `install`, `install-native` | everything, or only the Rust engine (`--dev`; `--cpu` leaves out the GPU compositor) |
 | `serve` | the built interface from the engine |
 | `install-desktop`, `freeze`, `desktop dev`, `desktop build` | the desktop app |
 | `doctor` | checks the toolchain and ports |

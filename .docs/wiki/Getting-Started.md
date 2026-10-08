@@ -13,6 +13,8 @@ Node 20.19+ or 22.12+, Python 3.12+, Rust 1.95+ (`https://rustup.rs`). `./formvf
 
 The first install compiles the compositing engine (`native/fvx-core`) in release mode and takes a few minutes. `./formvfx install-native --dev` rebuilds it quickly while developing.
 
+Projects save as `.fvxproj`, and `.ecproj` projects from earlier releases open as imports. Install FFmpeg for video and audio footage and movie renders.
+
 ## First composition
 
 1. Open http://localhost:5230. The start screen offers New Composition, Open Project, Import and the demo project.
