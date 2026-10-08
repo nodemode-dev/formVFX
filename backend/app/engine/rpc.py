@@ -202,6 +202,14 @@ async def dispatch(method: str, params: Any, source: str = "ui") -> Any:
             return list(host.activity)[-n:]
         if method == "project.json":
             return json.loads(await host.call(lambda e: e.project_json(), source))
+        if method == "link.export":
+            from . import link
+
+            return await link.export(p.get("comp"), p.get("path"), source)
+        if method == "link.info":
+            from . import link
+
+            return await link.info(p.get("project"), p.get("comp"))
     except RpcError:
         raise
     except ValueError as exc:

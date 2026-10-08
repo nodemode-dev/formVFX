@@ -2,11 +2,11 @@
 
 Generated from the formvfx engine by `./formvfx agents sync`; do not edit by hand.
 
-The `formvfx` MCP server has 26 tools. `./formvfx mcp` serves them over stdio (it starts the engine when it is not running); the engine also serves them over Streamable HTTP at `http://127.0.0.1:8230/mcp`. The shell equivalents are in the last section.
+The `formvfx` MCP server has 27 tools. `./formvfx mcp` serves them over stdio (it starts the engine when it is not running); the engine also serves them over Streamable HTTP at `http://127.0.0.1:8230/mcp`. The shell equivalents are in the last section.
 
 ## Contents
 
-`status` `list_commands` `describe_command` `execute` `batch` `get_comp` `get_layer` `get_property` `set_property` `set_keyframes` `apply_effect` `list_effects` `text_preset` `shapes_from_svg` `planar_track` `object_matte` `render_frame` `contact_sheet` `render` `project` `import_files` `history` `run_script` `ui` `wait` `guide`
+`status` `list_commands` `describe_command` `execute` `batch` `get_comp` `get_layer` `get_property` `set_property` `set_keyframes` `apply_effect` `list_effects` `text_preset` `shapes_from_svg` `planar_track` `object_matte` `render_frame` `contact_sheet` `render` `dynamic_link` `project` `import_files` `history` `run_script` `ui` `wait` `guide`
 
 ## status
 
@@ -200,6 +200,17 @@ Renders a composition to a file through the Render Queue and waits for it: forma
 - `format`: string; default "h264"
 - `output`: string
 - `wait`: boolean; default true
+
+## dynamic_link
+
+Dynamic Link: another app (formcut, an editor, a script) uses a composition as a live clip with no render. export writes a .fvxlink descriptor beside the saved project (or at path) naming the project, the comp and the frame and audio URLs; the editor fetches GET /api/link/frame.png?project=&comp=&time= and /api/link/audio with the x-formvfx-local: 1 header, so every saved change shows up on its next frame (the open project serves its unsaved state too). info reads a comp's size, rate and duration from any saved project file, and frame renders one of its frames, both without opening that project in the window.
+
+- `action`: string (export | info | frame); required
+- `project`: string; absolute .ecproj path (default the open project)
+- `comp`: id or name; Composition id or name; omit for the active composition.
+- `path`: string
+- `time`: number; Composition time in seconds; omit for the current time.
+- `max_size`: integer; default 960
 
 ## project
 

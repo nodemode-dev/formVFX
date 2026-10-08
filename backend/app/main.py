@@ -12,9 +12,10 @@ from .core import config, discovery
 from .core.security import LocalOnly
 from .engine import rpc as engine_rpc
 from .engine.host import host
-from .routers import agents, files, live, mcp, rpc, system, terminal, viewer
+from .engine import link as engine_link
+from .routers import agents, files, link, live, mcp, rpc, system, terminal, viewer
 
-ROUTERS = (system.router, rpc.router, live.router, viewer.router, files.router, terminal.router, mcp.router, agents.router)
+ROUTERS = (system.router, rpc.router, live.router, viewer.router, files.router, terminal.router, mcp.router, agents.router, link.router)
 
 
 @asynccontextmanager
@@ -37,6 +38,7 @@ async def lifespan(app: FastAPI):
         except OSError:
             pass
     yield
+    engine_link.stop_all()
     host.stop()
     discovery.withdraw()
 

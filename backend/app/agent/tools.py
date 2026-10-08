@@ -103,6 +103,8 @@ TOOLS = [
           {"comp": _COMP, "start": {"type": "number"}, "end": {"type": "number"}, "count": {"type": "integer", "minimum": 2, "maximum": 24, "default": 8}, "max_size": {"type": "integer", "minimum": 64, "maximum": 640, "default": 320}}, read=True, idempotent=True),
     _tool("render", "Renders a composition to a file through the Render Queue and waits for it: format h264, prores, hevc, av1, webm, gif, png, jpeg, tiff, exr, wav or aiff; output is an absolute path (default: the renders folder).",
           {"comp": _COMP, "format": {"type": "string", "default": "h264"}, "output": {"type": "string"}, "wait": {"type": "boolean", "default": True}}),
+    _tool("dynamic_link", "Dynamic Link: another app (formcut, an editor, a script) uses a composition as a live clip with no render. export writes a .fvxlink descriptor beside the saved project (or at path) naming the project, the comp and the frame and audio URLs; the editor fetches GET /api/link/frame.png?project=&comp=&time= and /api/link/audio with the x-formvfx-local: 1 header, so every saved change shows up on its next frame (the open project serves its unsaved state too). info reads a comp's size, rate and duration from any saved project file, and frame renders one of its frames, both without opening that project in the window.",
+          {"action": {"type": "string", "enum": ["export", "info", "frame"]}, "project": {"type": "string", "description": "absolute .ecproj path (default the open project)"}, "comp": _COMP, "path": {"type": "string"}, "time": _TIME, "max_size": {"type": "integer", "minimum": 64, "maximum": 2048, "default": 960}}, ["action"]),
     _tool("project", "Project files: new, open (path), save (path for the first save), saveAs (path), close. formvfx projects are .ecproj JSON.",
           {"action": {"type": "string", "enum": ["new", "open", "save", "saveAs", "close", "demo"]}, "path": {"type": "string"}}, ["action"], destructive=True),
     _tool("import_files", "Imports footage, images, audio, PSD, SVG, PDF, Lottie or 3D models (absolute paths) into the project; addToComp also places them in the active composition.",
@@ -347,6 +349,16 @@ async def _call(name: str, a: dict, source: str) -> dict:
     if name == "planar_track":
         args = {k: a[k] for k in ("layer", "mask", "target", "surface", "reference", "track", "start", "end", "comp") if a.get(k) is not None}
         return text(await rpc.dispatch("track.planar", args, source))
+    if name == "dynamic_link":
+        from ..engine import link
+
+        act = a.get("action")
+        if act == "export":
+            return text(await rpc.dispatch("link.export", {k: a[k] for k in ("comp", "path") if a.get(k) is not None}, source))
+        if act == "info":
+            return text(await link.info(a.get("project"), a.get("comp")))
+        w, h, png = await link.frame(a.get("project"), a.get("comp"), float(a.get("time") or 0.0), int(a.get("max_size") or 960), False)
+        return image(png, f"{w} x {h} at {a.get('time') or 0} s")
     if name == "render_frame":
         p = {"maxSide": int(a.get("max_size") or 960), "transparent": bool(a.get("transparent")), "display": False, **_comp_param(a)}
         if a.get("time") is not None:

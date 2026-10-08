@@ -18,6 +18,7 @@ description: The FastAPI engine service in backend/app. Use for the engine threa
 | `WS /api/viewer` | `app/routers/viewer.py` | binary frames: header `<IIIIdI` (id, width, height, revision, time, kind) then RGBA; latest wins; range requests stream RAM previews |
 | `/api/frame.png`, `/api/thumb/[item]`, `/api/audio`, `/api/peaks/[item]`, `/api/snapshot.png` (preview ranges render `host.preview_frames` at once, see `app/engine/performance.py`) | `app/routers/viewer.py` | single frames, project thumbnails, WAV for previews, waveform peaks (f32 quadruples min L, max L, min R, max R; `x-bins-per-sec`; cached by footage path or comp revision) |
 | `/api/fs/roots`, `list`, `mkdir`, `upload`, `file` | `app/routers/files.py` | the in-app file browser and drops |
+| `/api/link/info`, `/api/link/frame.png`, `/api/link/audio` | `app/routers/link.py`, `app/engine/link.py` | Dynamic Link: a comp of the open project (live) or of any saved `.ecproj` (side engine, reopened on mtime change) for another app; the `x-formvfx-local: 1` header on GET too; `link.export` writes the `.fvxlink` descriptor |
 | `/api/terminal/status`, `WS /api/terminal/ws` | `app/routers/terminal.py` | PTY (pty.fork, pywinpty on Windows) in the agent workspace with the trust token in its environment |
 | `/mcp`, `/api/agents/*` | `app/routers/mcp.py`, `app/routers/agents.py` | see `agent-substrate` |
 | Security | `app/core/security.py` | `LocalOnly`: loopback clients and local origins only, `x-formvfx-local: 1` for non-browser callers |

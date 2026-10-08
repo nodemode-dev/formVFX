@@ -17,7 +17,7 @@ The GPU compositor (wgpu) is built in. At start the engine opens the adapter onc
 
 ## The engine service
 
-One engine lives on one thread; everything that touches it is queued there. A tick drains engine events, polls background jobs and autosaves. Every surface (the interface socket, HTTP, MCP, the command line) goes through one JSON-RPC dispatcher, so all of them see the same commands and the same permission rules. Frames stream to the viewer as binary messages, latest request first.
+One engine lives on one thread; everything that touches it is queued there. A tick drains engine events, polls background jobs and autosaves. Every surface (the interface socket, HTTP, MCP, the command line) goes through one JSON-RPC dispatcher, so all of them see the same commands and the same permission rules. Frames stream to the viewer as binary messages, latest request first. Dynamic Link (`/api/link/*`) serves a composition to another app as a live clip: from the open project through the main engine, or from another saved project through a side engine of its own.
 
 ## The interface
 

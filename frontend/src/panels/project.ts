@@ -5,6 +5,7 @@ import { el, q, setClass, setHtml, setText, swapMedia } from '../ui/dom';
 import { icon } from '../ui/icons';
 import { contextMenu } from '../ui/popup';
 import { promptName } from '../ui/dialogs';
+import { toast } from '../ui/toast';
 
 const ICON: Record<string, string> = { Composition: 'iComp', Folder: 'iFolder', Footage: 'iFootage', Solid: 'iSolid' };
 
@@ -228,6 +229,8 @@ export class ProjectPanel implements Panel {
       ...(it.type === 'Composition' ? [
         { label: 'Composition Settings...', run: () => void this.ctx.run('comp.open', { comp: id }).then(() => this.ctx.invoke('comp.settings')) },
         { label: 'Add to Render Queue', run: () => void this.ctx.run('renderQueue.add', { comp: id }).then(() => this.ctx.ui.emit('showPanel', 'renderQueue')) },
+        { label: 'Export Dynamic Link Clip', run: () => void this.ctx.client.call<{ path: string }>('link.export', { comp: id })
+          .then((r) => toast(`Dynamic Link clip saved: ${r.path}`, 'info'), (e: Error) => toast(e.message, 'error')) },
       ] : []),
       { label: 'Delete', run: () => void this.ctx.run('project.delete', { items: [id] }) },
     ];

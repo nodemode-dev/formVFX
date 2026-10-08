@@ -84,6 +84,13 @@ Living context for the interface. Code carries almost no comments; the reasoning
 
 - `objectMatte` is the third tool of the Alt+W group. Hover (no drag) over the selected layer, or the layer under the pointer, when it has video: after 90 ms still, one `roto.objectPreview` is in flight at a time and the latest point waits behind it. The run lengths are decoded into a canvas the size of the returned mask (accent at alpha 110 inside, white at 235 on its edge), drawn in `draw()` through an affine transform from three mapped points (mask pixel to layer pixel to comp to screen), only while the tool is active and the time is the one it was computed for. A click calls `roto.objectMatte` and drops the preview.
 
+## Tracker panel and Dynamic Link (0.10.0)
+
+- `panels/tracker-controls.ts`: `MotionTracker` is the After Effects Tracker panel's control set (Track Camera, Warp Stabilize, Track Motion, Stabilize Motion; Motion Source, Current Track, Track Type, Position / Rotation / Scale, Motion Target, Analyze, Options, Reset, Apply), prepended above the Planar Track section and built once. `refresh()` is debounced on `store.watch` and polls `track.status` every 400 ms only while a track runs; selects are refilled only when their option signature changes. `track.status` carries `layer`, `tracker` and `trackers` only when the source has a tracker, and `mask` is mask-tracking progress, not the selection.
+- Mask mode: when the selection is a mask on the source (`selection.vertices`, or a selected prop whose uid is one of the source's mask groups in `store.tree`), the Track Type and Target rows hide, Mask Method shows, and Analyze runs `track.mask`. `.fx-assist [hidden]` is needed because the rows are grids.
+- `trackerOptions` and `editTarget` are the two dialogs; the engine's `track.optionsDialog` and `track.editTargetDialog` frontend events open them too (they were unhandled before).
+- Project panel: a composition's context menu has Export Dynamic Link Clip (`link.export`), with the result path or the reason in a toast.
+
 ## Boot ground
 
 - The critical style paints only `html` (`#0a0a0a`, then the boot script's profile ground); `body` is transparent until `tokens.css` gives it `--bg-primary`. Painting `body` too showed `#0a0a0a` for the first frames before the Studio ground `#111111`.
