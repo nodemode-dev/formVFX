@@ -11,6 +11,7 @@ import { AlignPanel, CharacterPanel, CommandPanel, HistoryPanel, InfoPanel, Para
 import { TerminalPanel } from '../panels/terminal';
 import { TimelinePanel } from '../panels/timeline';
 import { TrackerPanel } from '../panels/tracker';
+import { editTarget, trackerOptions } from '../panels/tracker-controls';
 import { ViewerPanel } from '../panels/viewer';
 import { Dialog } from '../ui/dialogs';
 import { Dock, WORKSPACES } from '../ui/dock';
@@ -470,6 +471,12 @@ class App {
         return;
       case 'file.interpretFootage':
         void ctx.invoke('file.interpretFootage', params.item ? { items: [params.item] } : null);
+        return;
+      case 'track.optionsDialog':
+        void trackerOptions(ctx, typeof params.layer === 'number' ? params.layer : undefined);
+        return;
+      case 'track.editTargetDialog':
+        void editTarget(ctx, typeof params.layer === 'number' ? params.layer : undefined);
         return;
       default:
         if (command.startsWith('view.')) {

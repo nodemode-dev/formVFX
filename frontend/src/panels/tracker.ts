@@ -4,6 +4,7 @@ import { el, setDisabled, setText } from '../ui/dom';
 import { toast } from '../ui/toast';
 import { field, select } from './assistants';
 import { CommandPanel } from './small';
+import { MotionTracker } from './tracker-controls';
 
 function fill(s: HTMLSelectElement, options: Array<[string, string]>, sig: { v: string }): void {
   const next = JSON.stringify(options);
@@ -39,6 +40,7 @@ export class TrackerPanel extends CommandPanel {
     const section = el('<section class="fx-assist fx-planar" data-automation-id="tracker.planar"><div class="fx-planar-head">Planar Track</div></section>');
     section.append(field('Surface Mask', this.mask), field('Pin Layer', this.target), field('Track', this.track), this.status, this.run);
     this.el.prepend(section);
+    this.el.prepend(new MotionTracker(c).el);
     this.run.addEventListener('click', () => void this.go());
     c.store.watch((st) => this.sync(st));
   }

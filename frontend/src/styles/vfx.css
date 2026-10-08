@@ -314,6 +314,13 @@
 .fx-assist-apply { align-self: flex-start; height: 30px; padding: 0 16px; }
 .fx-planar { flex: none; overflow: visible; padding: 4px 4px 12px; margin-bottom: 8px; border-bottom: 1px solid var(--line-1); }
 .fx-planar-head { color: var(--text-primary); font-weight: 600; }
+.fx-assist [hidden] { display: none; }
+.fx-tracker-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.fx-tracker-btn { height: 28px; padding: 0 10px; min-width: 0; }
+.fx-tracker-checks, .fx-tracker-row, .fx-tracker-analyze { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.fx-tracker-check { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); }
+.fx-tracker-analyze .fx-assist-label { width: 104px; }
+.fx-tracker-an.is-flip svg { transform: scaleX(-1); }
 .fx-preview-cache { display: flex; flex-direction: column; gap: 4px; }
 .fx-cache-bar { height: 4px; border-radius: 2px; background: var(--surface-2); overflow: hidden; }
 .fx-cache-bar span { display: block; width: 0; height: 100%; background: var(--ok); }
