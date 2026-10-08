@@ -26,6 +26,9 @@ Living context for the engine service. Code carries almost no comments; the reas
 
 - Query commands (`_QUERY_IDS` in `app/agent/consent.py`) never touch the revision; when the interface sends one, `rpc.execute` also skips `host.note`, so viewer polling (`track.status`, `puppet.info`) stays out of the Activity list. Agent queries are still logged.
 
+- `/api/peaks/{item}` (0.4.0): the engine thread only builds the job (`peaks_job`, cheap); the summary runs on `host.jobs`. Results are kept by the job's key (footage path, or comp id and revision) in an LRU of 48, and concurrent requests for one key share one task. 204 when the item has no audio.
+- `ui.flowchart` is a read RPC; agents get the same graph through `get_comp {flowchart: true}` (layers and effects included).
+
 ## Known gaps
 
 - None recorded at 0.3.0; the desktop sidecar freeze and the Tauri shell shipped in 0.2.0.

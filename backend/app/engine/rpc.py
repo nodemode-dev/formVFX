@@ -79,6 +79,8 @@ async def dispatch(method: str, params: Any, source: str = "ui") -> Any:
             return json.loads(await host.call(lambda e: e.overlays(_dumps(p)), source))
         if method == "ui.graph":
             return json.loads(await host.call(lambda e: e.graph(_dumps(p)), source))
+        if method == "ui.flowchart":
+            return json.loads(await host.call(lambda e: e.flowchart(_dumps(p)), source))
         if method == "menu.bar":
             return json.loads(await host.call(lambda e: e.menu_bar(_dumps(p)), source))
         if method == "menu.titles":

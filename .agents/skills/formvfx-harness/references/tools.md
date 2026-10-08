@@ -52,9 +52,10 @@ Runs several commands as one undo step. Each step is {command, params}; a string
 
 ## get_comp
 
-A composition: size, frame rate, duration, work area, background, and its layers top to bottom (id, index, name, type, in and out points, start, stretch, switches, blend mode, parent, track matte).
+A composition: size, frame rate, duration, work area, background, and its layers top to bottom (id, index, name, type, in and out points, start, stretch, switches, blend mode, parent, track matte). With flowchart, also the Flowchart graph: nodes (comps, footage, solids, layers, effects with their depth) and edges from each comp or layer to what it uses, nested comps followed.
 
 - `comp`: id or name; Composition id or name; omit for the active composition.
+- `flowchart`: boolean; default false
 
 Note: read-only.
 

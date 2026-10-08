@@ -1,6 +1,7 @@
 import asyncio
 import json
 import struct
+from collections import OrderedDict
 
 from fastapi import APIRouter, Query, Response, WebSocket, WebSocketDisconnect
 
@@ -112,6 +113,31 @@ async def thumb(item: int, time: float = 0.0, max: int = Query(160, ge=16, le=10
     w, h, px = out
     png = await loop.run_in_executor(host.frames, native.encode_png, w, h, px)
     return Response(png, media_type="image/png", headers={"cache-control": "max-age=5"})
+
+
+_peaks: OrderedDict[str, bytes] = OrderedDict()
+_peaks_running: dict[str, asyncio.Task] = {}
+
+
+@router.get("/api/peaks/{item}")
+async def peaks(item: int) -> Response:
+    job = await host.call(lambda e: e.peaks_job(item))
+    if job is None:
+        return Response(status_code=204)
+    key = job.key
+    data = _peaks.get(key)
+    if data is None:
+        task = _peaks_running.get(key)
+        if task is None:
+            task = asyncio.ensure_future(asyncio.get_running_loop().run_in_executor(host.jobs, job.run))
+            _peaks_running[key] = task
+            task.add_done_callback(lambda _t: _peaks_running.pop(key, None))
+        data = await task
+        _peaks[key] = data
+        while len(_peaks) > 48:
+            _peaks.popitem(last=False)
+    _peaks.move_to_end(key)
+    return Response(data, media_type="application/octet-stream", headers={"cache-control": "no-store", "x-bins-per-sec": str(job.bins_per_sec)})
 
 
 @router.get("/api/audio")

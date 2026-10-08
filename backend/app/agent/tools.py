@@ -75,7 +75,7 @@ TOOLS = [
     _tool("batch", "Runs several commands as one undo step. Each step is {command, params}; a string \"$N.key\" in a later step's params is replaced by step N's result field, counting steps from 1, e.g. {\"layer\": \"$1.layer\"} is the layer the first step made. atomic (default true) undoes everything if one step fails.",
           {"steps": {"type": "array", "items": {"type": "object", "properties": {"command": {"type": "string"}, "params": {"type": "object", "additionalProperties": True}}, "required": ["command"]}, "minItems": 1, "maxItems": 500},
            "label": {"type": "string", "maxLength": 120}, "atomic": {"type": "boolean", "default": True}}, ["steps"]),
-    _tool("get_comp", "A composition: size, frame rate, duration, work area, background, and its layers top to bottom (id, index, name, type, in and out points, start, stretch, switches, blend mode, parent, track matte).", {"comp": _COMP}, read=True, idempotent=True),
+    _tool("get_comp", "A composition: size, frame rate, duration, work area, background, and its layers top to bottom (id, index, name, type, in and out points, start, stretch, switches, blend mode, parent, track matte). With flowchart, also the Flowchart graph: nodes (comps, footage, solids, layers, effects with their depth) and edges from each comp or layer to what it uses, nested comps followed.", {"comp": _COMP, "flowchart": {"type": "boolean", "default": False}}, read=True, idempotent=True),
     _tool("get_layer", "A layer's property tree: every property with its path (use it in set_property and set_keyframes), value at the time, keyframes and expression; masks, effects and text included.",
           {"layer": _LAYER, "comp": _COMP, "depth": {"type": "integer", "minimum": 1, "maximum": 32, "default": 16}, "time": _TIME}, ["layer"], read=True, idempotent=True),
     _tool("get_property", "One property's value (at a time) with its keyframes and expression.", {"layer": _LAYER, "path": {"type": "string"}, "comp": _COMP, "time": _TIME}, ["layer", "path"], read=True, idempotent=True),
@@ -238,7 +238,11 @@ async def _call(name: str, a: dict, source: str) -> dict:
         result = await rpc.dispatch("command.batch", args, source)
         return text({"result": result, "revision": host.revision})
     if name == "get_comp":
-        return text(await ex("comp.info", _comp_param(a), source))
+        info = await ex("comp.info", _comp_param(a), source)
+        if a.get("flowchart"):
+            flow = await rpc.dispatch("ui.flowchart", {**_comp_param(a), "layers": True, "effects": True}, source)
+            info = {**info, "flowchart": flow} if isinstance(info, dict) else {"comp": info, "flowchart": flow}
+        return text(info)
     if name == "get_layer":
         p = {"layer": a["layer"], "depth": a.get("depth", 16), **_comp_param(a)}
         if a.get("time") is not None:
