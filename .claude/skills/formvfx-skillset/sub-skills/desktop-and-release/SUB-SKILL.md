@@ -32,4 +32,4 @@ Linux needs `libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf`.
 
 ## Version bump
 
-Hand-edit every site in one commit, last in the series: `frontend/package.json` and both fields in `frontend/package-lock.json`, `frontend/src/version.ts`, `backend/app/__init__.py`, `native/fvx-core/Cargo.toml` and `pyproject.toml`, `src-tauri/Cargo.toml` and `tauri.conf.json`. Tag `v*.*.*` to release.
+Hand-edit every site in one commit, last in the series: `frontend/package.json` and both fields in `frontend/package-lock.json`, `frontend/src/version.ts`, `backend/app/__init__.py`, `native/fvx-core/Cargo.toml` and `pyproject.toml`, the package's own entry in each of the two `Cargo.lock` files, `src-tauri/Cargo.toml` and `tauri.conf.json`. Tag `v*.*.*` to release.
