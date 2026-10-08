@@ -1,6 +1,6 @@
 # formvfx against After Effects
 
-formvfx 0.2.0 measured line by line against Adobe After Effects 26.5 (September 2026), the way the form family measures itself: each capability is traced through formvfx's data model and engine command, the interface that exposes it, and the render or export path that applies it.
+formvfx 0.3.0 measured line by line against Adobe After Effects 26.5 (September 2026), the way the form family measures itself: each capability is traced through formvfx's data model and engine command, the interface that exposes it, and the render or export path that applies it.
 
 - **Full** · implemented and wired from the interface through to the render or export.
 - **Partial** · present but narrower than After Effects, or reachable only as a command form where After Effects gives direct manipulation.
@@ -15,6 +15,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 | | Rows | Full | Partial | None | Score |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | formvfx 0.2.0 | 72 | 46 | 22 | 4 | 57 of 72 (79%) |
+| formvfx 0.3.0 | 72 | 50 | 18 | 4 | 59 of 72 (82%) |
 
 ## Rows
 
@@ -55,11 +56,11 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 | # | Capability | formvfx | Trace | Verified |
 | ---: | --- | --- | --- | --- |
 | 18 | Keyframes with linear, Bezier, continuous, auto Bezier, hold and roving interpolation | Full | `prop.addKey`, `keys.*`, `set_keyframes`; Timeline keyframes and context menus | yes |
-| 19 | Graph Editor: value and speed graphs, influence handles | Partial | `ui.graph` samples, `keys.transform`; keys drag in the graph, handles do not | graph view |
-| 20 | Motion paths in the viewer, auto-orient | Partial | motion paths drawn from `overlays`; `layer.autoOrient`; path tangents not draggable | no |
+| 19 | Graph Editor: value and speed graphs, influence handles | Full | `ui.graph` samples, `keys.transform`, `keys.setEase`; keys and their influence and speed handles drag in both graphs | handles |
+| 20 | Motion paths in the viewer, auto-orient | Full | motion paths drawn from `overlays`; tangent handles drag through `keys.setSpatialTangents` (Alt breaks them); `layer.autoOrient` | tangents |
 | 21 | Keyframe Assistant: easy ease, exponential scale, sequence, time-reverse, convert audio to keyframes | Full | `keys.easyEase*`, `keys.exponentialScale`, `keys.timeReverse`, `keys.audioToKeyframes` | easy ease |
 | 22 | Wiggler, Smoother, Motion Sketch | Partial | `keys.wiggle`, `keys.smooth`, `motion.sketch {points}`; command panels, no live pointer capture | wiggle |
-| 23 | Puppet pins (position, starch, bend, advanced, overlap), recording | Partial | `puppet.*`; the Puppet tool places pins, pins are moved by command | pins |
+| 23 | Puppet pins (position, starch, bend, advanced, overlap), recording | Full | `puppet.*`; the Puppet tool places pins, the Selection and Puppet tools drag them in the viewer (`puppet.movePin`) | pin drag |
 | 24 | Animation presets: save, apply, browse | Partial | `anim.savePreset`, `anim.applyPreset`; `.ecpreset`, no `.ffx` | no |
 
 ### Text
@@ -121,7 +122,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 
 | # | Capability | formvfx | Trace | Verified |
 | ---: | --- | --- | --- | --- |
-| 55 | Point, stabilize, affine and perspective trackers | Partial | `track.*` complete; track points are set by command, not dragged on footage | point track |
+| 55 | Point, stabilize, affine and perspective trackers | Full | `track.*`; track points draw on footage and their feature, search and attach regions drag (`track.setPoint`) | point track, drag |
 | 56 | Warp Stabilizer and 3D Camera Tracker | Full | `track.warpStabilizer`, `track.camera`, `camera.createFromSolve` | no |
 | 57 | Face tracking | Full | `track.mask {method: faceOutline|faceDetailed}`, `track.extractFaceMeasurements` | no |
 | 58 | Planar tracking (Mocha AE) | Partial | `perspective` tracker corner-pins; no planar solver | no |
@@ -162,7 +163,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 
 ### Platform (not scored)
 
-| Capability | After Effects 26.5 | formvfx 0.2.0 |
+| Capability | After Effects 26.5 | formvfx 0.3.0 |
 | --- | --- | --- |
 | Desktop operating systems | macOS, Windows (x64, ARM) | macOS, Windows, Linux (Tauri) |
 | In a browser | no | yes (`./formvfx serve`) |
@@ -171,11 +172,10 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 
 ## Where formvfx trails, in order
 
-1. Direct manipulation where After Effects relies on it: Graph Editor handles (19), motion path tangents (20), track points on footage (55), puppet pin dragging (23).
-2. GPU rendering on by default (63) and multi-frame rendering (64).
-3. AI and model-backed tools: Roto Brush 3 quality, Object Matte (36, 37).
-4. Audio waveforms in the Timeline (70); floating panels and a shortcut editor (71); several viewers (72).
-5. Ecosystem: `.mogrt`, `.ffx`, After Effects SDK plug-ins, Cinema 4D, Substance, Curl Noise (9, 24, 46, 47, 50, 53).
+1. GPU rendering on by default (63) and multi-frame rendering (64).
+2. AI and model-backed tools: Roto Brush 3 quality, Object Matte (36, 37).
+3. Audio waveforms in the Timeline (70); floating panels and a shortcut editor (71); several viewers (72).
+4. Ecosystem: `.mogrt`, `.ffx`, After Effects SDK plug-ins, Cinema 4D, Substance, Curl Noise (9, 24, 46, 47, 50, 53).
 
 ## Where formvfx leads
 
