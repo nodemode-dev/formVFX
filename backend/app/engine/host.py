@@ -33,6 +33,7 @@ class EngineHost:
         self._touched = False
         from . import performance
 
+        self.gpu: dict = {"enabled": False, "adapter": None, "reason": "starting"}
         self.preview_frames = performance.preview_frames()
         self.frames = concurrent.futures.ThreadPoolExecutor(max_workers=max(2, self.preview_frames), thread_name_prefix="formvfx-frame")
         self.jobs = concurrent.futures.ThreadPoolExecutor(max_workers=2, thread_name_prefix="formvfx-job")
@@ -45,6 +46,20 @@ class EngineHost:
         self.preview_frames = n
         self.frames = concurrent.futures.ThreadPoolExecutor(max_workers=max(2, n), thread_name_prefix="formvfx-frame")
         old.shutdown(wait=False)
+
+    def attach_gpu(self) -> dict:
+        from . import performance
+
+        probe = None
+        attached = None
+        try:
+            if performance.gpu_allowed() and performance.load()["gpu"]:
+                probe = performance.gpu_probe()
+            attached = json.loads(self.engine.set_gpu(bool(probe and probe.get("ok"))))
+        except BaseException as exc:
+            probe = {"ok": False, "error": repr(exc)}
+        self.gpu = performance.gpu_status(probe, attached) if probe is not None or not performance.gpu_allowed() else {"enabled": False, "adapter": None, "reason": "turned off in Settings"}
+        return self.gpu
 
     def start(self, loop: asyncio.AbstractEventLoop) -> None:
         self.bus.bind(loop)
@@ -78,6 +93,7 @@ class EngineHost:
             self.error = f"the compositing core did not load: {exc!r}. Run ./formvfx install-native"
             self._ready.set()
             return
+        self.attach_gpu()
         self._ready.set()
         last_tick = 0.0
         while True:

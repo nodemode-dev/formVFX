@@ -95,8 +95,8 @@ TOOLS = [
           {"svg": {"type": "string"}, "name": {"type": "string"}, "comp": _COMP}, ["svg"]),
     _tool("planar_track", "Planar tracking: follows a flat surface (a screen, a sign, a wall, a tabletop) through footage and corner-pins another layer onto it. Draw a mask around the surface on the footage layer first (mask.new or layer.addMask, in layer pixels at the reference time). track forward, backward or both analyses the mask with the Perspective method from the reference time (a homography from features inside the mask, every frame); without track the mask must already be tracked. surface is the plane's four corners at the reference time (upper left, upper right, lower left, lower right, layer pixels; default the mask's four vertices or its bounding box). With target, a Corner Pin is keyed on that layer so its corners ride the surface; the result is also kept as a Perspective tracker on the footage for re-applying to other layers. One undo step for the corner pin (tracking is its own step).",
           {"layer": _LAYER, "mask": {"description": "Mask uid, 1-based index or name (default the first mask).", "anyOf": [{"type": "integer"}, {"type": "string"}]}, "target": _LAYER, "surface": {"type": "array", "items": {"type": "array", "items": {"type": "number"}, "minItems": 2, "maxItems": 2}, "minItems": 4, "maxItems": 4}, "reference": _TIME, "track": {"type": "string", "enum": ["forward", "backward", "both"]}, "start": {"type": "number"}, "end": {"type": "number"}, "comp": _COMP}, ["layer"]),
-    _tool("render_frame", "Renders one frame of a composition and returns it as an image so you can see it. Use it after changes and at the moments that matter. For a 3D comp, view renders from a 3D view (top, front, left, right, back, bottom, default, custom1-3) instead of the active camera, to check layout in space.",
-          {"comp": _COMP, "time": _TIME, "max_size": {"type": "integer", "minimum": 64, "maximum": 2048, "default": 960}, "transparent": {"type": "boolean", "default": False}, "view": {"type": "string", "enum": ["activeCamera", "default", "front", "left", "top", "back", "right", "bottom", "custom1", "custom2", "custom3"]}}, read=True, idempotent=True),
+    _tool("render_frame", "Renders one frame of a composition and returns it as an image so you can see it. Use it after changes and at the moments that matter. For a 3D comp, view renders from a 3D view (top, front, left, right, back, bottom, default, custom1-3) instead of the active camera, to check layout in space. backend auto (default) renders on the GPU or the CPU, whichever is faster for the comp; gpu or cpu forces one (status shows the GPU).",
+          {"comp": _COMP, "time": _TIME, "max_size": {"type": "integer", "minimum": 64, "maximum": 2048, "default": 960}, "transparent": {"type": "boolean", "default": False}, "view": {"type": "string", "enum": ["activeCamera", "default", "front", "left", "top", "back", "right", "bottom", "custom1", "custom2", "custom3"]}, "backend": {"type": "string", "enum": ["auto", "gpu", "cpu"]}}, read=True, idempotent=True),
     _tool("contact_sheet", "Renders several frames across a time span into one image grid (each labelled with its time) to check motion and timing in one look.",
           {"comp": _COMP, "start": {"type": "number"}, "end": {"type": "number"}, "count": {"type": "integer", "minimum": 2, "maximum": 24, "default": 8}, "max_size": {"type": "integer", "minimum": 64, "maximum": 640, "default": 320}}, read=True, idempotent=True),
     _tool("render", "Renders a composition to a file through the Render Queue and waits for it: format h264, prores, hevc, av1, webm, gif, png, jpeg, tiff, exr, wav or aiff; output is an absolute path (default: the renders folder).",
@@ -221,6 +221,7 @@ async def _call(name: str, a: dict, source: str) -> dict:
             "windows": len(host.bus.windows()),
             "commands": caps.get("commands"),
             "effects": (caps.get("effects") or {}).get("total"),
+            "gpu": info.get("gpu"),
             "export": caps.get("export"),
             "next": "No composition yet: execute comp.new." if comp is None else "get_comp for the layers; render_frame to look.",
         })
@@ -335,6 +336,8 @@ async def _call(name: str, a: dict, source: str) -> dict:
             p["time"] = a["time"]
         if a.get("view"):
             p["view3d"] = a["view"]
+        if a.get("backend") in ("auto", "gpu", "cpu"):
+            p["backend"] = a["backend"]
         out = await rpc.render_png(p, source)
         t = a.get("time")
         return image(out["png"], f"{out['width']} x {out['height']}" + (f" at {t} s" if t is not None else " at the current time"))

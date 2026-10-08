@@ -39,5 +39,6 @@ Look for: text cut by the frame edge or overlapping other text; elements at the 
 - Wrong place: positions are composition pixels from the top-left; text sits on its baseline; parented layers use the parent's space.
 - Effect does nothing: `get_layer` to check the effect is enabled and its parameters; point parameters are fractions of the layer, not pixels.
 - An edit reverted: an expression on the property overrides its keys and value; read `expression` in `get_property`.
+- Suspect the GPU: `status` shows whether frames can go to the GPU (`gpu.enabled`, `gpu.adapter`). Render the same moment with `render_frame {backend: "cpu"}` and `{backend: "gpu"}`; the CPU compositor is the reference. If only the GPU frame is wrong, say so to the person (Settings > Memory & CPU turns the GPU off).
 
 Fix, then render the same moment again and compare.

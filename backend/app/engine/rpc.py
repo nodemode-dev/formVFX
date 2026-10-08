@@ -114,7 +114,7 @@ async def dispatch(method: str, params: Any, source: str = "ui") -> Any:
             caps = json.loads(await host.call(lambda e: e.capabilities(), source))
             from .. import native
 
-            return {"name": "formvfx", "version": __version__, "core": json.loads(native.version()), "capabilities": caps, "revision": host.revision, "busy": host.busy}
+            return {"name": "formvfx", "version": __version__, "core": json.loads(native.version()), "capabilities": caps, "gpu": host.gpu, "revision": host.revision, "busy": host.busy}
         if method == "text.library":
             from . import text_presets
 
@@ -144,10 +144,12 @@ async def dispatch(method: str, params: Any, source: str = "ui") -> Any:
         if method == "engine.performance":
             from . import performance
 
-            if any(k in p for k in ("multiFrame", "reservedCores")):
+            if any(k in p for k in ("multiFrame", "reservedCores", "gpu")):
                 saved = performance.save(p)
                 host.set_preview_frames(performance.preview_frames(saved))
-            return performance.describe()
+                if "gpu" in p:
+                    await host.call(lambda e: host.attach_gpu(), source, touches=True)
+            return {**performance.describe(), "gpuStatus": host.gpu}
         if method == "activity.list":
             n = int(p.get("limit") or 50)
             return list(host.activity)[-n:]

@@ -104,6 +104,11 @@ def main() -> int:
         return 0
     if "--selfcheck" in args:
         return selfcheck()
+    if "--gpu-probe" in args:
+        import fvx_core
+
+        print(fvx_core.gpu_probe(), flush=True)
+        return 0
     serve(headless="--headless" in args)
     return 0
 
