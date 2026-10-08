@@ -10,7 +10,7 @@ The `formvfx` MCP server has 27 tools. `./formvfx mcp` serves them over stdio (i
 
 ## status
 
-Start here. The open project (path, unsaved changes), the active composition (id, name, size, frame rate, duration, layer count, current time), the selection, background jobs, how many formvfx windows are watching, and the command and effect counts.
+Start here. The open project (path, unsaved changes), the active composition (id, name, size, frame rate, duration, layer count, current time), the selection, background jobs, how many formvfx windows are watching, the engine and the extension it saves projects with, and the command and effect counts.
 
 - no parameters
 
@@ -206,7 +206,7 @@ Renders a composition to a file through the Render Queue and waits for it: forma
 Dynamic Link: another app (formcut, an editor, a script) uses a composition as a live clip with no render. export writes a .fvxlink descriptor beside the saved project (or at path) naming the project, the comp and the frame and audio URLs; the editor fetches GET /api/link/frame.png?project=&comp=&time= and /api/link/audio with the x-formvfx-local: 1 header, so every saved change shows up on its next frame (the open project serves its unsaved state too). info reads a comp's size, rate and duration from any saved project file, and frame renders one of its frames, both without opening that project in the window.
 
 - `action`: string (export | info | frame); required
-- `project`: string; absolute .ecproj path (default the open project)
+- `project`: string; absolute project path, .ecproj or .fvxproj (default the open project)
 - `comp`: id or name; Composition id or name; omit for the active composition.
 - `path`: string
 - `time`: number; Composition time in seconds; omit for the current time.
@@ -214,7 +214,7 @@ Dynamic Link: another app (formcut, an editor, a script) uses a composition as a
 
 ## project
 
-Project files: new, open (path), save (path for the first save), saveAs (path), close. formvfx projects are .ecproj JSON.
+Project files: new, open (path), save (path for the first save), saveAs (path), close. formvfx projects are .fvxproj JSON; .ecproj projects from earlier releases open as imports.
 
 - `action`: string (new | open | save | saveAs | close | demo); required
 - `path`: string

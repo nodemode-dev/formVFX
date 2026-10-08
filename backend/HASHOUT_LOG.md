@@ -43,6 +43,11 @@ Living context for the engine service. Code carries almost no comments; the reas
 - Square-shaped range selectors do not move with `offset`: a library reveal keys `start` (in) or `end` (out) instead. Ramp Up with offset -100 to 100 reveals; Ramp Down with the same keys hides.
 - Dynamic Link (0.10.0, `app/engine/link.py`, `app/routers/link.py`): `GET /api/link/info`, `/api/link/frame.png` and `/api/link/audio` take `project` (an `.ecproj` path) and `comp` (id or name). With no project, or the project open in the window, they read the live engine, unsaved edits included. Any other project is opened in a side engine (its own `fvx_core.Engine` on its own thread, never ticked, so it never autosaves; the session has no config store, so it writes no settings and no recovery sentinel), reopened when the file's mtime changes, at most two kept (least recently used dropped). The routes need the `x-formvfx-local: 1` header on GET as well, since `LocalOnly` only asks it of writes, and they refuse any path that is not `.ecproj` or `.ecprojx`. `link.export` (RPC, the `dynamic_link` MCP tool, the Project panel menu) writes `<project> - <comp>.fvxlink`, a JSON descriptor (`formvfx.link/1`: project, comp id and name, size, rate, duration, URL templates) and needs a saved project. `link.info` is a read.
 
+## The engine module
+
+- `app/native.py` loads the `fvx_core` extension once per process. `native.module()` is what `host.py`, the Dynamic Link side engines and the self-check import, so nothing else names a module. `engine.info` carries the engine's `capabilities()` (`engine`, `projectExtension`, `importProjects`), which the interface reads to name its save dialogs.
+- `link.py` side engines are made with `native.module().Engine()`; its routes accept `.fvxproj`, `.ecproj` and `.ecprojx` paths.
+
 ## Known gaps
 
 - None recorded at 0.3.0; the desktop sidecar freeze and the Tauri shell shipped in 0.2.0.

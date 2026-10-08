@@ -26,9 +26,9 @@ class _Side:
         self._thread.start()
 
     def _run(self) -> None:
-        import fvx_core
+        from .. import native
 
-        engine = fvx_core.Engine()
+        engine = native.module().Engine()
         while True:
             fn, fut = self._q.get()
             if fn is None:
@@ -68,8 +68,8 @@ async def _engine(project: str | None) -> tuple[Callable[[Callable[[Any], Any]],
     want = _norm(project)
     if want == await _open_path():
         return (lambda fn: host.call(fn, "link")), True
-    if Path(want).suffix.lower() not in (".ecproj", ".ecprojx"):
-        raise RpcError(f"{project} is not a formvfx project (.ecproj)", -32602)
+    if Path(want).suffix.lower() not in (".fvxproj", ".ecproj", ".ecprojx"):
+        raise RpcError(f"{project} is not a formvfx project (.fvxproj or .ecproj)", -32602)
     if not os.path.isfile(want):
         raise RpcError(f"no project at {project}", -32602)
     async with _lock:

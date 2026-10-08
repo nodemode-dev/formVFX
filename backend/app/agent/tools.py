@@ -29,7 +29,7 @@ WORKFLOW = """How to build in formvfx with these tools.
 3. Place and style: set_property for transform/position, transform/scale, transform/rotation, transform/opacity, transform/anchor; text with layer.setText {layer, text, font, size, fill, justify}; effects with apply_effect {layer, effect, params}.
 4. Animate: set_keyframes {layer, path, keys: [{time, value, ease}]}; ease is linear, easyEase, easyEaseIn, easyEaseOut or hold. Expressions: execute prop.setExpression {layer, path, expression} (wiggle(2, 30), loopOut(), time*90).
 5. Look: render_frame at the moments that matter; contact_sheet shows N frames in one image to check motion. Fix what is wrong before going on.
-6. Deliver: project {action: save, path} to keep it editable (.ecproj), render to write a movie or image sequence (h264, prores, hevc, av1, webm, gif, png, exr...). Lottie: execute file.exportLottie {comp, path}.
+6. Deliver: project {action: save, path} to keep it editable (.fvxproj), render to write a movie or image sequence (h264, prores, hevc, av1, webm, gif, png, exr...). Lottie: execute file.exportLottie {comp, path}.
 7. Mistakes: history {action: undo}. A failed tool says why; read the message, fix the params (describe_command shows the schema) and retry.
 """
 
@@ -66,7 +66,7 @@ def _tool(name: str, description: str, props: dict, required: list[str] | None =
 
 
 TOOLS = [
-    _tool("status", "Start here. The open project (path, unsaved changes), the active composition (id, name, size, frame rate, duration, layer count, current time), the selection, background jobs, how many formvfx windows are watching, and the command and effect counts.", {}, read=True, idempotent=True),
+    _tool("status", "Start here. The open project (path, unsaved changes), the active composition (id, name, size, frame rate, duration, layer count, current time), the selection, background jobs, how many formvfx windows are watching, the engine and the extension it saves projects with, and the command and effect counts.", {}, read=True, idempotent=True),
     _tool("list_commands", "formvfx's commands (every menu item, button and drag is one): id, label, menu path, parameter summary, enabled now. Filter by text or namespace (layer, comp, keys, effect, mask, text, shape, camera, track, renderQueue, view, file...).",
           {"filter": {"type": "string"}, "namespace": {"type": "string"}, "enabledOnly": {"type": "boolean", "default": False}, "limit": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 200}}, read=True, idempotent=True),
     _tool("describe_command", "One command in full: label, menu, parameter documentation and JSON Schema, whether it is undoable and enabled now.", {"command": {"type": "string"}}, ["command"], read=True, idempotent=True),
@@ -104,8 +104,8 @@ TOOLS = [
     _tool("render", "Renders a composition to a file through the Render Queue and waits for it: format h264, prores, hevc, av1, webm, gif, png, jpeg, tiff, exr, wav or aiff; output is an absolute path (default: the renders folder).",
           {"comp": _COMP, "format": {"type": "string", "default": "h264"}, "output": {"type": "string"}, "wait": {"type": "boolean", "default": True}}),
     _tool("dynamic_link", "Dynamic Link: another app (formcut, an editor, a script) uses a composition as a live clip with no render. export writes a .fvxlink descriptor beside the saved project (or at path) naming the project, the comp and the frame and audio URLs; the editor fetches GET /api/link/frame.png?project=&comp=&time= and /api/link/audio with the x-formvfx-local: 1 header, so every saved change shows up on its next frame (the open project serves its unsaved state too). info reads a comp's size, rate and duration from any saved project file, and frame renders one of its frames, both without opening that project in the window.",
-          {"action": {"type": "string", "enum": ["export", "info", "frame"]}, "project": {"type": "string", "description": "absolute .ecproj path (default the open project)"}, "comp": _COMP, "path": {"type": "string"}, "time": _TIME, "max_size": {"type": "integer", "minimum": 64, "maximum": 2048, "default": 960}}, ["action"]),
-    _tool("project", "Project files: new, open (path), save (path for the first save), saveAs (path), close. formvfx projects are .ecproj JSON.",
+          {"action": {"type": "string", "enum": ["export", "info", "frame"]}, "project": {"type": "string", "description": "absolute project path, .ecproj or .fvxproj (default the open project)"}, "comp": _COMP, "path": {"type": "string"}, "time": _TIME, "max_size": {"type": "integer", "minimum": 64, "maximum": 2048, "default": 960}}, ["action"]),
+    _tool("project", "Project files: new, open (path), save (path for the first save), saveAs (path), close. formvfx projects are .fvxproj JSON; .ecproj projects from earlier releases open as imports.",
           {"action": {"type": "string", "enum": ["new", "open", "save", "saveAs", "close", "demo"]}, "path": {"type": "string"}}, ["action"], destructive=True),
     _tool("import_files", "Imports footage, images, audio, PSD, SVG, PDF, Lottie or 3D models (absolute paths) into the project; addToComp also places them in the active composition.",
           {"paths": {"type": "array", "items": {"type": "string"}, "minItems": 1}, "addToComp": {"type": "boolean", "default": False}}, ["paths"]),
@@ -217,6 +217,8 @@ async def _call(name: str, a: dict, source: str) -> dict:
         caps = info.get("capabilities") or {}
         return text({
             "formvfx": __version__,
+            "engine": caps.get("engine") or "fvx",
+            "projectExtension": caps.get("projectExtension") or "ecproj",
             "project": {"path": summary.get("path"), "unsaved": summary.get("dirty"), "items": len(items), "compositions": [{"id": i["id"], "name": i["name"]} for i in items if i.get("type") == "Composition"][:50]},
             "activeComp": comp,
             "time": summary.get("time"),

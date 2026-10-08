@@ -3,7 +3,7 @@ set -e
 source "$(dirname "$0")/lib.sh"
 fx_venv
 python -c "import PyInstaller" 2>/dev/null || fx_die "PyInstaller missing, run ./formvfx install-desktop"
-python -c "import fvx_core" 2>/dev/null || fx_die "the compositing core is not built, run ./formvfx install-native"
+python -c "import fvx_core" 2>/dev/null || fx_die "the compositing engine is not built, run ./formvfx install-native"
 triple="$(fx_target_triple)" || fx_die "rustc not found; install Rust or set FORMVFX_TARGET"
 [ -f "$FORMVFX_ROOT/frontend/dist/index.html" ] || "$FORMVFX_ROOT/setup/build_frontend"
 cd "$FORMVFX_ROOT/backend"

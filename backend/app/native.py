@@ -3,10 +3,18 @@ from __future__ import annotations
 import json
 
 
+def engine_name() -> str:
+    return "fvx"
+
+
 def _core():
     import fvx_core
 
     return fvx_core
+
+
+def module():
+    return _core()
 
 
 def available() -> tuple[bool, str]:

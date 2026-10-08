@@ -49,12 +49,14 @@ def gpu_allowed() -> bool:
 
 
 def gpu_probe() -> dict:
-    import fvx_core
+    from .. import native
 
+    core = native.module()
+    stamp = f"{native.engine_name()} {core.__version__}"
     path = data_dir() / _PROBE
     try:
         cached = json.loads(path.read_text(encoding="utf-8"))
-        if cached.get("core") == fvx_core.__version__ and cached.get("platform") == sys.platform:
+        if cached.get("core") == stamp and cached.get("platform") == sys.platform:
             return cached
     except (OSError, ValueError):
         pass
@@ -68,7 +70,7 @@ def gpu_probe() -> dict:
         result = json.loads(lines[-1]) if lines else {"ok": False, "error": (out.stderr or "").strip()[-300:] or f"the probe exited with {out.returncode}"}
     except (OSError, subprocess.TimeoutExpired, ValueError) as exc:
         result = {"ok": False, "error": str(exc)}
-    result.update({"core": fvx_core.__version__, "platform": sys.platform})
+    result.update({"core": stamp, "platform": sys.platform})
     path.write_text(json.dumps(result), encoding="utf-8")
     return result
 

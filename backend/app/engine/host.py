@@ -85,9 +85,9 @@ class EngineHost:
 
     def _run(self) -> None:
         try:
-            import fvx_core
+            from .. import native
 
-            self.engine = fvx_core.Engine()
+            self.engine = native.module().Engine()
             self.revision = self.engine.revision()
         except BaseException as exc:
             self.error = f"the compositing core did not load: {exc!r}. Run ./formvfx install-native"

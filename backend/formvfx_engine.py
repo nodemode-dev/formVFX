@@ -14,10 +14,11 @@ def _bundle() -> Path:
 def selfcheck() -> int:
     report = {"python": sys.version.split()[0], "frozen": bool(getattr(sys, "frozen", False))}
     try:
-        import fvx_core
+        from app import native
 
-        caps = json.loads(fvx_core.Engine().capabilities())
-        report.update({"core": fvx_core.__version__, "commands": caps.get("commands"), "effects": (caps.get("effects") or {}).get("total"), "ok": True})
+        core = native.module()
+        caps = json.loads(core.Engine().capabilities())
+        report.update({"core": core.__version__, "engine": native.engine_name(), "commands": caps.get("commands"), "effects": (caps.get("effects") or {}).get("total"), "ok": True})
     except BaseException as exc:
         report.update({"core": None, "error": repr(exc), "ok": False})
     report["interface"] = (_bundle() / "frontend_dist" / "index.html").is_file()

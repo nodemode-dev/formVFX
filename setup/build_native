@@ -2,17 +2,14 @@
 set -e
 source "$(dirname "$0")/lib.sh"
 fx_venv
-command -v cargo >/dev/null 2>&1 || fx_die "Rust is required for the compositing core: install it from https://rustup.rs (1.95 or newer)"
+command -v cargo >/dev/null 2>&1 || fx_die "Rust is required for the compositing engine: install it from https://rustup.rs (1.95 or newer)"
 profile=(--release)
-features=()
 for arg in "$@"; do
   case "$arg" in
     --dev) profile=() ;;
-    --cpu) features=(--no-default-features --features python) ;;
   esac
 done
 python -c "import maturin" 2>/dev/null || pip install "maturin>=1.15,<2"
-export CARGO_NET_GIT_FETCH_WITH_CLI="${CARGO_NET_GIT_FETCH_WITH_CLI:-true}"
 cd "$FORMVFX_ROOT/native/fvx-core"
-maturin develop "${profile[@]}" "${features[@]}"
-python -c "import json, fvx_core; c = json.loads(fvx_core.Engine().capabilities()); print('[formvfx] core', fvx_core.__version__, 'ready:', c['commands'], 'commands,', c['effects']['total'], 'effects')"
+maturin develop "${profile[@]}"
+python -c "import json, fvx_core; c = json.loads(fvx_core.Engine().capabilities()); print('[formvfx] engine', fvx_core.__version__, 'ready:', c['commands'], 'commands,', c['effects']['total'], 'effects')"
