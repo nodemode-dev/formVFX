@@ -8,7 +8,7 @@ set "PROFILE=--release"
 set "FEATURES="
 for %%A in (%*) do (
   if /i "%%A"=="--dev" set "PROFILE="
-  if /i "%%A"=="--gpu" set "FEATURES=--features gpu"
+  if /i "%%A"=="--cpu" set "FEATURES=--no-default-features --features python"
 )
 python -c "import maturin" 2>nul || pip install "maturin>=1.15,<2"
 if not defined CARGO_NET_GIT_FETCH_WITH_CLI set "CARGO_NET_GIT_FETCH_WITH_CLI=true"

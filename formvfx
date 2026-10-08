@@ -9,7 +9,7 @@ usage: ./formvfx [command] [options]
 
   (none) | boot         boot the engine (8230) and the interface (5230) together
   install [--dev]       install the engine service, build the compositing core and install the interface
-  install-native [--dev] [--gpu]  rebuild the compositing core (native/fvx-core) into the engine's venv
+  install-native [--dev] [--cpu]  rebuild the compositing core (native/fvx-core) into the engine's venv
   install-desktop       install PyInstaller and check the Rust and Tauri toolchain
   backend               boot the engine only
   frontend              boot the interface only

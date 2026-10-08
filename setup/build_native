@@ -8,7 +8,7 @@ features=()
 for arg in "$@"; do
   case "$arg" in
     --dev) profile=() ;;
-    --gpu) features=(--features gpu) ;;
+    --cpu) features=(--no-default-features --features python) ;;
   esac
 done
 python -c "import maturin" 2>/dev/null || pip install "maturin>=1.15,<2"
