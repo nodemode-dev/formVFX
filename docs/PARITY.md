@@ -1,6 +1,6 @@
 # formvfx against After Effects
 
-formvfx 0.4.0 measured line by line against Adobe After Effects 26.5 (September 2026), the way the form family measures itself: each capability is traced through formvfx's data model and engine command, the interface that exposes it, and the render or export path that applies it.
+formvfx 0.5.0 measured line by line against Adobe After Effects 26.5 (September 2026), the way the form family measures itself: each capability is traced through formvfx's data model and engine command, the interface that exposes it, and the render or export path that applies it.
 
 - **Full** · implemented and wired from the interface through to the render or export.
 - **Partial** · present but narrower than After Effects, or reachable only as a command form where After Effects gives direct manipulation.
@@ -17,6 +17,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 | formvfx 0.2.0 | 72 | 46 | 22 | 4 | 57 of 72 (79%) |
 | formvfx 0.3.0 | 72 | 50 | 18 | 4 | 59 of 72 (82%) |
 | formvfx 0.4.0 | 72 | 53 | 15 | 4 | 60.5 of 72 (84%) |
+| formvfx 0.5.0 | 72 | 57 | 11 | 4 | 62.5 of 72 (87%) |
 
 ## Rows
 
@@ -60,7 +61,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 | 19 | Graph Editor: value and speed graphs, influence handles | Full | `ui.graph` samples, `keys.transform`, `keys.setEase`; keys and their influence and speed handles drag in both graphs | handles |
 | 20 | Motion paths in the viewer, auto-orient | Full | motion paths drawn from `overlays`; tangent handles drag through `keys.setSpatialTangents` (Alt breaks them); `layer.autoOrient` | tangents |
 | 21 | Keyframe Assistant: easy ease, exponential scale, sequence, time-reverse, convert audio to keyframes | Full | `keys.easyEase*`, `keys.exponentialScale`, `keys.timeReverse`, `keys.audioToKeyframes` | easy ease |
-| 22 | Wiggler, Smoother, Motion Sketch | Partial | `keys.wiggle`, `keys.smooth`, `motion.sketch {points}`; command panels, no live pointer capture | wiggle |
+| 22 | Wiggler, Smoother, Motion Sketch | Full | Wiggler, Smoother and Motion Sketch panels over `keys.wiggle`, `keys.smooth`, `motion.sketch`; Motion Sketch records the pointer in the Composition viewer with capture speed and smoothing | yes |
 | 23 | Puppet pins (position, starch, bend, advanced, overlap), recording | Full | `puppet.*`; the Puppet tool places pins, the Selection and Puppet tools drag them in the viewer (`puppet.movePin`) | pin drag |
 | 24 | Animation presets: save, apply, browse | Partial | `anim.savePreset`, `anim.applyPreset`; `.ecpreset`, no `.ffx` | no |
 
@@ -117,7 +118,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 | 51 | Depth of field | Full | `cameraOptions/dof`, `focusDistance`, `aperture`, `camera.linkFocusToLayer` | no |
 | 52 | Environment lights and image-based lighting | Full | Environment light, `light.environmentBackground`, `layer.environment` | no |
 | 53 | Cinema 4D renderer | None | not supported | |
-| 54 | 3D views and view gizmos | Partial | `view.set3DView`, `camera.orbit`; one viewer, no transform gizmo | no |
+| 54 | 3D views and view gizmos | Full | `view.set3DView`, `camera.orbit`; 1, 2 and 4-view layouts (`view.layout`, each extra view's 3D view chosen in place); the 3D axis gizmo drags a layer along its own X, Y or Z | 4 views, axis drag |
 
 ### Tracking
 
@@ -142,7 +143,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 | ---: | --- | --- | --- | --- |
 | 62 | RAM preview with audio, preview resolution, loop | Full | `/api/viewer` range streaming, Preview panel, `/api/audio` | yes |
 | 63 | GPU acceleration | Partial | GPU paths behind the `gpu` build feature (`./formvfx install-native --gpu`); the default build renders on the CPU | no |
-| 64 | Multi-frame rendering, disk cache | Partial | renders run off the edit thread on a pool; `cache.diskStats`; no multi-frame render setting | no |
+| 64 | Multi-frame rendering, disk cache | Full | the Render Queue renders frames in parallel batches; previews render several frames at once; Settings > Memory & CPU: Enable Multi-Frame Rendering and CPU cores reserved (`engine.performance`); `cache.diskStats` | settings, preview ranges (no gain measurable on a 2-core machine) |
 
 ### Render and export
 
@@ -160,11 +161,11 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 | 69 | 8, 16 and 32-bit projects, colour management, OCIO and ACES, HDR output | Full | `file.projectSettings {bitDepth, colorEngine, workingSpace, outputSpace}` | no |
 | 70 | Audio: layers, levels, effects, waveforms in the Timeline | Full | audio layers and the 13 audio effects; Audio > Waveform rows in the Timeline (LL, or twirl open Audio) for footage and nested comps, from peak summaries (`/api/peaks`) | waveforms |
 | 71 | Workspaces, docking, customisable shortcuts | Full | 7 workspaces, docking, maximise and floating panels (Undock Panel, saved with the workspace); Edit > Keyboard Shortcuts: a keyboard view by modifier, search, record, presets, import and export, conflicts, over 1,144 bindable commands | workspaces, float, shortcut record |
-| 72 | Viewer: guides, grids, rulers, safe zones, channels, region of interest, snapshots, multiple viewers | Partial | `view.*` commands; one Composition viewer with guides, grid, channels and safe zones | channels |
+| 72 | Viewer: guides, grids, rulers, safe zones, channels, region of interest, snapshots, multiple viewers | Full | `view.*` commands; guides (also dragged from the rulers), grid, rulers, safe zones, channels, region of interest, Take and Show Snapshot; extra views and a locked viewer (`view.splitLockedViewer`, View > New Viewer) | rulers, guides, snapshot, locked viewer |
 
 ### Platform (not scored)
 
-| Capability | After Effects 26.5 | formvfx 0.4.0 |
+| Capability | After Effects 26.5 | formvfx 0.5.0 |
 | --- | --- | --- |
 | Desktop operating systems | macOS, Windows (x64, ARM) | macOS, Windows, Linux (Tauri) |
 | In a browser | no | yes (`./formvfx serve`) |
@@ -173,9 +174,9 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 
 ## Where formvfx trails, in order
 
-1. GPU rendering on by default (63) and multi-frame rendering (64).
+1. GPU rendering on by default (63).
 2. AI and model-backed tools: Roto Brush 3 quality, Object Matte (36, 37).
-3. Several Composition viewers at once (72).
+3. Content: the text animation preset library (29), vector paste as shapes (33), planar tracking (58).
 4. Ecosystem: `.mogrt`, `.ffx`, After Effects SDK plug-ins, Cinema 4D, Substance, Curl Noise (9, 24, 46, 47, 50, 53).
 
 ## Where formvfx leads
