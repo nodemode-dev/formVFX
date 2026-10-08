@@ -28,14 +28,18 @@ async def execute(command: str, params: Any = None, source: str = "ui") -> Any:
         raise RpcError("missing `command`", -32602)
     from ..agent.consent import query_command
 
+    query = query_command(command)
+    quiet = query and source == "ui"
     try:
-        raw = await host.call(lambda e: e.execute(command, _dumps(params)), source, touches=not query_command(command))
+        raw = await host.call(lambda e: e.execute(command, _dumps(params)), source, touches=not query)
     except ValueError as exc:
-        host.note(source, command, False, str(exc))
+        if not quiet:
+            host.note(source, command, False, str(exc))
         raise RpcError(str(exc)) from None
     except EngineError as exc:
         raise RpcError(str(exc), -32001) from None
-    host.note(source, command, True)
+    if not quiet:
+        host.note(source, command, True)
     return json.loads(raw) if raw else None
 
 

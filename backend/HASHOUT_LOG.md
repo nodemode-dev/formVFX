@@ -24,6 +24,8 @@ Living context for the engine service. Code carries almost no comments; the reas
 - Keyframe commands (`prop.addKey`, `keys.set`, `keys.select`) take layer seconds; `set_keyframes` converts and snaps.
 - `layer.newText` positions are baselines.
 
+- Query commands (`_QUERY_IDS` in `app/agent/consent.py`) never touch the revision; when the interface sends one, `rpc.execute` also skips `host.note`, so viewer polling (`track.status`, `puppet.info`) stays out of the Activity list. Agent queries are still logged.
+
 ## Known gaps
 
-- The desktop sidecar freeze (`setup/freeze_backend`) and the Tauri shell are not in this tree yet.
+- None recorded at 0.3.0; the desktop sidecar freeze and the Tauri shell shipped in 0.2.0.
