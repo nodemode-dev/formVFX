@@ -19,6 +19,7 @@ export interface FrameParams {
   transparent?: boolean;
   roi?: [number, number, number, number] | null;
   display?: boolean;
+  view3d?: string;
 }
 
 type FrameHandler = (f: Frame) => void;

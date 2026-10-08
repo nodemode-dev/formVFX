@@ -93,6 +93,41 @@ export class Preferences {
     if (!page) return;
     const values = await Promise.all(page.items.map((i) => (i.key ? this.ctx.client.exec<unknown>('prefs.get', { key: i.key }).catch(() => undefined) : Promise.resolve(undefined))));
     page.items.forEach((item, idx) => pane.appendChild(this.row(item, values[idx])));
+    if (id === 'memory') await this.performance(pane);
+  }
+
+  private async performance(pane: HTMLElement): Promise<void> {
+    type Perf = { multiFrame: boolean; reservedCores: number; cores: number; previewFrames: number; renderThreads: number; activeRenderThreads: number };
+    let p: Perf;
+    try {
+      p = await this.ctx.client.call<Perf>('engine.performance', {});
+    } catch {
+      return;
+    }
+    const section = el('<div class="fx-prefs-section">Multi-Frame Rendering</div>');
+    const on = el<HTMLLabelElement>('<label class="fx-prefs-row"><span class="fx-prefs-label">Enable Multi-Frame Rendering</span><span class="fx-prefs-ctl"><input type="checkbox" class="fx-check" data-automation-id="preferences.multiFrame"></span></label>');
+    const reserve = el<HTMLLabelElement>('<label class="fx-prefs-row"><span class="fx-prefs-label">CPU Cores Reserved for Other Applications</span><span class="fx-prefs-ctl"><input class="cv-input fx-prefs-num" type="number" step="1" min="0" data-automation-id="preferences.reservedCores"><span class="fx-prefs-unit">cores</span></span></label>');
+    const note = el('<p class="fx-note fx-prefs-note"></p>');
+    const box = q<HTMLInputElement>(on, 'input');
+    const num = q<HTMLInputElement>(reserve, 'input');
+    const show = (v: Perf): void => {
+      box.checked = v.multiFrame;
+      num.max = String(Math.max(0, v.cores - 1));
+      num.value = String(v.reservedCores);
+      const restart = v.renderThreads !== v.activeRenderThreads ? ` After a restart the Render Queue will use ${v.renderThreads}.` : '';
+      setText(note, `${v.cores} cores on this computer. Previews render ${v.previewFrames} frame${v.previewFrames === 1 ? '' : 's'} at once; the Render Queue renders frames in parallel batches on ${v.activeRenderThreads} threads.${restart}`);
+    };
+    const save = async (patch: Partial<Perf>): Promise<void> => {
+      try {
+        show(await this.ctx.client.call<Perf>('engine.performance', patch));
+      } catch {
+        return;
+      }
+    };
+    box.addEventListener('change', () => void save({ multiFrame: box.checked }));
+    num.addEventListener('change', () => void save({ reservedCores: Math.max(0, Math.round(Number(num.value) || 0)) }));
+    show(p);
+    pane.append(section, on, reserve, note);
   }
 
   private set(key: string, value: unknown): void {

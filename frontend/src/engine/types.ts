@@ -171,7 +171,11 @@ export interface UiState {
   selection: { layers: number[]; props: Array<[number, number]>; vertices: Array<{ layer: number; mask: number; index: number }>; keys?: KeyRef[] };
   snapping: boolean;
   roi: [number, number, number, number] | null;
-  viewer: { channel?: string; colorized?: boolean; exposure?: number; fast_previews?: unknown };
+  viewLayout?: number;
+  snapshot?: { comp: number; time: number; width: number; height: number; id: number } | null;
+  shareViewOptions?: boolean;
+  lockedViewer?: { comp: number; name: string; view: string; label: string; time: number } | null;
+  viewer: { channel?: string; colorized?: boolean; exposure?: number; fast_previews?: unknown; show_snapshot?: boolean };
   textEdit: { layer: number; anchor: number; caret: number } | null;
   rendering: boolean;
   time?: number;
@@ -239,7 +243,7 @@ export interface Overlays {
     camera: boolean;
     light: boolean;
     label: Rgb;
-    axes: { origin: [number, number]; ends: [number, number][] } | null;
+    axes: { origin: [number, number]; ends: [number, number][]; parent?: number[][]; position?: number[] } | null;
     features: [number, number][] | null;
   }>;
   paths: Array<{

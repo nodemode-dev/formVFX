@@ -8,13 +8,18 @@ import { el, q, setClass, setText } from '../ui/dom';
 import { icon } from '../ui/icons';
 import { contextMenu, type PopupEntry } from '../ui/popup';
 import { toast } from '../ui/toast';
+import { AuxViews } from './viewer-aux';
 
 type Res = 'auto' | 'full' | 'half' | 'third' | 'quarter';
 const RES_SCALE: Record<Res, number> = { auto: 0, full: 1, half: 0.5, third: 1 / 3, quarter: 0.25 };
 const ZOOMS = [0.015, 0.03125, 0.0625, 0.125, 0.25, 0.333, 0.5, 0.75, 1, 1.5, 2, 3, 4, 8, 16, 32];
+const RULER = 18;
 
 type Drag =
   | { kind: 'pan'; start: P; pan0: P }
+  | { kind: 'axis'; layer: number; axis: number; start: P; dir: P; d: number[]; pos0: number[]; merge: string }
+  | { kind: 'sketch'; t0: number; pts: Array<[number, number, number]> }
+  | { kind: 'newGuide'; vertical: boolean; pos: number }
   | { kind: 'marquee'; start: P; cur: P; add: boolean }
   | { kind: 'move'; start: P; items: Array<{ id: number; pos0: number[]; toParent: number[][] | null }>; merge: string; moved: boolean; shift: boolean }
   | { kind: 'scale'; layer: number; anchor: P; start: P; toLocal: number[][]; s0: number[]; axes: [boolean, boolean]; merge: string; prop: boolean }
@@ -60,6 +65,7 @@ export class ViewerPanel implements Panel {
   private readonly empty: HTMLElement;
   private readonly tabs: HTMLElement;
   private readonly bar: HTMLElement;
+  private readonly aux: AuxViews;
   private frame: ImageBitmap | null = null;
   private frameW = 0;
   private frameH = 0;
@@ -82,6 +88,9 @@ export class ViewerPanel implements Panel {
   private hover: P | null = null;
   private space = false;
   private pen: { layer: number; mask: number; count: number; first: P } | null = null;
+  private sketch: { layer: number; start: number; captureSpeed: number; smoothing: number } | null = null;
+  private showRulers = false;
+  private snap: { id: number; comp: number; bmp: ImageBitmap | null } | null = null;
   private dpr = 1;
   private raf = 0;
   private visible = false;
@@ -90,7 +99,7 @@ export class ViewerPanel implements Panel {
   constructor(private readonly ctx: Ctx) {
     this.el = el(`<div class="fx-viewer">
       <div class="fx-viewer-tabs"></div>
-      <div class="fx-viewer-stage" tabindex="0">
+      <div class="fx-viewer-views"><div class="fx-viewer-main" data-layout="1"><div class="fx-viewer-stage" tabindex="0">
         <canvas class="fx-viewer-canvas"></canvas>
         <div class="fx-viewer-empty" hidden>
           <div class="fx-empty-card">
@@ -103,7 +112,7 @@ export class ViewerPanel implements Panel {
             </div>
           </div>
         </div>
-      </div>
+      </div></div></div>
       <div class="fx-viewer-bar"></div>
     </div>`);
     this.stage = q(this.el, '.fx-viewer-stage');
@@ -113,6 +122,10 @@ export class ViewerPanel implements Panel {
     this.tabs = q(this.el, '.fx-viewer-tabs');
     this.bar = q(this.el, '.fx-viewer-bar');
     this.stage.dataset.automationId = 'viewer.stage';
+    this.aux = new AuxViews(ctx, q(this.el, '.fx-viewer-views'), q(this.el, '.fx-viewer-main'), () => {
+      this.resized();
+      this.fit();
+    });
     q(this.el, '[data-act="new"]').addEventListener('click', () => void ctx.invoke('comp.new'));
     q(this.el, '[data-act="import"]').addEventListener('click', () => void ctx.invoke('file.import'));
     q(this.el, '[data-act="demo"]').addEventListener('click', () => void ctx.run('file.openDemoProject'));
@@ -140,11 +153,13 @@ export class ViewerPanel implements Panel {
 
   shown(): void {
     this.visible = true;
+    this.aux.setVisible(true);
     this.resized();
   }
 
   hidden(): void {
     this.visible = false;
+    this.aux.setVisible(false);
   }
 
   resized(): void {
@@ -166,6 +181,7 @@ export class ViewerPanel implements Panel {
     return [
       { label: 'Transparency Grid', checked: this.checker, run: () => this.toggle('checker') },
       { label: 'Show Grid', checked: this.showGrid, run: () => this.toggle('grid') },
+      { label: 'Show Rulers', checked: this.showRulers, run: () => this.toggle('rulers') },
       { label: 'Show Guides', checked: this.showGuides, run: () => this.toggle('guides') },
       { label: 'Title/Action Safe', checked: this.showSafe, run: () => this.toggle('safe') },
       { label: 'Show Layer Controls', checked: this.layerControls, run: () => this.toggle('controls') },
@@ -206,6 +222,8 @@ export class ViewerPanel implements Panel {
       viewSel.appendChild(o);
     }
     viewSel.addEventListener('change', () => void this.ctx.run(`view.3d.${viewSel.value}`));
+    const layoutSel = el<HTMLSelectElement>('<select class="fx-select fx-bar-select" title="View Layout" data-automation-id="viewer.layout"><option value="1">1 View</option><option value="2">2 Views</option><option value="4">4 Views</option></select>');
+    layoutSel.addEventListener('change', () => void this.ctx.run('view.layout', { views: Number(layoutSel.value) }));
     const time = el('<button class="fx-bar-time" type="button" title="Go to time" data-automation-id="viewer.time"></button>');
     time.addEventListener('click', () => void this.ctx.invoke('time.set'));
     bar.append(
@@ -215,14 +233,17 @@ export class ViewerPanel implements Panel {
       btn('roi', 'Region of Interest', 'roi', () => void this.ctx.run('view.setRegionOfInterest', this.ctx.store.state?.roi ? {} : { rect: this.defaultRoi() })),
       btn('checker', 'Transparency Grid', 'checker', () => this.toggle('checker')),
       btn('grid', 'Grid', 'grid', () => this.toggle('grid')),
+      btn('rulers', 'Rulers (Cmd+R)', 'rulers', () => this.toggle('rulers')),
       btn('guides', 'Guides', 'guides', () => this.toggle('guides')),
       btn('safe', 'Title/Action Safe', 'safe', () => this.toggle('safe')),
       el('<span class="cv-sep"></span>'),
       chanSel,
       btn('exposure', 'Reset Exposure', 'exposure', () => void this.ctx.run('view.resetExposure')),
-      btn('snapshot', 'Take Snapshot', 'snapshot', () => void this.ctx.run('view.takeSnapshot')),
+      btn('snapshot', 'Take Snapshot (Shift+F5)', 'snapshot', () => void this.ctx.run('view.takeSnapshot')),
+      btn('showSnap', 'Show Snapshot', 'showSnapshot', () => void this.ctx.run('view.showSnapshot')),
       el('<span class="cv-sep"></span>'),
       viewSel,
+      layoutSel,
       el('<span class="fx-bar-flex"></span>'),
       time,
     );
@@ -238,6 +259,7 @@ export class ViewerPanel implements Panel {
   private toggle(which: string): void {
     if (which === 'checker') this.checker = !this.checker;
     if (which === 'grid') this.showGrid = !this.showGrid;
+    if (which === 'rulers') this.showRulers = !this.showRulers;
     if (which === 'guides') this.showGuides = !this.showGuides;
     if (which === 'safe') this.showSafe = !this.showSafe;
     if (which === 'controls') this.layerControls = !this.layerControls;
@@ -248,7 +270,9 @@ export class ViewerPanel implements Panel {
 
   private refreshBar(): void {
     const st = this.ctx.store.state;
-    const on: Record<string, boolean> = { checker: this.checker, grid: this.showGrid, guides: this.showGuides, safe: this.showSafe, roi: !!st?.roi };
+    const on: Record<string, boolean> = { checker: this.checker, grid: this.showGrid, guides: this.showGuides, safe: this.showSafe, roi: !!st?.roi, rulers: this.showRulers, showSnapshot: !!st?.viewer?.show_snapshot };
+    const showSnap = this.bar.querySelector<HTMLButtonElement>('[data-toggle="showSnapshot"]');
+    if (showSnap) showSnap.disabled = !st?.snapshot;
     for (const b of Array.from(this.bar.querySelectorAll<HTMLElement>('[data-toggle]'))) setClass(b, 'is-active', !!on[b.dataset.toggle || '']);
     const zoomSel = this.bar.querySelector<HTMLSelectElement>('[data-automation-id="viewer.zoom"]');
     if (zoomSel && document.activeElement !== zoomSel) {
@@ -268,6 +292,8 @@ export class ViewerPanel implements Panel {
       const id = v.charAt(0).toLowerCase() + v.slice(1);
       if (document.activeElement !== view) view.value = id.replace('customView', 'custom');
     }
+    const layout = this.bar.querySelector<HTMLSelectElement>('[data-automation-id="viewer.layout"]');
+    if (layout && document.activeElement !== layout) layout.value = String(st?.viewLayout ?? 1);
     setText(q(this.bar, '.fx-bar-time'), comp ? timecode(st?.time ?? 0, comp.frameRate, comp.displayStart) : '0:00:00:00');
   }
 
@@ -275,6 +301,8 @@ export class ViewerPanel implements Panel {
     const comp = st.comp;
     this.empty.hidden = !!comp;
     this.renderTabs(st);
+    this.aux.update();
+    void this.loadSnapshot(st);
     if (!comp) {
       this.frame = null;
       this.ov = null;
@@ -562,9 +590,97 @@ export class ViewerPanel implements Panel {
     g.strokeStyle = 'rgba(0,0,0,0.6)';
     g.lineWidth = 1;
     g.strokeRect(Math.round(x0) - 0.5, Math.round(y0) - 0.5, Math.round(x1 - x0) + 1, Math.round(y1 - y0) + 1);
+    const snap = this.snap;
+    if (this.ctx.store.state?.viewer?.show_snapshot && snap?.bmp && snap.comp === comp.id) {
+      g.drawImage(snap.bmp, 0, 0, snap.bmp.width, snap.bmp.height, x0, y0, x1 - x0, y1 - y0);
+      g.fillStyle = 'rgba(0,0,0,0.6)';
+      g.fillRect(x0 + 6, y0 + 6, 74, 20);
+      g.fillStyle = '#ffffff';
+      g.font = '11px system-ui, sans-serif';
+      g.textBaseline = 'middle';
+      g.fillText('Snapshot', x0 + 14, y0 + 16);
+    }
     this.drawGuides(comp.width, comp.height);
     if (this.layerControls && !this.ctx.store.playing) this.drawOverlays();
     this.drawDrag();
+    if (this.showRulers) this.drawRulers();
+  }
+
+  private drawRulers(): void {
+    const g = this.g;
+    const W = this.canvas.width / this.dpr;
+    const H = this.canvas.height / this.dpr;
+    const R = RULER;
+    g.fillStyle = this.css('--surface-1', '#1a1a1d');
+    g.fillRect(0, 0, W, R);
+    g.fillRect(0, 0, R, H);
+    g.strokeStyle = this.css('--line-2', '#34333a');
+    g.fillStyle = this.css('--text-muted', '#717072');
+    g.font = '9px system-ui, sans-serif';
+    g.textBaseline = 'top';
+    const step = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000].find((s) => s * this.zoom >= 50) ?? 5000;
+    const a = this.toComp([R, R]);
+    const b = this.toComp([W, H]);
+    g.beginPath();
+    for (let x = Math.floor(a[0] / step) * step; x <= b[0]; x += step / 5) {
+      const sx = Math.round(this.toScreen([x, 0])[0]) + 0.5;
+      if (sx < R) continue;
+      const major = Math.abs(x / step - Math.round(x / step)) < 1e-6;
+      g.moveTo(sx, major ? 0 : R - 5);
+      g.lineTo(sx, R);
+      if (major) g.fillText(String(Math.round(x)), sx + 2, 1);
+    }
+    for (let y = Math.floor(a[1] / step) * step; y <= b[1]; y += step / 5) {
+      const sy = Math.round(this.toScreen([0, y])[1]) + 0.5;
+      if (sy < R) continue;
+      const major = Math.abs(y / step - Math.round(y / step)) < 1e-6;
+      g.moveTo(major ? 0 : R - 5, sy);
+      g.lineTo(R, sy);
+      if (major) {
+        g.save();
+        g.translate(1, sy + 2);
+        g.rotate(Math.PI / 2);
+        g.fillText(String(Math.round(y)), 0, -R + 4);
+        g.restore();
+      }
+    }
+    g.moveTo(0, R - 0.5);
+    g.lineTo(W, R - 0.5);
+    g.moveTo(R - 0.5, 0);
+    g.lineTo(R - 0.5, H);
+    g.stroke();
+    if (this.hover && this.hover[0] > R && this.hover[1] > R) {
+      g.strokeStyle = this.css('--accent-color', '#f97316');
+      g.beginPath();
+      g.moveTo(Math.round(this.hover[0]) + 0.5, 0);
+      g.lineTo(Math.round(this.hover[0]) + 0.5, R);
+      g.moveTo(0, Math.round(this.hover[1]) + 0.5);
+      g.lineTo(R, Math.round(this.hover[1]) + 0.5);
+      g.stroke();
+    }
+    g.fillStyle = this.css('--surface-1', '#1a1a1d');
+    g.fillRect(0, 0, R, R);
+  }
+
+  private async loadSnapshot(st: UiState): Promise<void> {
+    const s = st.snapshot;
+    if (!s) {
+      this.snap = null;
+      return;
+    }
+    if (this.snap?.id === s.id) return;
+    this.snap = { id: s.id, comp: s.comp, bmp: null };
+    try {
+      const r = await fetch('/api/snapshot.png');
+      if (r.status !== 200) return;
+      const bmp = await createImageBitmap(await r.blob());
+      if (this.snap?.id === s.id) {
+        this.snap.bmp = bmp;
+        this.schedule();
+      }
+    } catch {
+      return;
+    }
   }
 
   private drawGuides(w: number, h: number): void {
@@ -676,12 +792,27 @@ export class ViewerPanel implements Panel {
         const o = this.toScreen(l.axes.origin);
         ['#e05050', '#60d060', '#508cf0'].forEach((c, i) => {
           const e = this.toScreen(l.axes!.ends[i]);
+          const hot = this.drag?.kind === 'axis' && this.drag.layer === l.id && this.drag.axis === i;
           g.strokeStyle = c;
-          g.lineWidth = 2;
+          g.fillStyle = c;
+          g.lineWidth = hot ? 3.5 : 2;
           g.beginPath();
           g.moveTo(o[0], o[1]);
           g.lineTo(e[0], e[1]);
           g.stroke();
+          const dx = e[0] - o[0];
+          const dy = e[1] - o[1];
+          const len = Math.hypot(dx, dy);
+          if (len > 12) {
+            const ux = dx / len;
+            const uy = dy / len;
+            g.beginPath();
+            g.moveTo(e[0] + ux * 8, e[1] + uy * 8);
+            g.lineTo(e[0] - uy * 4, e[1] + ux * 4);
+            g.lineTo(e[0] + uy * 4, e[1] - ux * 4);
+            g.closePath();
+            g.fill();
+          }
         });
         g.lineWidth = 1;
       }
@@ -790,6 +921,35 @@ export class ViewerPanel implements Panel {
     const d = this.drag;
     const g = this.g;
     if (!d) return;
+    if (d.kind === 'newGuide') {
+      const p = this.toScreen(d.vertical ? [d.pos, 0] : [0, d.pos]);
+      g.strokeStyle = this.css('--fx-guide', '#35d0ff');
+      g.setLineDash([4, 3]);
+      g.beginPath();
+      if (d.vertical) {
+        g.moveTo(Math.round(p[0]) + 0.5, 0);
+        g.lineTo(Math.round(p[0]) + 0.5, this.canvas.height / this.dpr);
+      } else {
+        g.moveTo(0, Math.round(p[1]) + 0.5);
+        g.lineTo(this.canvas.width / this.dpr, Math.round(p[1]) + 0.5);
+      }
+      g.stroke();
+      g.setLineDash([]);
+      return;
+    }
+    if (d.kind === 'sketch') {
+      g.strokeStyle = this.css('--accent-color', '#f97316');
+      g.lineWidth = 2;
+      g.beginPath();
+      d.pts.forEach((p, i) => {
+        const s = this.toScreen([p[1], p[2]]);
+        if (i) g.lineTo(s[0], s[1]);
+        else g.moveTo(s[0], s[1]);
+      });
+      g.stroke();
+      g.lineWidth = 1;
+      return;
+    }
     if (d.kind === 'marquee' || d.kind === 'shape') {
       const a = d.start;
       const b = d.cur;
@@ -818,7 +978,7 @@ export class ViewerPanel implements Panel {
 
   private cursor(): void {
     const t = this.ctx.tool;
-    const c = this.space || t === 'hand' ? 'grab' : t === 'zoom' ? 'zoom-in' : t.startsWith('pen') || SHAPE_TOOLS[t] || t === 'brush' || t === 'clone' || t === 'eraser' ? 'crosshair' : t === 'type' || t === 'typeVertical' ? 'text' : 'default';
+    const c = this.sketch ? 'crosshair' : this.space || t === 'hand' ? 'grab' : t === 'zoom' ? 'zoom-in' : t.startsWith('pen') || SHAPE_TOOLS[t] || t === 'brush' || t === 'clone' || t === 'eraser' ? 'crosshair' : t === 'type' || t === 'typeVertical' ? 'text' : 'default';
     this.stage.style.cursor = c;
   }
 
@@ -915,6 +1075,15 @@ export class ViewerPanel implements Panel {
     const st = this.ctx.store.state;
     if (!st?.comp) return;
     this.stage.setPointerCapture(e.pointerId);
+    if (this.sketch) {
+      this.drag = { kind: 'sketch', t0: performance.now(), pts: [[0, c[0], c[1]]] };
+      return;
+    }
+    if (this.showRulers && (s[0] < RULER) !== (s[1] < RULER)) {
+      const vertical = s[0] < RULER;
+      this.drag = { kind: 'newGuide', vertical, pos: vertical ? c[0] : c[1] };
+      return;
+    }
     if (tool === 'zoom') {
       this.setZoom(this.zoom * (e.altKey ? 0.5 : 2), s);
       return;
@@ -981,6 +1150,18 @@ export class ViewerPanel implements Panel {
       }
     }
     if (tool === 'selection') {
+      for (const l of this.ov?.layers ?? []) {
+        const ax = l.axes;
+        if (!l.selected || l.locked || !ax?.parent || !ax.position) continue;
+        const o = this.toScreen(ax.origin);
+        for (let i = 0; i < 3; i++) {
+          const end = this.toScreen(ax.ends[i]);
+          if (segDist(s, o, end) <= 5 && dist(s, o) > 9) {
+            this.drag = { kind: 'axis', layer: l.id, axis: i, start: s, dir: sub(end, o), d: ax.parent[i], pos0: [...ax.position], merge: await this.ctx.gesture() };
+            return;
+          }
+        }
+      }
       for (const p of this.ov?.paths ?? []) {
         for (let i = 0; i < p.vertices.length; i++) {
           if (p.selected.includes(i)) {
@@ -1135,7 +1316,7 @@ export class ViewerPanel implements Panel {
     this.hover = s;
     const d = this.drag;
     if (!d) {
-      if (this.pen) this.schedule();
+      if (this.pen || this.showRulers) this.schedule();
       return;
     }
     const c = this.toComp(s);
@@ -1144,6 +1325,24 @@ export class ViewerPanel implements Panel {
         this.pan = add(d.pan0, sub(s, d.start));
         this.draw();
         return;
+      case 'sketch': {
+        d.pts.push([(performance.now() - d.t0) / 1000, c[0], c[1]]);
+        this.draw();
+        return;
+      }
+      case 'newGuide':
+        d.pos = d.vertical ? c[0] : c[1];
+        this.draw();
+        return;
+      case 'axis': {
+        const m = sub(s, d.start);
+        const l2 = d.dir[0] * d.dir[0] + d.dir[1] * d.dir[1];
+        if (l2 < 1) return;
+        const t = (m[0] * d.dir[0] + m[1] * d.dir[1]) / l2;
+        const v = [0, 1, 2].map((i) => (d.pos0[i] ?? 0) + t * (d.d[i] ?? 0));
+        void this.ctx.run('prop.set', { layer: d.layer, path: 'transform/position', value: v, merge: d.merge }, true);
+        return;
+      }
       case 'marquee':
       case 'shape':
         d.cur = s;
@@ -1279,6 +1478,20 @@ export class ViewerPanel implements Panel {
     this.drag = null;
     if (!d) return;
     const s = this.local(e);
+    if (d.kind === 'newGuide') {
+      this.draw();
+      if (s[0] > RULER && s[1] > RULER) await this.ctx.run('view.addGuide', { orientation: d.vertical ? 'vertical' : 'horizontal', position: Math.round(d.pos) });
+      return;
+    }
+    if (d.kind === 'sketch') {
+      const sk = this.sketch;
+      this.sketch = null;
+      this.cursor();
+      this.draw();
+      this.ctx.ui.emit('viewer', { command: 'motionSketch.done', params: {} });
+      if (sk && d.pts.length > 1) await this.ctx.run('motion.sketch', { layer: sk.layer, points: d.pts, start: sk.start, captureSpeed: sk.captureSpeed, smoothing: sk.smoothing });
+      return;
+    }
     if (d.kind === 'marquee') {
       const a = this.toComp(d.start);
       const b = this.toComp(s);
@@ -1462,6 +1675,17 @@ export class ViewerPanel implements Panel {
       case 'view.fit':
         this.fit();
         return;
+      case 'view.newViewer':
+        void this.ctx.run('view.splitLockedViewer', {});
+        return;
+      case 'motionSketch.arm':
+        this.sketch = { layer: Number(params.layer), start: Number(params.start ?? 0), captureSpeed: Number(params.captureSpeed ?? 100), smoothing: Number(params.smoothing ?? 1) };
+        this.cursor();
+        return;
+      case 'motionSketch.disarm':
+        this.sketch = null;
+        this.cursor();
+        return;
       case 'view.actualSize':
         this.setZoom(1);
         return;
@@ -1475,6 +1699,9 @@ export class ViewerPanel implements Panel {
         return;
       case 'view.grid':
         this.showGrid = params.value === undefined ? !this.showGrid : !!params.value;
+        break;
+      case 'view.rulers':
+        this.showRulers = params.value === undefined ? !this.showRulers : !!params.value;
         break;
       case 'view.guides':
         this.showGuides = params.value === undefined ? !this.showGuides : !!params.value;
@@ -1501,7 +1728,7 @@ export class ViewerPanel implements Panel {
   }
 
   state(): Record<string, unknown> {
-    return { zoom: this.zoom, pan: this.pan, resolution: this.res, transparencyGrid: this.checker, grid: this.showGrid, guides: this.showGuides, safe: this.showSafe, layerControls: this.layerControls };
+    return { zoom: this.zoom, pan: this.pan, origin: this.origin(), resolution: this.res, transparencyGrid: this.checker, grid: this.showGrid, guides: this.showGuides, safe: this.showSafe, layerControls: this.layerControls, views: this.aux.state(), motionSketch: !!this.sketch };
   }
 }
 

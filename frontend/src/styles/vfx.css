@@ -123,6 +123,23 @@
 .fx-ctab-x { display: inline-grid; place-items: center; width: 16px; height: 16px; flex: none; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--text-muted); cursor: pointer; }
 .fx-ctab-x:hover { background: var(--surface-2); color: var(--text-primary); }
 .fx-viewer-stage { position: relative; min-height: 0; overflow: hidden; outline: none; }
+.fx-viewer-views { display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; min-width: 0; min-height: 0; background: var(--surface-0); }
+.fx-viewer-views.has-locked { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.fx-viewer-main { display: grid; grid-template: "stage" minmax(0, 1fr) / minmax(0, 1fr); gap: 2px; min-width: 0; min-height: 0; }
+.fx-viewer-main[data-layout="2"] { grid-template: "a0 stage" minmax(0, 1fr) / minmax(0, 1fr) minmax(0, 1fr); }
+.fx-viewer-main[data-layout="4"] { grid-template: "a0 a1" minmax(0, 1fr) "a2 stage" minmax(0, 1fr) / minmax(0, 1fr) minmax(0, 1fr); }
+.fx-viewer-main > .fx-viewer-stage { grid-area: stage; background: var(--fx-pasteboard); }
+.fx-aux { position: relative; min-width: 0; min-height: 0; overflow: hidden; background: var(--fx-pasteboard); }
+.fx-aux[hidden] { display: none; }
+.fx-aux[data-slot="0"] { grid-area: a0; }
+.fx-aux[data-slot="1"] { grid-area: a1; }
+.fx-aux[data-slot="2"] { grid-area: a2; }
+.fx-aux-canvas { position: absolute; top: 0; left: 0; display: block; }
+.fx-aux-label { position: absolute; left: 6px; right: 6px; bottom: 4px; display: flex; align-items: center; gap: 6px; height: 24px; color: var(--text-secondary); font-size: var(--fs-11); white-space: nowrap; overflow: hidden; }
+.fx-aux-view { height: 22px; max-width: 150px; font-size: var(--fs-11); }
+.fx-aux-lock { padding: 1px 6px; border: 1px solid var(--accent-line); border-radius: 5px; background: var(--accent-soft); color: var(--text-primary); }
+.fx-aux-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.fx-aux-close { margin-left: auto; }
 .fx-viewer-canvas { position: absolute; top: 0; left: 0; display: block; }
 .fx-viewer-empty { position: absolute; inset: 0; display: grid; place-items: center; }
 .fx-viewer-empty[hidden] { display: none; }
@@ -288,6 +305,13 @@
 .fx-inline-check { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; cursor: pointer; }
 .fx-inline-check input { margin: 0; accent-color: var(--accent-color); }
 .fx-field-inline { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.fx-assist { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; padding: 10px; overflow: auto; color: var(--text-secondary); font-size: var(--fs-12); }
+.fx-assist-row { display: grid; grid-template-columns: 112px minmax(0, 1fr); align-items: center; gap: 8px; min-height: 26px; }
+.fx-assist-label { color: var(--text-muted); white-space: nowrap; }
+.fx-assist-pair { display: flex; gap: 6px; min-width: 0; }
+.fx-assist-select { min-width: 0; max-width: 100%; height: 26px; }
+.fx-assist-status { min-height: 32px; color: var(--text-muted); font-size: var(--fs-11); line-height: 1.4; }
+.fx-assist-apply { align-self: flex-start; height: 30px; padding: 0 16px; }
 .fx-preview-cache { display: flex; flex-direction: column; gap: 4px; }
 .fx-cache-bar { height: 4px; border-radius: 2px; background: var(--surface-2); overflow: hidden; }
 .fx-cache-bar span { display: block; width: 0; height: 100%; background: var(--ok); }

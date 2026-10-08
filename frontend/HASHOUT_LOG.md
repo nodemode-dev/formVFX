@@ -57,6 +57,15 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - `comboOf` now matches the engine's names: Ctrl before Cmd, `Escape` (was `Esc`), numpad keys as `Num0`, `Num*`, `Num+`, `Num-`, `Num.`, `Num/` (they were `Numpad0` and never matched).
 - Floating panels: a fifth dock area, `float`, in `.fx-float-layer` (one `--z-companion` stacking context with `isolation`). Floating groups order themselves with small inline z-index values inside that context (`Dock.raise`); geometry is saved in the workspace layout (`float: [{panels, active, x, y, w, h}]`). Undock Panel and Dock Panel are in the group menu; the header drags, the corner grip resizes.
 
+## Views, gizmo, assistants, rulers, snapshots (0.5.0)
+
+- View layouts and the locked viewer (`panels/viewer-aux.ts`): the viewer's stage sits in `.fx-viewer-main`, a CSS grid whose `data-layout` (1, 2, 4) places up to three extra panes beside it; `.fx-viewer-views` adds the locked pane as a left column. Panes are built once and only hidden, each with its own `FrameStream` (its own socket, connected the first time it shows) asking for draft frames with `view3d`; a pane's 3D view is local (select in its label), double-click makes it the main view. A layout change refits the main view on the next frame (the stage is the same element, so its tools and overlays keep working). Panes do not update during playback.
+- 3D axis gizmo: `ui.overlays` gives, per selected 3D layer, `axes.parent` (the parent-space displacement of each 60-unit local axis) and `axes.position`. Dragging an arrow projects the pointer movement on the arrow's screen direction and sets position to `position + t * parent[i]`, one `prop.set` per move with one gesture key. The anchor area (9 px) is left to the move drag.
+- Motion Sketch: the panel arms the viewer through `ui.emit('viewer', {command: 'motionSketch.arm'})`; the next press records `[seconds since press, comp x, comp y]` until release, draws the trail, then runs `motion.sketch` and emits `motionSketch.done`. Wiggler and Smoother panels enable Apply from `selection.keys` (two keys of a property, three for the Smoother).
+- Rulers (`view.rulers`, Cmd+R, bar button): drawn on the viewer canvas in an 18 px band (`RULER`), steps of 1, 2 or 5 times a power of ten at 50 px or more; a press in a ruler starts a new guide (left ruler vertical, top ruler horizontal), added with `view.addGuide` when released over the stage.
+- Snapshots: `ui.state.snapshot` carries an id per taken snapshot; the viewer loads `/api/snapshot.png` once per id and draws it in place of the frame while `viewer.show_snapshot` is on.
+- `window.formvfx.ui.state().viewer` now also reports `origin` (stage pixels of comp 0,0), `views` (layout, extra views, locked viewer) and `motionSketch`.
+
 ## Boot ground
 
 - The critical style paints only `html` (`#0a0a0a`, then the boot script's profile ground); `body` is transparent until `tokens.css` gives it `--bg-primary`. Painting `body` too showed `#0a0a0a` for the first frames before the Studio ground `#111111`.

@@ -97,6 +97,8 @@ const VFX: Record<string, string> = {
   palette: s('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 10h10M7 14h6"/>'),
   parent: s('<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8 8l8 8"/>'),
   plusSmall: s('<path d="M12 6v12M6 12h12"/>'),
+  rulers: s('<path d="M3 3h18v5H8v13H3z"/><path d="M8 3v2.5M12 3v2.5M16 3v2.5M3 12h2.5M3 16h2.5"/>', 1.4),
+  showSnap: s('<path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"/><circle cx="12" cy="12" r="2.5"/>'),
 };
 
 for (const [k, v] of Object.entries(VFX)) ICONS[k] = v;

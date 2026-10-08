@@ -2,6 +2,7 @@ import { VERSION } from '../version';
 import { api } from '../engine/client';
 import type { ServerEvent } from '../engine/client';
 import { AgentsPanel } from '../panels/agents';
+import { MotionSketchPanel, SmootherPanel, WigglerPanel } from '../panels/assistants';
 import { EffectControlsPanel } from '../panels/effect-controls';
 import { EffectsPresetsPanel } from '../panels/effects-presets';
 import { FlowchartPanel } from '../panels/flowchart';
@@ -42,9 +43,6 @@ const TOOL_GROUPS: Array<{ key: string; tools: Array<[ToolId, string, string]> }
 
 const COMMAND_PANELS: Array<[string, string, string[], string]> = [
   ['tracker', 'Tracker', ['track.', 'warp.', 'camera.analyze', 'camera.solve', 'mask.track'], 'Track motion, stabilize, track a mask or solve a 3D camera. Select the layer first.'],
-  ['wiggler', 'Wiggler', ['keys.wiggle'], 'Adds random keyframes between the two selected keyframes.'],
-  ['smoother', 'Smoother', ['keys.smooth'], 'Thins and smooths the selected keyframes.'],
-  ['motionSketch', 'Motion Sketch', ['anim.motionSketch'], 'Records a motion path for the selected layer.'],
   ['paint', 'Paint', ['paint.'], 'Paint, clone and erase on a layer; choose the Brush, Clone Stamp or Eraser tool and draw in the viewer.'],
   ['brushes', 'Brushes', ['paint.options', 'paint.presets'], 'Brush tips and their options.'],
   ['contentAwareFill', 'Content-Aware Fill', ['contentFill.', 'content.'], 'Fill a masked area from the surrounding frames.'],
@@ -180,6 +178,9 @@ class App {
     this.dock.register('terminal', 'Terminal', () => this.terminal);
     this.dock.register('agents', 'Agents', () => new AgentsPanel(ctx));
     this.dock.register('flowchart', 'Flowchart', () => new FlowchartPanel(ctx));
+    this.dock.register('wiggler', 'Wiggler', () => new WigglerPanel(ctx));
+    this.dock.register('smoother', 'Smoother', () => new SmootherPanel(ctx));
+    this.dock.register('motionSketch', 'Motion Sketch', () => new MotionSketchPanel(ctx));
     for (const [id, title, prefixes, blurb] of COMMAND_PANELS) this.dock.register(id, title, () => new CommandPanel(ctx, id, title, prefixes, blurb));
   }
 
