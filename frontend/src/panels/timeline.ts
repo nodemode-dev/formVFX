@@ -801,6 +801,12 @@ export class TimelinePanel implements Panel {
     const text = r.node.expr?.text ?? '';
     if (document.activeElement !== ta && ta.value !== text) ta.value = text;
     setClass(q(node, '.fx-expr-on'), 'is-on', !!r.node.expr?.enabled);
+    const err = r.node.expr?.enabled ? r.node.expr?.error || '' : '';
+    const label = q(node, '.fx-expr-label');
+    setClass(node, 'has-error', !!err);
+    setText(label, err ? 'Error' : 'Expression');
+    if (label.title !== err) label.title = err;
+    if (ta.title !== err) ta.title = err;
   }
 
   private update(node: HTMLElement, r: RowItem): void {

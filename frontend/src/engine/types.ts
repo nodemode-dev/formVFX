@@ -130,7 +130,7 @@ export interface PropNode {
   hold: boolean;
   dims: number;
   selected: boolean;
-  expr?: { text: string; enabled: boolean };
+  expr?: { text: string; enabled: boolean; error?: string | null };
 }
 
 export interface GroupNode {
