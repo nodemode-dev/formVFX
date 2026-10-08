@@ -1,6 +1,6 @@
 # formvfx against After Effects
 
-formvfx 0.8.0 measured line by line against Adobe After Effects 26.5 (September 2026), the way the form family measures itself: each capability is traced through formvfx's data model and engine command, the interface that exposes it, and the render or export path that applies it.
+formvfx 0.9.0 measured line by line against Adobe After Effects 26.5 (September 2026), the way the form family measures itself: each capability is traced through formvfx's data model and engine command, the interface that exposes it, and the render or export path that applies it.
 
 - **Full** · implemented and wired from the interface through to the render or export.
 - **Partial** · present but narrower than After Effects, or reachable only as a command form where After Effects gives direct manipulation.
@@ -21,6 +21,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 | formvfx 0.6.0 | 72 | 59 | 9 | 4 | 63.5 of 72 (88%) |
 | formvfx 0.7.0 | 72 | 61 | 8 | 3 | 65 of 72 (90%) |
 | formvfx 0.8.0 | 72 | 63 | 6 | 3 | 66 of 72 (92%) |
+| formvfx 0.9.0 | 72 | 64 | 5 | 3 | 66.5 of 72 (92%) |
 
 ## Rows
 
@@ -94,7 +95,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 | 34 | Masks: modes, feather, expansion, variable feather, animated paths, interpolation | Full | `layer.addMask`, `mask.*`, `layer.mask.*`; shape and pen tools draw masks | yes |
 | 35 | Mask tracking | Full | `track.mask {method}` | no |
 | 36 | Roto Brush and Refine Edge | Partial | `roto.*` with classical and MobileSAM models; not Roto Brush 3's model | no |
-| 37 | Object Matte (AI subject selection and tracking) | Partial | `roto.stroke` and `roto.propagate` approximate it; no one-click subject pick | no |
+| 37 | Object Matte (AI subject selection and tracking) | Full | the Object Matte tool (Alt+W): hovering a footage layer runs MobileSAM at the pointer and tints the object it would select, with an outline (`roto.objectPreview`, `native/fvx-core/src/render/sam.rs`; the frame's embedding is kept, so moving the pointer costs a decode, about 0.1 s); a click seeds a Roto Brush there, spans the whole layer and propagates both ways as one "Object Matte" step (`roto.objectMatte`, MCP `object_matte`). The model is a 40 MB download (Settings > Roto Brush) | one click on a figure moving over a cluttered background: IoU 0.999 to 1.0 against the true matte on every sampled frame of 45; hover and click in the interface |
 | 38 | Paint, Clone Stamp and Eraser with write-on | Full | `paint.*`; Brush, Clone and Eraser tools | write-on |
 | 39 | Content-Aware Fill | Full | `layer.newContentAwareFill`, `contentFill.*`: Object, Surface and Edge Blend fills, work area or whole layer, alpha expansion, lighting correction, reference frames, a Fill layer above the source | object removed from a panning shot: 1.9 of 255 mean error in the hole against the clean plate (Object and Surface), where a single-frame inpaint is 19.5; Edge Blend fills smoothly as After Effects' does |
 
@@ -168,7 +169,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 
 ### Platform (not scored)
 
-| Capability | After Effects 26.5 | formvfx 0.8.0 |
+| Capability | After Effects 26.5 | formvfx 0.9.0 |
 | --- | --- | --- |
 | Desktop operating systems | macOS, Windows (x64, ARM) | macOS, Windows, Linux (Tauri) |
 | In a browser | no | yes (`./formvfx serve`) |
@@ -177,7 +178,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 
 ## Where formvfx trails, in order
 
-1. AI and model-backed tools: Roto Brush 3 quality, Object Matte (36, 37).
+1. AI and model-backed tools: Roto Brush 3's own model (36); formvfx runs MobileSAM.
 2. Ecosystem: `.mogrt`, `.ffx`, After Effects SDK plug-ins, Cinema 4D, Substance (9, 24, 46, 50, 53).
 
 ## Where formvfx leads
