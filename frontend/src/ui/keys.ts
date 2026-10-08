@@ -22,7 +22,7 @@ const TOOL_KEYS: Record<string, ToolId[]> = {
   '3': ['dolly'],
   'Cmd+T': ['type', 'typeVertical'],
   'Cmd+B': ['brush', 'clone', 'eraser'],
-  'Alt+W': ['roto', 'refine'],
+  'Alt+W': ['roto', 'refine', 'objectMatte'],
   'Cmd+P': ['puppet', 'starch', 'bend', 'advanced', 'overlap'],
 };
 

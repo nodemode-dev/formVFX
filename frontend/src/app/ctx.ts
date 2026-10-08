@@ -12,7 +12,7 @@ export type ToolId =
   | 'selection' | 'hand' | 'zoom' | 'rotation' | 'orbit' | 'pan3d' | 'dolly' | 'panBehind'
   | 'rect' | 'rounded' | 'ellipse' | 'polygon' | 'star'
   | 'pen' | 'penAdd' | 'penDelete' | 'penConvert' | 'maskFeather'
-  | 'type' | 'typeVertical' | 'brush' | 'clone' | 'eraser' | 'roto' | 'refine'
+  | 'type' | 'typeVertical' | 'brush' | 'clone' | 'eraser' | 'roto' | 'refine' | 'objectMatte'
   | 'puppet' | 'starch' | 'bend' | 'advanced' | 'overlap';
 
 export interface UiEvents {

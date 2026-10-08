@@ -38,7 +38,7 @@ const TOOL_GROUPS: Array<{ key: string; tools: Array<[ToolId, string, string]> }
   { key: 'G', tools: [['pen', 'vPen', 'Pen Tool'], ['penAdd', 'vPenAdd', 'Add Vertex Tool'], ['penDelete', 'vPenDelete', 'Delete Vertex Tool'], ['penConvert', 'vPenConvert', 'Convert Vertex Tool'], ['maskFeather', 'vFeather', 'Mask Feather Tool']] },
   { key: 'Cmd+T', tools: [['type', 'vType', 'Horizontal Type Tool'], ['typeVertical', 'vTypeV', 'Vertical Type Tool']] },
   { key: 'Cmd+B', tools: [['brush', 'vBrush', 'Brush Tool'], ['clone', 'vClone', 'Clone Stamp Tool'], ['eraser', 'vEraser', 'Eraser Tool']] },
-  { key: 'Alt+W', tools: [['roto', 'vRoto', 'Roto Brush Tool'], ['refine', 'vRefine', 'Refine Edge Tool']] },
+  { key: 'Alt+W', tools: [['roto', 'vRoto', 'Roto Brush Tool'], ['refine', 'vRefine', 'Refine Edge Tool'], ['objectMatte', 'vObjectMatte', 'Object Matte Tool']] },
   { key: 'Cmd+P', tools: [['puppet', 'vPuppet', 'Puppet Position Pin Tool'], ['starch', 'vStarch', 'Puppet Starch Pin Tool'], ['bend', 'vBend', 'Puppet Bend Pin Tool'], ['advanced', 'vAdvanced', 'Puppet Advanced Pin Tool'], ['overlap', 'vOverlap', 'Puppet Overlap Pin Tool']] },
 ];
 

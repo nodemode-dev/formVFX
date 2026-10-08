@@ -30,6 +30,7 @@ const VFX: Record<string, string> = {
   vEraser: s('<path d="M4 16l9-9 6 6-7 7H8z"/><path d="M8 20h12M9.5 10.5l6 6"/>'),
   vRoto: s('<circle cx="9" cy="9" r="4"/><path d="M13 13l7 7M17 7l2-2M5 19l3-3"/><circle cx="9" cy="9" r="1" fill="currentColor" stroke="none"/>'),
   vRefine: s('<path d="M5 19c3-1 4-4 4-7s2-6 6-7"/><path d="M14 9c2 0 4 1 5 3M3 14c2-1 3 0 4 1"/>'),
+  vObjectMatte: s('<path d="M8 4h-2a2 2 0 0 0-2 2v2M16 4h2a2 2 0 0 1 2 2v2M8 20h-2a2 2 0 0 1-2-2v-2M16 20h2a2 2 0 0 0 2-2v-2"/><circle cx="12" cy="10" r="2.5"/><path d="M8 17c0-2.5 1.8-4 4-4s4 1.5 4 4"/>'),
   vPuppet: s('<circle cx="12" cy="5" r="2"/><path d="M12 7v7M8 10h8M12 14l-3 6M12 14l3 6"/><circle cx="8" cy="10" r="1" fill="currentColor" stroke="none"/><circle cx="16" cy="10" r="1" fill="currentColor" stroke="none"/>'),
   vStarch: s('<path d="M12 3l2 4 4 .6-3 3 .7 4.4-3.7-2-3.7 2 .7-4.4-3-3 4-.6z"/><path d="M5 20h14"/>'),
   vBend: s('<path d="M5 19c0-8 6-14 14-14"/><circle cx="5" cy="19" r="1.6"/><circle cx="19" cy="5" r="1.6"/>'),

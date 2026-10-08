@@ -86,6 +86,10 @@ export class ViewerPanel implements Panel {
   private drag: Drag | null = null;
   private pressing: Promise<void> = Promise.resolve();
   private hover: P | null = null;
+  private obj: { layer: number; time: number; step: number; origin: P; canvas: HTMLCanvasElement } | null = null;
+  private objWant: { layer: number; point: P } | null = null;
+  private objBusy = false;
+  private objTimer = 0;
   private space = false;
   private pen: { layer: number; mask: number; count: number; first: P } | null = null;
   private sketch: { layer: number; start: number; captureSpeed: number; smoothing: number } | null = null;
@@ -602,6 +606,7 @@ export class ViewerPanel implements Panel {
     }
     this.drawGuides(comp.width, comp.height);
     if (this.layerControls && !this.ctx.store.playing) this.drawOverlays();
+    this.drawObject();
     this.drawDrag();
     if (this.showRulers) this.drawRulers();
   }
@@ -978,7 +983,7 @@ export class ViewerPanel implements Panel {
 
   private cursor(): void {
     const t = this.ctx.tool;
-    const c = this.sketch ? 'crosshair' : this.space || t === 'hand' ? 'grab' : t === 'zoom' ? 'zoom-in' : t.startsWith('pen') || SHAPE_TOOLS[t] || t === 'brush' || t === 'clone' || t === 'eraser' ? 'crosshair' : t === 'type' || t === 'typeVertical' ? 'text' : 'default';
+    const c = this.sketch ? 'crosshair' : this.space || t === 'hand' ? 'grab' : t === 'zoom' ? 'zoom-in' : t.startsWith('pen') || SHAPE_TOOLS[t] || t === 'brush' || t === 'clone' || t === 'eraser' || t === 'objectMatte' ? 'crosshair' : t === 'type' || t === 'typeVertical' ? 'text' : 'default';
     this.stage.style.cursor = c;
   }
 
@@ -1041,6 +1046,92 @@ export class ViewerPanel implements Panel {
 
   private ovLayer(id: number) {
     return this.ov?.layers.find((l) => l.id === id);
+  }
+
+  private objectTarget(c: P): { layer: number; point: P } | null {
+    const sel = this.ctx.store.state?.selection.layers[0];
+    const pick = (id: number | null | undefined): number | null => {
+      const row = id ? this.ctx.store.layer(id) : undefined;
+      const ov = id ? this.ovLayer(id) : undefined;
+      return row && ov?.quad && row.hasVideo && row.type !== 'Text' && row.type !== 'Shape' && inQuad(c, ov.quad) ? row.id : null;
+    };
+    const layer = pick(sel) ?? pick(this.hitLayer(c));
+    if (!layer) return null;
+    return { layer, point: apply(this.ovLayer(layer)?.toLocal, c) };
+  }
+
+  private objectHover(c: P): void {
+    window.clearTimeout(this.objTimer);
+    const target = this.objectTarget(c);
+    if (!target) {
+      this.objWant = null;
+      if (this.obj) {
+        this.obj = null;
+        this.schedule();
+      }
+      return;
+    }
+    this.objTimer = window.setTimeout(() => {
+      this.objWant = target;
+      void this.objectPreview();
+    }, 90);
+  }
+
+  private async objectPreview(): Promise<void> {
+    if (this.objBusy || !this.objWant) return;
+    const want = this.objWant;
+    this.objWant = null;
+    this.objBusy = true;
+    try {
+      const r = await this.ctx.client.call<{ layer: number; time: number; w: number; h: number; step: number; origin: P; runs: number[] }>('roto.objectPreview', { layer: want.layer, point: want.point });
+      if (this.ctx.tool === 'objectMatte') {
+        const cv = this.obj?.canvas.width === r.w && this.obj.canvas.height === r.h ? this.obj.canvas : Object.assign(document.createElement('canvas'), { width: r.w, height: r.h });
+        const g = cv.getContext('2d') as CanvasRenderingContext2D;
+        const img = g.createImageData(r.w, r.h);
+        const tint = this.css('--accent-color', '#f97316');
+        const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(tint);
+        const rgb = m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : [249, 115, 22];
+        const on = new Uint8Array(r.w * r.h);
+        let i = 0;
+        r.runs.forEach((n, k) => {
+          if (k % 2) on.fill(1, i, i + n);
+          i += n;
+        });
+        for (let y = 0; y < r.h; y++) {
+          for (let x = 0; x < r.w; x++) {
+            const j = y * r.w + x;
+            if (!on[j]) continue;
+            const edge = x === 0 || y === 0 || x === r.w - 1 || y === r.h - 1 || !on[j - 1] || !on[j + 1] || !on[j - r.w] || !on[j + r.w];
+            img.data.set(edge ? [255, 255, 255, 235] : [rgb[0], rgb[1], rgb[2], 110], j * 4);
+          }
+        }
+        g.putImageData(img, 0, 0);
+        this.obj = { layer: r.layer, time: r.time, step: r.step, origin: r.origin, canvas: cv };
+        this.schedule();
+      }
+    } catch {
+      this.obj = null;
+    } finally {
+      this.objBusy = false;
+      if (this.objWant) void this.objectPreview();
+    }
+  }
+
+  private drawObject(): void {
+    const o = this.obj;
+    const time = this.ctx.store.state?.time ?? 0;
+    if (!o || this.ctx.tool !== 'objectMatte' || Math.abs(o.time - time) > 1e-3) return;
+    const toComp = invert(this.ovLayer(o.layer)?.toLocal);
+    const at = (u: number, v: number): P => this.toScreen(apply(toComp, [o.origin[0] + u * o.step, o.origin[1] + v * o.step]));
+    const p0 = at(0, 0);
+    const px = at(1, 0);
+    const py = at(0, 1);
+    const g = this.g;
+    g.save();
+    g.setTransform(this.dpr * (px[0] - p0[0]), this.dpr * (px[1] - p0[1]), this.dpr * (py[0] - p0[0]), this.dpr * (py[1] - p0[1]), this.dpr * p0[0], this.dpr * p0[1]);
+    g.imageSmoothingEnabled = true;
+    g.drawImage(o.canvas, 0, 0);
+    g.restore();
   }
 
   private hitLayer(c: P): number | null {
@@ -1109,6 +1200,22 @@ export class ViewerPanel implements Panel {
     }
     if (tool.startsWith('pen') || tool === 'maskFeather') {
       await this.penDown(c, s, e);
+      return;
+    }
+    if (tool === 'objectMatte') {
+      const target = this.objectTarget(c);
+      if (!target) {
+        toast('Click an object in a footage layer', 'error');
+        return;
+      }
+      toast('Selecting the object and following it through the layer...', 'info');
+      this.obj = null;
+      this.schedule();
+      try {
+        await this.ctx.client.call('roto.objectMatte', { layer: target.layer, point: target.point });
+      } catch (err) {
+        toast(err instanceof Error ? err.message : String(err), 'error');
+      }
       return;
     }
     if (tool === 'brush' || tool === 'clone' || tool === 'eraser' || tool === 'roto' || tool === 'refine') {
@@ -1316,6 +1423,7 @@ export class ViewerPanel implements Panel {
     this.hover = s;
     const d = this.drag;
     if (!d) {
+      if (this.ctx.tool === 'objectMatte') this.objectHover(this.toComp(s));
       if (this.pen || this.showRulers) this.schedule();
       return;
     }

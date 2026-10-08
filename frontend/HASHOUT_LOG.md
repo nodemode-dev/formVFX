@@ -80,6 +80,10 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - `Preferences.show` builds a page off the DOM and swaps it in with one `replaceChildren` once its values (and, for Memory & CPU, `engine.performance`) have arrived; the old page stays until then, and a page left before its values arrive is dropped. It used to empty the pane first and append the Multi-Frame Rendering rows after a second request, so the page blinked empty and then grew.
 - Memory & CPU > GPU Acceleration: the checkbox sends `engine.performance {gpu}` and the note shows the adapter or the reason the CPU is used.
 
+## Object Matte tool (0.9.0)
+
+- `objectMatte` is the third tool of the Alt+W group. Hover (no drag) over the selected layer, or the layer under the pointer, when it has video: after 90 ms still, one `roto.objectPreview` is in flight at a time and the latest point waits behind it. The run lengths are decoded into a canvas the size of the returned mask (accent at alpha 110 inside, white at 235 on its edge), drawn in `draw()` through an affine transform from three mapped points (mask pixel to layer pixel to comp to screen), only while the tool is active and the time is the one it was computed for. A click calls `roto.objectMatte` and drops the preview.
+
 ## Boot ground
 
 - The critical style paints only `html` (`#0a0a0a`, then the boot script's profile ground); `body` is transparent until `tokens.css` gives it `--bg-primary`. Painting `body` too showed `#0a0a0a` for the first frames before the Studio ground `#111111`.
