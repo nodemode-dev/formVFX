@@ -1,6 +1,6 @@
 # formvfx against After Effects
 
-formvfx 0.9.0 measured line by line against Adobe After Effects 26.5 (September 2026), the way the form family measures itself: each capability is traced through formvfx's data model and engine command, the interface that exposes it, and the render or export path that applies it.
+formvfx 0.10.0 measured line by line against Adobe After Effects 26.5 (September 2026), the way the form family measures itself: each capability is traced through formvfx's data model and engine command, the interface that exposes it, and the render or export path that applies it.
 
 - **Full** · implemented and wired from the interface through to the render or export.
 - **Partial** · present but narrower than After Effects, or reachable only as a command form where After Effects gives direct manipulation.
@@ -22,6 +22,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 | formvfx 0.7.0 | 72 | 61 | 8 | 3 | 65 of 72 (90%) |
 | formvfx 0.8.0 | 72 | 63 | 6 | 3 | 66 of 72 (92%) |
 | formvfx 0.9.0 | 72 | 64 | 5 | 3 | 66.5 of 72 (92%) |
+| formvfx 0.10.0 | 72 | 64 | 6 | 2 | 67 of 72 (93%) |
 
 ## Rows
 
@@ -33,7 +34,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 | 2 | Import video, image sequences, stills, audio, PSD as composition, AI and PDF pages, SVG | Full | `file.import {importAs}`, `import_files`; Import dialog | mp4, png |
 | 3 | Interpret Footage, proxies | Full | `file.interpretFootage`, `file.interpretProxy`, generated forms | no |
 | 4 | Collect Files, Reduce Project, dependencies | Full | `file.collectFiles`, File > Dependencies menu | no |
-| 5 | Dynamic Link with an editor | None | formcut handoff not built | |
+| 5 | Dynamic Link with an editor | Partial | formvfx's side: a composition is served as a live clip, no render, from the open project (unsaved edits included) or from any saved project through a side engine that reopens the file when it changes (`GET /api/link/frame.png`, `/api/link/audio`, `/api/link/info`, `backend/app/engine/link.py`); Export Dynamic Link Clip in the Project panel, `link.export` and the `dynamic_link` MCP tool write the `.fvxlink` descriptor. The editor side (placing a `.fvxlink` on a formcut timeline) is not built yet | frames and audio, live and side engine, reload after save |
 
 ### Compositions
 
@@ -128,7 +129,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 
 | # | Capability | formvfx | Trace | Verified |
 | ---: | --- | --- | --- | --- |
-| 55 | Point, stabilize, affine and perspective trackers | Full | `track.*`; track points draw on footage and their feature, search and attach regions drag (`track.setPoint`) | point track, drag |
+| 55 | Point, stabilize, affine and perspective trackers | Full | `track.*`; track points draw on footage and their feature, search and attach regions drag (`track.setPoint`); the Tracker panel lays the controls out as After Effects does (Track Motion, Stabilize Motion, Motion Source, Current Track, Track Type, Position / Rotation / Scale, Motion Target, Analyze both ways by frame or whole, Options, Reset, Apply, and Track Mask when a mask is selected, `frontend/src/panels/tracker-controls.ts`) | point track, drag, Tracker panel |
 | 56 | Warp Stabilizer and 3D Camera Tracker | Full | `track.warpStabilizer`, `track.camera`, `camera.createFromSolve` | no |
 | 57 | Face tracking | Full | `track.mask {method: faceOutline|faceDetailed}`, `track.extractFaceMeasurements` | no |
 | 58 | Planar tracking (Mocha AE) | Full | a mask around the surface is tracked with a homography from the features inside it (`track.mask {method: perspective}`), then every frame is re-aligned to the reference frame so error does not accumulate (`native/fvx-core/src/engine/cmd/track.rs`); the surface corners become a Perspective tracker and a Corner Pin (with Grow Bounds) on the insert layer, one undo step (`track.planar`, `planar_track`, Tracker panel > Planar Track) | synthetic clip with known corners: 0.20 px mean, 0.62 px worst over 90 frames, both directions |
@@ -169,7 +170,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 
 ### Platform (not scored)
 
-| Capability | After Effects 26.5 | formvfx 0.9.0 |
+| Capability | After Effects 26.5 | formvfx 0.10.0 |
 | --- | --- | --- |
 | Desktop operating systems | macOS, Windows (x64, ARM) | macOS, Windows, Linux (Tauri) |
 | In a browser | no | yes (`./formvfx serve`) |
@@ -178,8 +179,9 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 
 ## Where formvfx trails, in order
 
-1. AI and model-backed tools: Roto Brush 3's own model (36); formvfx runs MobileSAM.
-2. Ecosystem: `.mogrt`, `.ffx`, After Effects SDK plug-ins, Cinema 4D, Substance (9, 24, 46, 50, 53).
+1. Dynamic Link's editor side (5): formvfx serves linked comps; formcut does not place them yet.
+2. AI and model-backed tools: Roto Brush 3's own model (36); formvfx runs MobileSAM.
+3. Ecosystem: `.mogrt`, `.ffx`, After Effects SDK plug-ins, CEP and UXP panels, Cinema 4D, Substance (9, 24, 46, 50, 53, 61).
 
 ## Where formvfx leads
 
