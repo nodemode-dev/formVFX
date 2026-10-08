@@ -1,5 +1,5 @@
 import type { Ctx, ToolId } from '../app/ctx';
-import { add, apply, applyVec, dist, handles, inQuad, quadHitsBox, segDist, sub, type P } from '../engine/geom';
+import { add, apply, applyVec, dist, handles, inQuad, invert, quadHitsBox, segDist, sub, type P } from '../engine/geom';
 import type { Frame } from '../engine/frames';
 import { timecode } from '../engine/time';
 import type { Overlays, UiState } from '../engine/types';
@@ -24,10 +24,29 @@ type Drag =
   | { kind: 'vertex'; layer: number; mask: number; start: P; last: P; toLocal: number[][] | null; merge: string }
   | { kind: 'tangent'; layer: number; mask: number; index: number; vertex: P; out: boolean; toLocal: number[][] | null; merge: string; both: boolean }
   | { kind: 'motionKey'; layer: number; prop: number; time: number; toParent: number[][] | null; value: number[]; start: P; merge: string }
+  | { kind: 'motionTangent'; layer: number; prop: number; time: number; side: 'in' | 'out'; keyP: P; toParent: number[][] | null; broken: boolean; merge: string }
   | { kind: 'camera'; tool: 'orbit' | 'pan3d' | 'dolly'; last: P; merge: string }
   | { kind: 'paint'; layer: number; toLocal: number[][] | null; points: P[]; t0: number }
   | { kind: 'penPull'; layer: number; mask: number; index: number; vertex: P; toLocal: number[][] | null; merge: string }
-  | { kind: 'pin'; layer: number; pin: unknown; toLocal: number[][] | null; merge: string };
+  | { kind: 'pin'; layer: number; pin: number; toLocal: number[][] | null; merge: string }
+  | { kind: 'trackPoint'; layer: number; index: number; part: 'move' | 'feature' | 'search' | 'attach'; start: P; point: TrackPt; toLocal: number[][] | null };
+
+interface TrackPt {
+  name: string;
+  center: P;
+  featureSize: P;
+  searchOffset: P;
+  searchSize: P;
+  attachOffset: P;
+}
+
+interface Extras {
+  layer: number;
+  toLocal: number[][] | null;
+  toComp: number[][] | null;
+  points: TrackPt[];
+  pins: Array<{ pin: number; position: P; kind: string }>;
+}
 
 const SHAPE_TOOLS: Partial<Record<ToolId, string>> = { rect: 'rect', rounded: 'rounded', ellipse: 'ellipse', polygon: 'polygon', star: 'star' };
 
@@ -47,6 +66,7 @@ export class ViewerPanel implements Panel {
   private frameKey = '';
   private requestedKey = '';
   private ov: Overlays | null = null;
+  private extras: Extras | null = null;
   private ovKey = '';
   private ovPending = false;
   private zoom = 0;
@@ -58,6 +78,7 @@ export class ViewerPanel implements Panel {
   private showSafe = false;
   private layerControls = true;
   private drag: Drag | null = null;
+  private pressing: Promise<void> = Promise.resolve();
   private hover: P | null = null;
   private space = false;
   private pen: { layer: number; mask: number; count: number; first: P } | null = null;
@@ -337,15 +358,104 @@ export class ViewerPanel implements Panel {
     this.ovPending = true;
     try {
       this.ov = await this.ctx.client.call<Overlays>('ui.overlays', {});
+      this.extras = await this.loadExtras();
       this.ovKey = key;
     } catch {
       this.ov = null;
+      this.extras = null;
     } finally {
       this.ovPending = false;
     }
     this.schedule();
     const now = this.ctx.store.state;
     if (now && `${now.revision}|${now.comp?.id}|${now.time}|${JSON.stringify(now.selection)}` !== this.ovKey) void this.requestOverlays();
+  }
+
+  private async loadExtras(): Promise<Extras | null> {
+    const st = this.ctx.store.state;
+    const id = st?.selection.layers[0];
+    if (!id || this.ctx.store.playing) return null;
+    const l = this.ovLayer(id);
+    if (!l) return null;
+    const [tr, pp] = await Promise.all([
+      this.ctx.client.exec<{ tracker?: { points?: TrackPt[] } | null }>('track.status', { layer: id }).catch(() => null),
+      this.ctx.client.exec<{ meshes?: Array<{ pins?: Array<{ pin: number; position: P; kind: string }> }> }>('puppet.info', { layer: id }).catch(() => null),
+    ]);
+    const points = tr?.tracker?.points ?? [];
+    const pins = (pp?.meshes ?? []).flatMap((m) => m.pins ?? []);
+    if (!points.length && !pins.length) return null;
+    return { layer: id, toLocal: l.toLocal, toComp: invert(l.toLocal), points, pins };
+  }
+
+  private trackBoxes(p: TrackPt): { feature: P[]; search: P[]; attach: P; center: P } {
+    const box = (c: P, s: P): P[] => [[c[0] - s[0] / 2, c[1] - s[1] / 2], [c[0] + s[0] / 2, c[1] - s[1] / 2], [c[0] + s[0] / 2, c[1] + s[1] / 2], [c[0] - s[0] / 2, c[1] + s[1] / 2]];
+    const m = this.extras?.toComp ?? null;
+    const toS = (q: P): P => this.toScreen(apply(m, q));
+    return {
+      feature: box(p.center, p.featureSize).map(toS),
+      search: box(add(p.center, p.searchOffset), p.searchSize).map(toS),
+      attach: toS(add(p.center, p.attachOffset)),
+      center: toS(p.center),
+    };
+  }
+
+  private drawExtras(g: CanvasRenderingContext2D, accent: string): void {
+    const x = this.extras;
+    if (!x) return;
+    const d = this.drag;
+    x.points.forEach((pt, i) => {
+      const p = d && d.kind === 'trackPoint' && d.index === i ? d.point : pt;
+      const b = this.trackBoxes(p);
+      g.strokeStyle = '#f6c453';
+      g.lineWidth = 1;
+      for (const [quad, dash] of [[b.feature, false], [b.search, true]] as Array<[P[], boolean]>) {
+        g.setLineDash(dash ? [4, 3] : []);
+        g.beginPath();
+        quad.forEach((s, k) => (k ? g.lineTo(s[0], s[1]) : g.moveTo(s[0], s[1])));
+        g.closePath();
+        g.stroke();
+        for (const s of quad) g.strokeRect(s[0] - 2.5, s[1] - 2.5, 5, 5);
+      }
+      g.setLineDash([]);
+      g.beginPath();
+      g.moveTo(b.attach[0] - 6, b.attach[1]);
+      g.lineTo(b.attach[0] + 6, b.attach[1]);
+      g.moveTo(b.attach[0], b.attach[1] - 6);
+      g.lineTo(b.attach[0], b.attach[1] + 6);
+      g.stroke();
+      g.fillStyle = '#f6c453';
+      g.font = '11px system-ui, sans-serif';
+      g.fillText(p.name, b.feature[0][0], b.feature[0][1] - 4);
+    });
+    for (const pin of x.pins) {
+      const s = this.toScreen(apply(x.toComp, pin.position));
+      g.beginPath();
+      g.arc(s[0], s[1], 5, 0, Math.PI * 2);
+      g.fillStyle = pin.kind === 'position' ? '#f6c453' : accent;
+      g.fill();
+      g.strokeStyle = 'rgba(0,0,0,0.7)';
+      g.lineWidth = 1;
+      g.stroke();
+    }
+  }
+
+  private async hitExtras(s: P, c: P): Promise<Drag | null> {
+    const x = this.extras;
+    if (!x) return null;
+    for (const pin of x.pins) {
+      if (dist(this.toScreen(apply(x.toComp, pin.position)), s) <= 7) return { kind: 'pin', layer: x.layer, pin: pin.pin, toLocal: x.toLocal, merge: await this.ctx.gesture() };
+    }
+    for (let i = 0; i < x.points.length; i++) {
+      const p = x.points[i];
+      const b = this.trackBoxes(p);
+      const start = apply(x.toLocal, c);
+      const base = { kind: 'trackPoint' as const, layer: x.layer, index: i, start, point: { ...p }, toLocal: x.toLocal };
+      if (dist(b.attach, s) <= 6) return { ...base, part: 'attach' };
+      if (b.feature.some((q) => dist(q, s) <= 6)) return { ...base, part: 'feature' };
+      if (b.search.some((q) => dist(q, s) <= 6)) return { ...base, part: 'search' };
+      if (inQuad(s, b.feature)) return { ...base, part: 'move' };
+    }
+    return null;
   }
 
   private fitZoom(): void {
@@ -610,6 +720,7 @@ export class ViewerPanel implements Panel {
         g.strokeRect(s[0] - 3, s[1] - 3, 6, 6);
       });
     }
+    this.drawExtras(g, accent);
     for (const m of ov.motion) {
       g.strokeStyle = accent;
       g.globalAlpha = 0.75;
@@ -726,9 +837,11 @@ export class ViewerPanel implements Panel {
         this.setZoom(this.zoom * factor, this.local(e));
       }
     }, { passive: false });
-    st.addEventListener('pointerdown', (e) => void this.down(e));
+    st.addEventListener('pointerdown', (e) => {
+      this.pressing = this.down(e);
+    });
     st.addEventListener('pointermove', (e) => this.move(e));
-    st.addEventListener('pointerup', (e) => void this.up(e));
+    st.addEventListener('pointerup', (e) => void this.pressing.then(() => this.up(e)));
     st.addEventListener('pointerleave', () => {
       this.hover = null;
       if (this.pen) this.schedule();
@@ -842,6 +955,13 @@ export class ViewerPanel implements Panel {
       this.drag = { kind: 'paint', layer: id, toLocal: this.ovLayer(id)?.toLocal ?? null, points: [s], t0: performance.now() };
       return;
     }
+    if (tool === 'selection' || tool === 'puppet' || tool === 'starch' || tool === 'bend' || tool === 'advanced' || tool === 'overlap') {
+      const grab = await this.hitExtras(s, c);
+      if (grab) {
+        this.drag = grab;
+        return;
+      }
+    }
     if (tool === 'puppet' || tool === 'starch' || tool === 'bend' || tool === 'advanced' || tool === 'overlap') {
       const id = st.selection.layers[0] ?? this.hitLayer(c);
       if (!id) return;
@@ -884,6 +1004,17 @@ export class ViewerPanel implements Panel {
       }
       for (const m of this.ov?.motion ?? []) {
         for (const k of m.keys) {
+          const sides: Array<['in' | 'out', [number, number] | null]> = [['in', k.in], ['out', k.out]];
+          for (const [side, t] of sides) {
+            if (t && dist(this.toScreen(t), s) <= 6) {
+              this.drag = { kind: 'motionTangent', layer: m.layer, prop: m.prop, time: k.time, side, keyP: k.p, toParent: m.toParent, broken: e.altKey, merge: await this.ctx.gesture() };
+              return;
+            }
+          }
+          if (e.altKey && !k.in && !k.out && dist(this.toScreen(k.p), s) <= 6) {
+            this.drag = { kind: 'motionTangent', layer: m.layer, prop: m.prop, time: k.time, side: 'out', keyP: k.p, toParent: m.toParent, broken: false, merge: await this.ctx.gesture() };
+            return;
+          }
           if (dist(this.toScreen(k.p), s) <= 6) {
             await this.ctx.run('keys.select', { keys: [{ layer: m.layer, prop: m.prop, time: k.time }], add: e.shiftKey });
             this.drag = { kind: 'motionKey', layer: m.layer, prop: m.prop, time: k.time, toParent: m.toParent, value: k.value, start: c, merge: await this.ctx.gesture() };
@@ -1102,6 +1233,33 @@ export class ViewerPanel implements Panel {
         void this.ctx.run('keys.set', { layer: d.layer, prop: d.prop, time: d.time, value: v, merge: d.merge }, true);
         return;
       }
+      case 'motionTangent': {
+        const t = applyVec(d.toParent, sub(c, d.keyP));
+        const here = [t[0], t[1], 0];
+        const there = [-t[0], -t[1], 0];
+        const params: Record<string, unknown> = { layer: d.layer, prop: d.prop, time: d.time, break: d.broken, merge: d.merge };
+        params[d.side] = here;
+        if (!d.broken) params[d.side === 'in' ? 'out' : 'in'] = there;
+        void this.ctx.run('keys.setSpatialTangents', params, true);
+        return;
+      }
+      case 'pin': {
+        void this.ctx.run('puppet.movePin', { layer: d.layer, pin: d.pin, position: apply(d.toLocal, c), merge: d.merge }, true);
+        return;
+      }
+      case 'trackPoint': {
+        const o = this.extras?.points[d.index];
+        if (!o) return;
+        const local = apply(d.toLocal, c);
+        const delta = sub(local, d.start);
+        const half = (from: P): P => [Math.max(4, Math.abs(local[0] - from[0]) * 2), Math.max(4, Math.abs(local[1] - from[1]) * 2)];
+        if (d.part === 'move') d.point = { ...o, center: add(o.center, delta) };
+        if (d.part === 'feature') d.point = { ...o, featureSize: half(o.center) };
+        if (d.part === 'search') d.point = { ...o, searchSize: half(add(o.center, o.searchOffset)) };
+        if (d.part === 'attach') d.point = { ...o, attachOffset: sub(local, o.center) };
+        this.schedule();
+        return;
+      }
       case 'camera': {
         const dx = s[0] - d.last[0];
         const dy = s[1] - d.last[1];
@@ -1175,6 +1333,11 @@ export class ViewerPanel implements Panel {
       return;
     }
     if (d.kind === 'pan') return;
+    if (d.kind === 'trackPoint') {
+      const p = d.point;
+      await this.ctx.run('track.setPoint', { layer: d.layer, point: d.index + 1, center: p.center, featureSize: p.featureSize, searchOffset: p.searchOffset, searchSize: p.searchSize, attachOffset: p.attachOffset });
+      return;
+    }
     if ('merge' in d) this.ctx.endGesture();
     if (d.kind === 'move' && !d.moved) return;
   }

@@ -39,3 +39,16 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - The timeline's left column width is fixed (`--fx-tl-left`); no splitter yet.
 - Tracker, Wiggler, Smoother, Motion Sketch, Paint, Brushes, Content-Aware Fill, Markers, Audio, Progress, Metadata, Media Browser, Footage and Layer are generic command panels (`COMMAND_PANELS` in `app/app.ts`): every command they need is there as a button with a generated form, but none has a dedicated view yet.
 - Paint strokes preview as a polyline while drawing; brush tip size and hardness are not drawn.
+
+## Direct manipulation (0.3.0)
+
+- Pointer race: `down()` is async (it awaits hit tests and the gesture key), so a fast click could fire `pointerup` first and leave a drag armed for the next move. Viewer, Graph Editor and Timeline keep `pressing` (the press promise) and run `up()` after it.
+- Gesture keys are minted on the client (`ctx.gesture()`: a per-load tag plus a counter). The engine's `begin_gesture` only minted a key too, so the round trip is gone; every write in a drag carries the same `merge` key.
+- Graph Editor handles: drawn for selected Bezier-family keys. Value mode: one handle per dimension, x = key time plus or minus span times influence, y from the speed; speed mode: the handle sits on the speed curve. Dragging sends `keys.setEase` with influence in percent (clamped 0.1 to 100) and speed in units per second.
+- Motion path tangents: dragging a tangent handle sends `keys.setSpatialTangents`; the opposite side mirrors unless Alt breaks it. Alt on a key without tangents pulls handles out.
+- Viewer extras (`loadExtras` in `panels/viewer.ts`): for the first selected layer, `track.status` and `puppet.info` give track points and pins in layer space; `geom.invert` of `toLocal` draws them in comp space. Skipped during playback. Track point boxes edit locally while dragging and commit one `track.setPoint` on release; pins send `puppet.movePin` on every move.
+- `track.status` and `puppet.info` are query commands, so the engine does not log them in Activity when the interface asks (`execute` quiet for ui-sourced queries).
+
+## Boot ground
+
+- The critical style paints only `html` (`#0a0a0a`, then the boot script's profile ground); `body` is transparent until `tokens.css` gives it `--bg-primary`. Painting `body` too showed `#0a0a0a` for the first frames before the Studio ground `#111111`.

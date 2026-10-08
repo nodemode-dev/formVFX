@@ -21,7 +21,8 @@ description: The formvfx interface in frontend/src. Use to add or change a panel
 2. Subscribe with `ctx.store.watch(fn)` (replays the current state) or a granular event; patch keyed children with `patchList` (it calls `update` after `create`), `setText`, `setClass`.
 3. Register it in `App` (`dock.register(id, title, factory)`) and, if it belongs in a workspace, in `WORKSPACES` in `ui/dock.ts`.
 4. Style it in `styles/vfx.css` with tokens only; give interactive elements `data-automation-id`.
-5. Every action is `ctx.run(command, params)` or `ctx.invoke(command)`; drags wrap their writes in `ctx.gesture()` / `ctx.endGesture()` with `merge: true` so they undo as one step.
+5. Every action is `ctx.run(command, params)` or `ctx.invoke(command)`; a drag takes one key from `ctx.gesture()` on press and sends it as `merge` with every write, so the drag undoes as one step.
+6. Async pointer handlers keep the press promise (`this.pressing = this.down(e)`) and run the release after it (`this.pressing.then(() => this.up())`); otherwise a quick click releases before the press has set its drag and the next move edits with a stale drag.
 
 ## Rules
 

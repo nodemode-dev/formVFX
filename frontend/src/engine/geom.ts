@@ -14,6 +14,22 @@ export function applyVec(m: M3 | null | undefined, v: P): P {
   return [m[0][0] * v[0] + m[0][1] * v[1], m[1][0] * v[0] + m[1][1] * v[1]];
 }
 
+export function invert(m: M3 | null | undefined): M3 | null {
+  if (!m) return null;
+  const [[a, b, c], [d, e, f], [g, h, i]] = m;
+  const A = e * i - f * h;
+  const B = -(d * i - f * g);
+  const C = d * h - e * g;
+  const det = a * A + b * B + c * C;
+  if (Math.abs(det) < 1e-12) return null;
+  const k = 1 / det;
+  return [
+    [A * k, -(b * i - c * h) * k, (b * f - c * e) * k],
+    [B * k, (a * i - c * g) * k, -(a * f - c * d) * k],
+    [C * k, -(a * h - b * g) * k, (a * e - b * d) * k],
+  ];
+}
+
 export const sub = (a: P, b: P): P => [a[0] - b[0], a[1] - b[1]];
 export const add = (a: P, b: P): P => [a[0] + b[0], a[1] + b[1]];
 export const dist = (a: P, b: P): number => Math.hypot(a[0] - b[0], a[1] - b[1]);
