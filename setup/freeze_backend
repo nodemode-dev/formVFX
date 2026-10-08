@@ -16,6 +16,7 @@ pyinstaller --noconfirm --clean --onefile --name formvfx-engine \
   --add-data "$FORMVFX_ROOT/frontend/dist${sep}frontend_dist" \
   --add-data "$FORMVFX_ROOT/backend/app/agent/templates${sep}agent_templates" \
   --add-data "$FORMVFX_ROOT/.claude/skills${sep}skills" \
+  --add-data "$FORMVFX_ROOT/presets${sep}presets" \
   --collect-all fvx_core --collect-submodules app --collect-submodules uvicorn \
   "$FORMVFX_ROOT/backend/formvfx_engine.py"
 mkdir -p "$FORMVFX_ROOT/src-tauri/binaries"

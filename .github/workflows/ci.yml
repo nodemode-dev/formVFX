@@ -89,6 +89,8 @@ jobs:
         run: python3 setup/lint_text.py .
       - name: Python syntax of the setup scripts
         run: python3 -m py_compile setup/*.py
+      - name: Text preset library in step
+        run: python3 setup/text_presets.py --check
 
   desktop-shell:
     runs-on: ubuntu-22.04

@@ -24,6 +24,8 @@ description: Type and vector graphics in formvfx. Use for text layers (point or 
 
 Built-in presets do all of this in one command: `layer.applyTextPreset {layer, preset: typewriter|fadeUpCharacters|bounceInWords|trackingIn|scramble|blurIn|jitter|dropInLines}`. They key from the layer's in point; move the keys or the layer to retime.
 
+The preset library holds 169 more in 13 categories (Animate In, Animate Out, Blurs, Fill and Stroke, Lights and Optical, Mechanical, Multi-Line, Organic, Rotation, Scale, Tracking, 3D Text, Miscellaneous). Find one with `text_preset {action: "list", query, category}`, then `text_preset {action: "apply", preset: id, layer}`; each apply is one undo step and keys from the current time (or `time`). In presets start hidden and end readable, Out presets the reverse; 3D Text presets switch the layer to per-character 3D.
+
 ## Shape layers
 
 - Parametric: `layer.newShape {kind: rect|rounded|ellipse|star|polygon, name, size: [w, h], position, fill, stroke, strokeWidth}`. The shape's own group is `contents/group`, its path `contents/group/contents/rect` (`size`, `roundness`, `position`), its fill `contents/group/contents/fill/color`.
@@ -36,7 +38,8 @@ Built-in presets do all of this in one command: `layer.applyTextPreset {layer, p
 - **Write-on line or outline**: a stroked path, `layer.addShapeItem {kind: trim}`, then key `contents/trim/end` from 0 to 100 with easy ease. Key `start` a little later to make the line travel and disappear.
 - **Wipe a filled bar on**: Trim Paths on a filled rectangle trims the fill along the outline; for a clean left-to-right wipe, animate `contents/group/contents/rect/size` from `[0, h]` with the group's anchor at the left edge, or scale the layer from 0 on X with `transform/anchor` at the left edge.
 - **Radial burst or dotted row**: one small shape plus a Repeater; set `contents/repeater/copies` and `contents/repeater/transform/position` (row) or `.../transform/rotation` with the anchor offset (ring). Key `contents/repeater/offset` to make it march.
-- **Logo outline to fill**: `layer.create {op: shapesFromText}` or import the vector logo, stroke it, write it on with Trim Paths, then fade the fill in.
+- **Vector artwork as shapes**: `shapes_from_svg {svg, name}` turns SVG markup into one shape layer centred in the composition, every path editable; unsupported elements come back in `skipped`. People do the same by pasting SVG markup into the window.
+- **Logo outline to fill**: `layer.create {op: shapesFromText}` or `shapes_from_svg` the vector logo, stroke it, write it on with Trim Paths, then fade the fill in.
 
 ## Check
 

@@ -2,11 +2,11 @@
 
 Generated from the formvfx engine by `./formvfx agents sync`; do not edit by hand.
 
-The `formvfx` MCP server has 22 tools. `./formvfx mcp` serves them over stdio (it starts the engine when it is not running); the engine also serves them over Streamable HTTP at `http://127.0.0.1:8230/mcp`. The shell equivalents are in the last section.
+The `formvfx` MCP server has 24 tools. `./formvfx mcp` serves them over stdio (it starts the engine when it is not running); the engine also serves them over Streamable HTTP at `http://127.0.0.1:8230/mcp`. The shell equivalents are in the last section.
 
 ## Contents
 
-`status` `list_commands` `describe_command` `execute` `batch` `get_comp` `get_layer` `get_property` `set_property` `set_keyframes` `apply_effect` `list_effects` `render_frame` `contact_sheet` `render` `project` `import_files` `history` `run_script` `ui` `wait` `guide`
+`status` `list_commands` `describe_command` `execute` `batch` `get_comp` `get_layer` `get_property` `set_property` `set_keyframes` `apply_effect` `list_effects` `text_preset` `shapes_from_svg` `render_frame` `contact_sheet` `render` `project` `import_files` `history` `run_script` `ui` `wait` `guide`
 
 ## status
 
@@ -119,6 +119,27 @@ The effects (306) by category with ids; with detail, their parameters (id, name,
 - `limit`: integer; default 60
 
 Note: read-only.
+
+## text_preset
+
+formvfx's text animation preset library (169 presets in 13 categories: Animate In, Animate Out, Blurs, Fill and Stroke, Lights and Optical, Mechanical, Multi-Line, Organic, Rotation, Scale, Tracking, 3D Text, Miscellaneous). list (filter by query or category) returns id, name, category, description; apply adds the preset's text animators to text layers starting at time (default the current time), one undo step. Reveal presets run about 1.5 s from that time; continuous ones loop.
+
+- `action`: string (list | apply); required
+- `preset`: string
+- `query`: string
+- `category`: string
+- `layer`: id or name; Layer id, `#n` (1 = top) or name.
+- `layers`: array
+- `time`: number; Composition time in seconds; omit for the current time.
+- `comp`: id or name; Composition id or name; omit for the active composition.
+
+## shapes_from_svg
+
+Turns SVG markup into a shape layer (paths, fills, strokes, gradients, groups and clips become editable shape contents), centred in the composition, one undo step. Use it for logos, icons and vector art you write as SVG.
+
+- `svg`: string; required
+- `name`: string
+- `comp`: id or name; Composition id or name; omit for the active composition.
 
 ## render_frame
 

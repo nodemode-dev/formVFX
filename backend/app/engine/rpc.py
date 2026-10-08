@@ -43,6 +43,16 @@ async def execute(command: str, params: Any = None, source: str = "ui") -> Any:
     return json.loads(raw) if raw else None
 
 
+async def _native_edit(name: str, fn, source: str) -> Any:
+    try:
+        raw = await host.call(fn, source, touches=True)
+    except ValueError as exc:
+        host.note(source, name, False, str(exc))
+        raise RpcError(str(exc)) from None
+    host.note(source, name, True)
+    return json.loads(raw) if raw else None
+
+
 async def render_png(params: dict, source: str = "ui") -> dict:
     from .. import native
 
@@ -105,6 +115,29 @@ async def dispatch(method: str, params: Any, source: str = "ui") -> Any:
             from .. import native
 
             return {"name": "formvfx", "version": __version__, "core": json.loads(native.version()), "capabilities": caps, "revision": host.revision, "busy": host.busy}
+        if method == "text.library":
+            from . import text_presets
+
+            return text_presets.listing(p.get("category"), p.get("query"))
+        if method == "text.applyLibraryPreset":
+            from . import text_presets
+
+            preset = text_presets.find(str(p.get("preset") or ""))
+            if preset is None:
+                raise RpcError(f"no text preset {p.get('preset')!r} (see text.library)", -32602)
+            args = {k: v for k, v in p.items() if k in ("layer", "layers", "comp", "time")}
+            refs = args.get("layers") if isinstance(args.get("layers"), list) else [args["layer"]] if "layer" in args else []
+            if any(isinstance(r, str) and r.startswith("#") for r in refs):
+                info = await execute("comp.info", {"comp": args["comp"]} if "comp" in args else {}, source)
+                rows = info.get("layers", []) if isinstance(info, dict) else []
+                by_index = {f"#{lr.get('index')}": lr.get("id") for lr in rows}
+                args.pop("layer", None)
+                args["layers"] = [by_index.get(r, r) if isinstance(r, str) else r for r in refs]
+            args["preset"] = preset
+            return await _native_edit("text.applyLibraryPreset", lambda e: e.apply_text_preset(_dumps(args)), source)
+        if method == "clipboard.pasteSvg":
+            args = {k: v for k, v in p.items() if k in ("svg", "name", "comp")}
+            return await _native_edit("clipboard.pasteSvg", lambda e: e.paste_svg(_dumps(args)), source)
         if method == "engine.performance":
             from . import performance
 

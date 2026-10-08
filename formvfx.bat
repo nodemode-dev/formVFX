@@ -22,6 +22,7 @@ for %%C in (exec batch commands describe state frame render) do if /i "%CMD%"=="
 if /i "%CMD%"=="mcp" ( call :py setup\mcp_stdio.py %2 %3 %4 & goto :eof )
 if /i "%CMD%"=="agents" ( call :py setup\agents.py %2 %3 %4 & goto :eof )
 if /i "%CMD%"=="counts" ( call :py setup\line_counts.py %2 & goto :eof )
+if /i "%CMD%"=="presets" ( call :py setup\text_presets.py %2 & goto :eof )
 if /i "%CMD%"=="clean" ( call setup\clean.bat %2 & goto :eof )
 if /i "%CMD%"=="help" ( call :usage & exit /b 0 )
 echo [formvfx] unknown command: %CMD%
@@ -35,5 +36,5 @@ echo formvfx.bat [command]
 echo   boot ^| install [--dev] ^| install-native [--dev] [--gpu] ^| install-desktop ^| backend ^| frontend
 echo   build ^| serve ^| freeze ^| desktop dev ^| desktop build ^| doctor
 echo   exec ID [JSON] ^| batch JSON ^| commands [FILTER] ^| describe ID ^| state ^| frame OUT.png ^| render
-echo   mcp ^| agents install^|sync^|status ^| counts ^| clean [--all] ^| help
+echo   mcp ^| agents install^|sync^|status ^| counts ^| presets ^| clean [--all] ^| help
 exit /b 0

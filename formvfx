@@ -30,6 +30,7 @@ usage: ./formvfx [command] [options]
   mcp                   formvfx over MCP's stdio transport (starts the engine when needed)
   agents install|sync|status  set Claude Code, Codex and Cursor up (install), refresh the skills (sync)
   counts [--check]      code sizes for the README
+  presets [--check]     rebuild presets/text-animators.json from setup/text_presets.py
   clean [--all]         remove build output (--all also venv and node_modules)
   help                  this text
 EOF
@@ -59,6 +60,7 @@ case "$cmd" in
   mcp) exec python3 setup/mcp_stdio.py "$@" ;;
   agents) exec python3 setup/agents.py "$@" ;;
   counts) exec python3 setup/line_counts.py "$@" ;;
+  presets) exec python3 setup/text_presets.py "$@" ;;
   clean) exec setup/clean "$@" ;;
   help|-h|--help) usage ;;
   *) printf '[formvfx] unknown command: %s\n\n' "$cmd"; usage; exit 2 ;;

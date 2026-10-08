@@ -89,6 +89,10 @@ TOOLS = [
           {"layer": _LAYER, "effect": {"type": "string"}, "params": {"type": "object", "additionalProperties": True}, "comp": _COMP}, ["layer", "effect"]),
     _tool("list_effects", "The effects (306) by category with ids; with detail, their parameters (id, name, default, control). Filter by name, id or category.",
           {"query": {"type": "string"}, "category": {"type": "string"}, "detail": {"type": "boolean", "default": False}, "limit": {"type": "integer", "minimum": 1, "maximum": 400, "default": 60}}, read=True, idempotent=True),
+    _tool("text_preset", "formvfx's text animation preset library (169 presets in 13 categories: Animate In, Animate Out, Blurs, Fill and Stroke, Lights and Optical, Mechanical, Multi-Line, Organic, Rotation, Scale, Tracking, 3D Text, Miscellaneous). list (filter by query or category) returns id, name, category, description; apply adds the preset's text animators to text layers starting at time (default the current time), one undo step. Reveal presets run about 1.5 s from that time; continuous ones loop.",
+          {"action": {"type": "string", "enum": ["list", "apply"]}, "preset": {"type": "string"}, "query": {"type": "string"}, "category": {"type": "string"}, "layer": _LAYER, "layers": {"type": "array", "items": _LAYER}, "time": _TIME, "comp": _COMP}, ["action"]),
+    _tool("shapes_from_svg", "Turns SVG markup into a shape layer (paths, fills, strokes, gradients, groups and clips become editable shape contents), centred in the composition, one undo step. Use it for logos, icons and vector art you write as SVG.",
+          {"svg": {"type": "string"}, "name": {"type": "string"}, "comp": _COMP}, ["svg"]),
     _tool("render_frame", "Renders one frame of a composition and returns it as an image so you can see it. Use it after changes and at the moments that matter. For a 3D comp, view renders from a 3D view (top, front, left, right, back, bottom, default, custom1-3) instead of the active camera, to check layout in space.",
           {"comp": _COMP, "time": _TIME, "max_size": {"type": "integer", "minimum": 64, "maximum": 2048, "default": 960}, "transparent": {"type": "boolean", "default": False}, "view": {"type": "string", "enum": ["activeCamera", "default", "front", "left", "top", "back", "right", "bottom", "custom1", "custom2", "custom3"]}}, read=True, idempotent=True),
     _tool("contact_sheet", "Renders several frames across a time span into one image grid (each labelled with its time) to check motion and timing in one look.",
@@ -311,6 +315,15 @@ async def _call(name: str, a: dict, source: str) -> dict:
             out = [{"id": e["id"], "name": e["name"], "category": e["category"], "params": [p["id"] for p in e["params"]]} for e in rows[:limit]]
         cats = sorted({e["category"] for e in cat})
         return text({"total": len(rows), "shown": len(out), "effects": out, "categories": cats if not (q or c) else None})
+    if name == "text_preset":
+        if a.get("action") == "list":
+            rows = await rpc.dispatch("text.library", {"query": a.get("query"), "category": a.get("category")}, source)
+            return text({"total": len(rows), "presets": rows})
+        args = {k: a[k] for k in ("preset", "layer", "layers", "time", "comp") if a.get(k) is not None}
+        return text(await rpc.dispatch("text.applyLibraryPreset", args, source))
+    if name == "shapes_from_svg":
+        args = {k: a[k] for k in ("svg", "name", "comp") if a.get(k) is not None}
+        return text(await rpc.dispatch("clipboard.pasteSvg", args, source))
     if name == "render_frame":
         p = {"maxSide": int(a.get("max_size") or 960), "transparent": bool(a.get("transparent")), "display": False, **_comp_param(a)}
         if a.get("time") is not None:
