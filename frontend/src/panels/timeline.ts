@@ -8,8 +8,10 @@ import { contextMenu, type PopupEntry } from '../ui/popup';
 import { PropEditor } from '../ui/prop-editor';
 import { promptName } from '../ui/dialogs';
 import { GraphView } from './graph';
+import { PeakCache } from '../engine/peaks';
 
 const ROW = 24;
+const WAVE_ROWS = 3;
 const BLENDS = ['Normal', 'Dissolve', 'Dancing Dissolve', 'Darken', 'Multiply', 'Color Burn', 'Classic Color Burn', 'Linear Burn', 'Darker Color', 'Add', 'Lighten', 'Screen', 'Color Dodge', 'Classic Color Dodge', 'Linear Dodge', 'Lighter Color', 'Overlay', 'Soft Light', 'Hard Light', 'Linear Light', 'Vivid Light', 'Pin Light', 'Hard Mix', 'Difference', 'Classic Difference', 'Exclusion', 'Subtract', 'Divide', 'Hue', 'Saturation', 'Color', 'Luminosity', 'Stencil Alpha', 'Stencil Luma', 'Silhouette Alpha', 'Silhouette Luma', 'Alpha Add', 'Luminescent Premul'];
 const MATTES: Array<[string, string]> = [['', 'No Track Matte'], ['alpha', 'Alpha Matte'], ['alphaInverted', 'Alpha Inverted Matte'], ['luma', 'Luma Matte'], ['lumaInverted', 'Luma Inverted Matte']];
 const TYPE_ICON: Record<string, string> = { Text: 'iText', Shape: 'iShape', Solid: 'iSolid', Null: 'iNull', Camera: 'iCamera', Light: 'iLight', Composition: 'iComp', Footage: 'iFootage', Model: 'iModel', Primitive: 'iModel' };
@@ -19,7 +21,8 @@ type RowItem =
   | { kind: 'layer'; key: string; layer: LayerRow }
   | { kind: 'group'; key: string; layer: LayerRow; node: GroupNode; depth: number }
   | { kind: 'prop'; key: string; layer: LayerRow; node: PropNode; depth: number }
-  | { kind: 'expr'; key: string; layer: LayerRow; node: PropNode; depth: number };
+  | { kind: 'expr'; key: string; layer: LayerRow; node: PropNode; depth: number }
+  | { kind: 'wave'; key: string; layer: LayerRow; item: number; depth: number };
 
 type Reveal = { layers: Set<number>; test: (p: PropNode, path: string[]) => boolean; kind: string };
 
@@ -46,6 +49,8 @@ export class TimelinePanel implements Panel {
   private openGroups = new Set<string>();
   private reveal: Reveal | null = null;
   private rows: RowItem[] = [];
+  private tops: number[] = [0];
+  private readonly peaks = new PeakCache(() => this.schedule());
   private editors = new Map<string, PropEditor>();
   private pps = 0;
   private start = 0;
@@ -353,6 +358,7 @@ export class TimelinePanel implements Panel {
             if (n.expr) sub.push({ kind: 'expr', key: `${l.id}:${n.uid}:x`, layer: l, node: n, depth: 2 });
           }
         });
+        if (this.reveal.kind === 'LL' && l.hasAudio && l.sourceItem !== null) sub.push({ kind: 'wave', key: `${l.id}:wave`, layer: l, item: l.sourceItem, depth: 1 });
       } else if (this.openLayers.has(l.id) && tree) {
         this.children(l, tree, 1, sub, term);
       } else if (term && tree) {
@@ -373,6 +379,7 @@ export class TimelinePanel implements Panel {
         const open = this.openGroups.has(key) || !!term;
         const kids: RowItem[] = [];
         if (open) this.children(l, c, depth + 1, kids, term);
+        if (open && c.match === 'audio' && l.hasAudio && l.sourceItem !== null && (!term || 'waveform'.includes(term))) kids.push({ kind: 'wave', key: `${l.id}:wave`, layer: l, item: l.sourceItem, depth: depth + 1 });
         if (term && !c.name.toLowerCase().includes(term) && !kids.length) continue;
         out.splice(before, 0, { kind: 'group', key, layer: l, node: c, depth });
         out.push(...kids);
@@ -387,6 +394,8 @@ export class TimelinePanel implements Panel {
   private rebuild(): void {
     this.rows = this.flatten();
     const rows = this.rows;
+    this.tops = [0];
+    for (const r of rows) this.tops.push(this.tops[this.tops.length - 1] + rowH(r));
     const host = this.rowsEl;
     const have = new Map<string, HTMLElement>();
     for (const c of Array.from(host.children) as HTMLElement[]) have.set(c.dataset.key || '', c);
@@ -420,8 +429,14 @@ export class TimelinePanel implements Panel {
     if (r.kind === 'layer') this.createLayer(node, r.layer.id);
     else if (r.kind === 'group') this.createGroup(node, r);
     else if (r.kind === 'prop') this.createProp(node, r);
-    else this.createExpr(node, r);
+    else if (r.kind === 'expr') this.createExpr(node, r);
+    else this.createWave(node, r);
     return node;
+  }
+
+  private createWave(node: HTMLElement, r: Extract<RowItem, { kind: 'wave' }>): void {
+    node.dataset.automationId = `timeline.waveform.${r.layer.id}`;
+    node.innerHTML = '<span class="fx-indent"></span><span class="fx-pname">Waveform</span>';
   }
 
   private createLayer(node: HTMLElement, id: number): void {
@@ -792,7 +807,8 @@ export class TimelinePanel implements Panel {
     if (r.kind === 'layer') this.updateLayer(node, r.layer, st);
     else if (r.kind === 'group') this.updateGroup(node, r);
     else if (r.kind === 'prop') this.updateProp(node, r);
-    else this.updateExpr(node, r);
+    else if (r.kind === 'expr') this.updateExpr(node, r);
+    else q(node, '.fx-indent').style.width = `${r.depth * 14 + 52}px`;
   }
 
   private schedule(): void {
@@ -896,8 +912,8 @@ export class TimelinePanel implements Panel {
     const comp = this.ctx.store.comp;
     if (!comp || !this.pps) return;
     const scroll = this.rowsEl.scrollTop;
-    const first = Math.max(0, Math.floor(scroll / ROW));
-    const last = Math.min(this.rows.length, Math.ceil((scroll + H) / ROW) + 1);
+    const first = Math.max(0, this.indexAt(scroll));
+    const last = Math.min(this.rows.length, this.indexAt(scroll + H) + 1);
     const accent = this.css('--accent-color', '#f97316');
     const [wa0, wa1] = comp.workArea;
     g.fillStyle = 'rgba(255,255,255,0.025)';
@@ -907,15 +923,18 @@ export class TimelinePanel implements Panel {
     if (endX < W) g.fillRect(endX, 0, W - endX, H);
     for (let i = first; i < last; i++) {
       const r = this.rows[i];
-      const y = i * ROW - scroll;
+      const y = this.tops[i] - scroll;
+      const h = rowH(r);
       g.fillStyle = i % 2 ? 'rgba(255,255,255,0.015)' : 'rgba(0,0,0,0)';
-      g.fillRect(0, y, W, ROW);
+      g.fillRect(0, y, W, h);
       g.strokeStyle = 'rgba(255,255,255,0.04)';
       g.beginPath();
-      g.moveTo(0, y + ROW - 0.5);
-      g.lineTo(W, y + ROW - 0.5);
+      g.moveTo(0, y + h - 0.5);
+      g.lineTo(W, y + h - 0.5);
       g.stroke();
-      if (r.kind === 'layer') {
+      if (r.kind === 'wave') {
+        this.drawWave(g, r, y, h, W);
+      } else if (r.kind === 'layer') {
         const l = r.layer;
         const x0 = this.tToX(l.in);
         const x1 = this.tToX(l.out);
@@ -958,6 +977,62 @@ export class TimelinePanel implements Panel {
     g.moveTo(cx, 0);
     g.lineTo(cx, H);
     g.stroke();
+  }
+
+  private drawWave(g: CanvasRenderingContext2D, r: Extract<RowItem, { kind: 'wave' }>, y: number, h: number, W: number): void {
+    const l = r.layer;
+    const color = this.css('--fx-wave', '#5fc88a');
+    const pk = this.peaks.get(r.item, l.type === 'Composition' ? String(this.ctx.store.state?.revision ?? 0) : '0');
+    const x0 = Math.max(0, Math.floor(this.tToX(l.in)));
+    const x1 = Math.min(W, Math.ceil(this.tToX(l.out)));
+    if (x1 <= x0) return;
+    const mid = [y + h * 0.25, y + h * 0.75];
+    const half = h * 0.25 - 2;
+    g.fillStyle = color;
+    g.globalAlpha = 0.35;
+    for (const m of mid) g.fillRect(x0, Math.round(m), x1 - x0, 1);
+    g.globalAlpha = 1;
+    if (!pk) return;
+    const n = pk.data.length / 4;
+    const k = (100 / (l.stretch || 100)) * pk.bins;
+    const src = (t: number): number => (t - l.start) * k;
+    for (let x = x0; x < x1; x++) {
+      let ba = Math.floor(src(this.xToT(x)));
+      let bb = Math.ceil(src(this.xToT(x + 1)));
+      if (ba > bb) [ba, bb] = [bb, ba];
+      ba = Math.max(0, Math.min(n, ba));
+      bb = Math.max(ba + 1, Math.min(n, bb));
+      if (ba >= n) continue;
+      let l0 = 0;
+      let l1 = 0;
+      let r0 = 0;
+      let r1 = 0;
+      for (let b = ba; b < bb; b++) {
+        const o = b * 4;
+        l0 = Math.min(l0, pk.data[o]);
+        l1 = Math.max(l1, pk.data[o + 1]);
+        r0 = Math.min(r0, pk.data[o + 2]);
+        r1 = Math.max(r1, pk.data[o + 3]);
+      }
+      const ya = mid[0] - Math.min(1, l1) * half;
+      const yb = mid[0] - Math.max(-1, l0) * half;
+      g.fillRect(x, ya, 1, Math.max(1, yb - ya));
+      const yc = mid[1] - Math.min(1, r1) * half;
+      const yd = mid[1] - Math.max(-1, r0) * half;
+      g.fillRect(x, yc, 1, Math.max(1, yd - yc));
+    }
+  }
+
+  private indexAt(y: number): number {
+    const t = this.tops;
+    let lo = 0;
+    let hi = t.length - 1;
+    while (lo < hi) {
+      const m = (lo + hi + 1) >> 1;
+      if (t[m] <= y) lo = m;
+      else hi = m - 1;
+    }
+    return lo;
   }
 
   private drawKeys(g: CanvasRenderingContext2D, keys: KeyTuple[], y: number, accent: string): void {
@@ -1003,7 +1078,7 @@ export class TimelinePanel implements Panel {
     const r = this.tracks.getBoundingClientRect();
     const x = e.clientX - r.left;
     const y = e.clientY - r.top + this.rowsEl.scrollTop;
-    const index = Math.floor(y / ROW);
+    const index = y < this.tops[this.tops.length - 1] ? this.indexAt(y) : this.rows.length;
     return { x, y, row: this.rows[index], index };
   }
 
@@ -1136,8 +1211,8 @@ export class TimelinePanel implements Panel {
     if (d.kind === 'box') {
       const t0 = Math.min(this.xToT(d.x0), this.xToT(d.x1));
       const t1 = Math.max(this.xToT(d.x0), this.xToT(d.x1));
-      const i0 = Math.floor(Math.min(d.y0, d.y1) / ROW);
-      const i1 = Math.floor(Math.max(d.y0, d.y1) / ROW);
+      const i0 = this.indexAt(Math.min(d.y0, d.y1));
+      const i1 = this.indexAt(Math.max(d.y0, d.y1));
       const keys: Array<{ layer: number; prop: number; time: number }> = [];
       for (let i = i0; i <= i1; i++) {
         const r = this.rows[i];
@@ -1233,6 +1308,7 @@ export class TimelinePanel implements Panel {
       M: (n, p) => p.includes('masks') && n.match === 'path',
       F: (n, p) => p.includes('masks') && n.match === 'feather',
       L: (n, p) => p.includes('audio'),
+      LL: () => false,
       EE: (n) => !!n.expr,
     };
     const test = tests[kind] ?? tests.U;
@@ -1279,6 +1355,10 @@ function walkPath(g: GroupNode, path: string[], fn: (n: TreeNode, path: string[]
     fn(c, path);
     if (c.k === 'g') walkPath(c, [...path, c.match], fn);
   }
+}
+
+function rowH(r: RowItem): number {
+  return r.kind === 'wave' ? ROW * WAVE_ROWS : ROW;
 }
 
 function roundRect(g: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {

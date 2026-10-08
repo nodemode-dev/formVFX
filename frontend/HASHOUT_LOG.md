@@ -15,7 +15,7 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - The Composition viewer is one canvas. Frames come over `/api/viewer` as binary messages (header `<IIIIdI` then RGBA) and are drawn under the overlays (layer bounds, anchor, paths, motion paths, guides). Latest wins: a newer request cancels an older one.
 - Before the first frame arrives, the comp rectangle is filled with the comp background so the frame lands in a reserved box.
 - RAM preview (`engine/playback.ts`) caches ImageBitmaps for the work area; the cache purges on any `changed` event with `edited: true`. Audio plays from `/api/audio` WAV through an AudioContext.
-- The timeline draws its ruler and tracks on two canvases; the layer and property rows are DOM, keyed by `L<id>` / group key / property path and patched in place. Row height is fixed at 24 px because the canvas maps rows by index (`ROW` in `panels/timeline.ts` must equal `--fx-row-h`).
+- The timeline draws its ruler and tracks on two canvases; the layer and property rows are DOM, keyed by `L<id>` / group key / property path and patched in place. Row height is 24 px (`ROW` in `panels/timeline.ts` must equal `--fx-row-h`); since 0.4.0 waveform rows are three rows tall, and the canvas maps y through `tops` (prefix sums of `rowH`) instead of dividing by `ROW`.
 
 ## Design language
 
@@ -48,6 +48,14 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - Motion path tangents: dragging a tangent handle sends `keys.setSpatialTangents`; the opposite side mirrors unless Alt breaks it. Alt on a key without tangents pulls handles out.
 - Viewer extras (`loadExtras` in `panels/viewer.ts`): for the first selected layer, `track.status` and `puppet.info` give track points and pins in layer space; `geom.invert` of `toLocal` draws them in comp space. Skipped during playback. Track point boxes edit locally while dragging and commit one `track.setPoint` on release; pins send `puppet.movePin` on every move.
 - `track.status` and `puppet.info` are query commands, so the engine does not log them in Activity when the interface asks (`execute` quiet for ui-sourced queries).
+
+## Audio, Flowchart, shortcuts, floating panels (0.4.0)
+
+- Waveforms: `engine/peaks.ts` (`PeakCache`) fetches `/api/peaks/{item}` once per footage item and once per revision for a nested comp (the comp's mix changes with edits), keeps drawing the last summary while a newer one loads, and asks the Timeline to redraw when one lands. A wave row appears under an open Audio group or with LL (L twice within 350 ms); it draws left over right, columns aggregated min and max through the layer's start and stretch (time remapping is not followed).
+- Flowchart (`panels/flowchart.ts`): `ui.flowchart` graph, nodes as absolutely placed divs (patched by id, moved by transform), edges in one SVG keyed by from and to. Back edges (to a shallower node: a shared item or a cycle) run from the source's near side to the target's far side so they do not loop. Loads only while visible.
+- Keyboard Shortcuts (`ui/shortcut-editor.ts`): one dialog built once; the list is patched by binding key, the keyboard repainted by class. Changing the built-in preset makes the engine create "Custom" and toast it. After every change the editor calls `Keys.load()` so the new keys work at once.
+- `comboOf` now matches the engine's names: Ctrl before Cmd, `Escape` (was `Esc`), numpad keys as `Num0`, `Num*`, `Num+`, `Num-`, `Num.`, `Num/` (they were `Numpad0` and never matched).
+- Floating panels: a fifth dock area, `float`, in `.fx-float-layer` (one `--z-companion` stacking context with `isolation`). Floating groups order themselves with small inline z-index values inside that context (`Dock.raise`); geometry is saved in the workspace layout (`float: [{panels, active, x, y, w, h}]`). Undock Panel and Dock Panel are in the group menu; the header drags, the corner grip resizes.
 
 ## Boot ground
 

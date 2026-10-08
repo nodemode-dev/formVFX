@@ -20,18 +20,27 @@ export interface GroupSpec {
   size?: number;
 }
 
+export interface FloatSpec extends GroupSpec {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 export interface Layout {
   left: GroupSpec[];
   center: GroupSpec[];
   right: GroupSpec[];
   bottom: GroupSpec[];
+  float?: FloatSpec[];
   leftW: number;
   rightW: number;
   bottomH: number;
 }
 
-type Area = 'left' | 'center' | 'right' | 'bottom';
+type Area = 'left' | 'center' | 'right' | 'bottom' | 'float';
 const AREAS: Area[] = ['left', 'center', 'right', 'bottom'];
+const ALL: Area[] = [...AREAS, 'float'];
 
 const g = (panels: string[], size = 1): GroupSpec => ({ panels, active: panels[0], size });
 
@@ -111,6 +120,7 @@ class Group {
   panels: string[] = [];
   active = '';
   size = 1;
+  rect = { x: 120, y: 90, w: 460, h: 340 };
 
   constructor(readonly dock: Dock, readonly area: Area) {
     this.el = el(`<section class="fx-group cv-group" data-area="${area}">
@@ -127,10 +137,14 @@ class Group {
       contextMenu(r.left, r.bottom + 4, [
         ...extra,
         ...(extra.length ? ['-' as const] : []),
+        this.area === 'float'
+          ? { label: 'Dock Panel', run: () => this.dock.redock(this.active) }
+          : { label: 'Undock Panel', run: () => this.dock.undock(this.active) },
         { label: `Close ${p?.title ?? 'Panel'}`, run: () => this.dock.close(this.active) },
-        { label: 'Maximize Panel', run: () => this.dock.maximize(this) },
+        ...(this.area === 'float' ? [] : [{ label: 'Maximize Panel', run: () => this.dock.maximize(this) }]),
       ]);
     });
+    if (area === 'float') this.bindFloat();
     for (const target of [this.head, this.body]) {
       target.addEventListener('dragover', (e) => {
         if (!e.dataTransfer?.types.includes('application/x-formvfx-panel')) return;
@@ -146,7 +160,58 @@ class Group {
         this.dock.move(id, this);
       });
     }
-    this.el.addEventListener('pointerdown', () => this.dock.focus(this.active), true);
+    this.el.addEventListener('pointerdown', () => {
+      this.dock.raise(this);
+      this.dock.focus(this.active);
+    }, true);
+  }
+
+  private bindFloat(): void {
+    const grip = el('<div class="fx-float-grip" title="Resize"></div>');
+    this.el.appendChild(grip);
+    const drag = (target: HTMLElement, resize: boolean): void => {
+      target.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0 || (!resize && (e.target as HTMLElement).closest('button'))) return;
+        e.preventDefault();
+        target.setPointerCapture(e.pointerId);
+        const px = e.clientX;
+        const py = e.clientY;
+        const r0 = { ...this.rect };
+        const move = (ev: PointerEvent): void => {
+          const dx = ev.clientX - px;
+          const dy = ev.clientY - py;
+          if (resize) this.rect = { ...r0, w: Math.max(260, r0.w + dx), h: Math.max(160, r0.h + dy) };
+          else this.rect = { ...r0, x: r0.x + dx, y: r0.y + dy };
+          this.place();
+          if (resize) this.dock.panel(this.active)?.resized?.();
+        };
+        const up = (): void => {
+          target.removeEventListener('pointermove', move);
+          target.removeEventListener('pointerup', up);
+          target.removeEventListener('pointercancel', up);
+          this.dock.save();
+        };
+        target.addEventListener('pointermove', move);
+        target.addEventListener('pointerup', up);
+        target.addEventListener('pointercancel', up);
+      });
+    };
+    drag(this.head, false);
+    drag(grip, true);
+  }
+
+  place(): void {
+    const host = this.el.parentElement?.getBoundingClientRect();
+    const W = host?.width || window.innerWidth;
+    const H = host?.height || window.innerHeight;
+    const r = this.rect;
+    r.w = Math.min(r.w, Math.max(260, W));
+    r.h = Math.min(r.h, Math.max(160, H));
+    r.x = Math.max(0, Math.min(r.x, W - 80));
+    r.y = Math.max(0, Math.min(r.y, H - 32));
+    this.el.style.transform = `translate(${r.x}px, ${r.y}px)`;
+    this.el.style.width = `${r.w}px`;
+    this.el.style.height = `${r.h}px`;
   }
 
   add(id: string, activate = true): void {
@@ -224,7 +289,7 @@ class Group {
 export class Dock {
   readonly el: HTMLElement;
   private readonly areas: Record<Area, HTMLElement>;
-  private readonly groups: Record<Area, Group[]> = { left: [], center: [], right: [], bottom: [] };
+  private readonly groups: Record<Area, Group[]> = { left: [], center: [], right: [], bottom: [], float: [] };
   private readonly factories = new Map<string, PanelFactory>();
   private readonly titles = new Map<string, string>();
   private readonly made = new Map<string, Panel>();
@@ -243,8 +308,9 @@ export class Dock {
       <div class="fx-area" data-area="right"></div>
       <div class="fx-split fx-split-h" data-split="bottom"></div>
       <div class="fx-area" data-area="bottom"></div>
+      <div class="fx-float-layer" data-area="float"></div>
     </div>`);
-    this.areas = Object.fromEntries(AREAS.map((a) => [a, this.el.querySelector(`[data-area="${a}"]`) as HTMLElement])) as Record<Area, HTMLElement>;
+    this.areas = Object.fromEntries(ALL.map((a) => [a, this.el.querySelector(`[data-area="${a}"]`) as HTMLElement])) as Record<Area, HTMLElement>;
     for (const s of Array.from(this.el.querySelectorAll<HTMLElement>('.fx-split'))) this.bindSplit(s);
     window.addEventListener('resize', () => this.resized());
   }
@@ -329,7 +395,7 @@ export class Dock {
   applyLayout(layout: Layout, name: string): void {
     this.workspace = name;
     this.layout = structuredClone(layout);
-    for (const a of AREAS) {
+    for (const a of ALL) {
       for (const grp of this.groups[a]) {
         for (const id of grp.panels) {
           const p = this.made.get(id);
@@ -341,13 +407,21 @@ export class Dock {
         grp.el.remove();
       }
       this.groups[a] = [];
-      for (const spec of layout[a]) {
+      const specs: Array<GroupSpec & Partial<FloatSpec>> = (a === 'float' ? layout.float : layout[a]) ?? [];
+      for (const spec of specs) {
         const grp = new Group(this, a);
         grp.size = spec.size ?? 1;
+        if (spec.w !== undefined) grp.rect = { x: spec.x ?? 120, y: spec.y ?? 90, w: spec.w, h: spec.h ?? 340 };
         this.areas[a].appendChild(grp.el);
         this.groups[a].push(grp);
         for (const id of spec.panels) if (this.factories.has(id)) grp.add(id, false);
+        if (a === 'float' && !grp.panels.length) {
+          grp.el.remove();
+          this.groups[a].pop();
+          continue;
+        }
         grp.activate(spec.active && spec.panels.includes(spec.active) ? spec.active : grp.panels[0]);
+        if (a === 'float') grp.place();
       }
     }
     this.applySizes();
@@ -372,7 +446,8 @@ export class Dock {
 
   snapshot(): Layout {
     const out: Layout = { left: [], center: [], right: [], bottom: [], leftW: this.layout.leftW, rightW: this.layout.rightW, bottomH: this.layout.bottomH };
-    for (const a of AREAS) out[a] = this.groups[a].map((grp) => ({ panels: [...grp.panels], active: grp.active, size: grp.size }));
+    for (const a of ['left', 'center', 'right', 'bottom'] as const) out[a] = this.groups[a].map((grp) => ({ panels: [...grp.panels], active: grp.active, size: grp.size }));
+    out.float =this.groups.float.map((grp) => ({ panels: [...grp.panels], active: grp.active, ...grp.rect }));
     return out;
   }
 
@@ -428,22 +503,48 @@ export class Dock {
   }
 
   private find(id: string): Group | undefined {
-    for (const a of AREAS) for (const grp of this.groups[a]) if (grp.panels.includes(id)) return grp;
+    for (const a of ALL) for (const grp of this.groups[a]) if (grp.panels.includes(id)) return grp;
     return undefined;
+  }
+
+  private home(id: string): Group | undefined {
+    const area: Area = id === 'composition' ? 'center' : ['timeline', 'renderQueue', 'terminal', 'agents', 'graph', 'flowchart'].includes(id) ? 'bottom' : 'right';
+    return this.groups[area][0] ?? this.groups.right[0] ?? this.groups.bottom[0] ?? this.groups.center[0];
   }
 
   show(id: string): void {
     if (!this.factories.has(id)) return;
     let grp = this.find(id);
     if (!grp) {
-      const area: Area = id === 'composition' ? 'center' : ['timeline', 'renderQueue', 'terminal', 'agents', 'graph'].includes(id) ? 'bottom' : 'right';
-      grp = this.groups[area][0] ?? this.groups.right[0] ?? this.groups.bottom[0] ?? this.groups.center[0];
+      grp = this.home(id);
       if (!grp) return;
       grp.add(id, true);
       this.applySizes();
     }
     grp.activate(id);
     this.focus(id);
+  }
+
+  undock(id: string): void {
+    const from = this.find(id);
+    if (!from || from.area === 'float') return;
+    const r = this.el.getBoundingClientRect();
+    const grp = new Group(this, 'float');
+    const n = this.groups.float.length;
+    grp.rect = { x: Math.max(0, r.width / 2 - 260 + n * 28), y: Math.max(0, r.height / 2 - 200 + n * 28), w: 520, h: 400 };
+    this.areas.float.appendChild(grp.el);
+    this.groups.float.push(grp);
+    grp.place();
+    this.move(id, grp);
+    this.focus(id);
+  }
+
+  redock(id: string): void {
+    const from = this.find(id);
+    if (!from || from.area !== 'float') return;
+    const target = this.home(id);
+    if (target) this.move(id, target);
+    else this.close(id);
   }
 
   isVisible(id: string): boolean {
@@ -476,7 +577,15 @@ export class Dock {
     this.save();
   }
 
+  raise(grp: Group): void {
+    const fl = this.groups.float;
+    if (grp.area !== 'float' || fl[fl.length - 1] === grp) return;
+    this.groups.float = [...fl.filter((x) => x !== grp), grp];
+    this.groups.float.forEach((x, i) => (x.el.style.zIndex = String(i + 1)));
+  }
+
   maximize(grp: Group): void {
+    if (grp.area === 'float') return;
     if (this.maximized === grp) {
       this.maximized = null;
       setClass(this.el, 'is-maximized', false);

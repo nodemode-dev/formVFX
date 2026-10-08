@@ -27,21 +27,22 @@ const TOOL_KEYS: Record<string, ToolId[]> = {
 };
 
 const REVEAL = new Set(['P', 'S', 'R', 'T', 'A', 'E', 'M', 'F', 'L', 'U']);
+const NUMPAD: Record<string, string> = { Multiply: '*', Add: '+', Subtract: '-', Decimal: '.', Divide: '/' };
 
 export function comboOf(e: KeyboardEvent): string {
   const parts: string[] = [];
-  if (isMac ? e.metaKey : e.ctrlKey) parts.push('Cmd');
   if (isMac && e.ctrlKey) parts.push('Ctrl');
+  if (isMac ? e.metaKey : e.ctrlKey) parts.push('Cmd');
   if (e.altKey) parts.push('Alt');
   if (e.shiftKey) parts.push('Shift');
   let k = e.key;
   if (e.code.startsWith('Key')) k = e.code.slice(3);
   else if (e.code.startsWith('Digit')) k = e.code.slice(5);
-  else if (e.code.startsWith('Numpad') && /\d/.test(e.code.slice(6))) k = `Numpad${e.code.slice(6)}`;
+  else if (e.code.startsWith('Numpad')) k = `Num${NUMPAD[e.code.slice(6)] ?? e.code.slice(6)}`;
   else if (k === ' ') k = 'Space';
   else if (k.length === 1) k = k.toUpperCase();
-  if (['Meta', 'Control', 'Alt', 'Shift'].includes(k)) return '';
-  parts.push(k === 'Escape' ? 'Esc' : k);
+  if (['Meta', 'Control', 'Alt', 'Shift', 'OS'].includes(k)) return '';
+  parts.push(k);
   return parts.join('+');
 }
 
@@ -118,7 +119,7 @@ export class Keys {
     }
     if (REVEAL.has(combo) && this.handlers) {
       e.preventDefault();
-      this.handlers.reveal(double && (combo === 'U' || combo === 'E') ? `${combo}${combo}` : combo === 'U' && double ? 'UU' : combo);
+      this.handlers.reveal(double && (combo === 'U' || combo === 'E' || combo === 'L') ? `${combo}${combo}` : combo);
       return;
     }
     if ((combo === 'Delete' || combo === 'Backspace') && this.handlers) {

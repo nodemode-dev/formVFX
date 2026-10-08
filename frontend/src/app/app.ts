@@ -4,6 +4,7 @@ import type { ServerEvent } from '../engine/client';
 import { AgentsPanel } from '../panels/agents';
 import { EffectControlsPanel } from '../panels/effect-controls';
 import { EffectsPresetsPanel } from '../panels/effects-presets';
+import { FlowchartPanel } from '../panels/flowchart';
 import { ProjectPanel } from '../panels/project';
 import { AlignPanel, CharacterPanel, CommandPanel, HistoryPanel, InfoPanel, ParagraphPanel, PreviewPanel, RenderQueuePanel } from '../panels/small';
 import { TerminalPanel } from '../panels/terminal';
@@ -19,6 +20,7 @@ import { MenuBar } from '../ui/menubar';
 import { Palette } from '../ui/palette';
 import { contextMenu, type PopupEntry } from '../ui/popup';
 import { Preferences } from '../ui/prefs';
+import { ShortcutEditor } from '../ui/shortcut-editor';
 import { applyTheme } from '../ui/themes';
 import { toast } from '../ui/toast';
 import { ctx, type ToolId } from './ctx';
@@ -53,7 +55,6 @@ const COMMAND_PANELS: Array<[string, string, string[], string]> = [
   ['mediaBrowser', 'Media Browser', ['mediaBrowser.'], 'Browse and import media from this computer.'],
   ['footage', 'Footage', ['footage.'], 'The Footage panel: trim footage and set In and Out points.'],
   ['layer', 'Layer', ['layer.openLayer', 'roto.', 'puppet.'], 'The Layer panel: roto, paint and puppet work on one layer.'],
-  ['flowchart', 'Flowchart', ['comp.flowchart', 'comp.miniFlowchart'], 'How compositions nest.'],
   ['lumetriScopes', 'Lumetri Scopes', ['scopes.', 'view.scopes'], 'Waveform, parade, vectorscope and histogram.'],
   ['createNullsFromPaths', 'Create Nulls From Paths', ['path.'], 'Points follow nulls, nulls follow points, trace a path.'],
   ['vrCompEditor', 'VR Comp Editor', ['vr.', 'comp.vr'], '360 and VR composition editing.'],
@@ -66,6 +67,7 @@ class App {
   private readonly dock = new Dock();
   private readonly prefs = new Preferences(ctx);
   private readonly keys = new Keys(ctx);
+  private shortcuts: ShortcutEditor | null = null;
   private palette!: Palette;
   private viewer!: ViewerPanel;
   private timeline!: TimelinePanel;
@@ -177,6 +179,7 @@ class App {
     this.dock.register('history', 'History', () => new HistoryPanel(ctx));
     this.dock.register('terminal', 'Terminal', () => this.terminal);
     this.dock.register('agents', 'Agents', () => new AgentsPanel(ctx));
+    this.dock.register('flowchart', 'Flowchart', () => new FlowchartPanel(ctx));
     for (const [id, title, prefixes, blurb] of COMMAND_PANELS) this.dock.register(id, title, () => new CommandPanel(ctx, id, title, prefixes, blurb));
   }
 
@@ -382,7 +385,8 @@ class App {
         void this.palette.open(String(params.query ?? ''));
         return;
       case 'app.keyboardShortcuts':
-        void this.palette.open('');
+        this.shortcuts ??= new ShortcutEditor(ctx, () => void this.keys.load());
+        void this.shortcuts.show();
         return;
       case 'app.find':
         this.dock.show('project');
