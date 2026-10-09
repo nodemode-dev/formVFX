@@ -40,6 +40,9 @@ async def execute(command: str, params: Any = None, source: str = "ui") -> Any:
         raise RpcError(str(exc), -32001) from None
     if not quiet:
         host.note(source, command, True)
+    if command.startswith("effect.plugins."):
+        global _effects_cache
+        _effects_cache = None
     return json.loads(raw) if raw else None
 
 

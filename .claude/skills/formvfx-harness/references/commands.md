@@ -2,11 +2,11 @@
 
 Generated from the formvfx engine by `./formvfx agents sync`; do not edit by hand.
 
-491 commands in 44 namespaces. Every menu item, button and drag in formvfx is one of these. Run one with `execute {command, params}` over MCP, inside `batch` for several as one undo step, or `formvfx exec ID 'JSON'` from a shell. `describe_command ID` returns the JSON Schema. In the parameter summaries `?` marks an optional parameter, `a|b` lists the accepted values, and `layers?`/`layer?` default to the selected layers. Times are composition seconds unless the summary says layer seconds.
+508 commands in 45 namespaces. Every menu item, button and drag in formvfx is one of these. Run one with `execute {command, params}` over MCP, inside `batch` for several as one undo step, or `formvfx exec ID 'JSON'` from a shell. `describe_command ID` returns the JSON Schema. In the parameter summaries `?` marks an optional parameter, `a|b` lists the accepted values, and `layers?`/`layer?` default to the selected layers. Times are composition seconds unless the summary says layer seconds.
 
 ## Contents
 
-`file` (34) `edit` (14) `project` (8) `item` (1) `comp` (17) `layer` (91) `prop` (15) `keys` (33) `anim` (7) `time` (8) `markers` (5) `effect` (9) `mask` (15) `path` (1) `shape` (6) `text` (15) `camera` (18) `light` (3) `material` (4) `track` (22) `warp` (3) `roto` (14) `paint` (6) `puppet` (10) `liquify` (2) `contentFill` (2) `face` (5) `expr` (1) `script` (1) `scriptui` (4) `render` (3) `renderQueue` (22) `playback` (3) `view` (52) `window` (6) `cache` (2) `prefs` (3) `shortcuts` (7) `app` (12) `engine` (1) `command` (2) `motion` (1) `clipboard` (1) `color` (2)
+`file` (34) `edit` (14) `project` (8) `item` (1) `comp` (17) `layer` (91) `prop` (15) `keys` (33) `anim` (7) `time` (8) `markers` (5) `effect` (12) `mask` (15) `path` (1) `shape` (6) `text` (15) `camera` (18) `light` (3) `material` (4) `track` (22) `warp` (3) `roto` (14) `paint` (6) `puppet` (10) `liquify` (2) `contentFill` (2) `face` (5) `essential` (14) `expr` (1) `script` (1) `scriptui` (4) `render` (3) `renderQueue` (22) `playback` (3) `view` (52) `window` (6) `cache` (2) `prefs` (3) `shortcuts` (7) `app` (12) `engine` (1) `command` (2) `motion` (1) `clipboard` (1) `color` (2)
 
 ## file
 
@@ -473,6 +473,12 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `{layer, path?|prop?, items: [string]}`
 - `effect.apply` Apply Effect
   `{effect: id|name (e.g. Gaussian Blur), layers?}`
+- `effect.plugins.list` Effect Plug-ins
+  `{} -> loaded WebAssembly plug-ins (id, name, category, vendor, version, path, params), load errors and the Plug-ins folder`
+- `effect.plugins.load` Load Plug-in
+  `{path (.wasm or .wat), install?: bool (copy it into the Plug-ins folder so it loads at every start)} · a WebAssembly effect plug-in (ABI in docs/PLUGINS.md); its effect appears in the Effect menu and Effects & Presets`
+- `effect.plugins.reload` Reload Plug-ins
+  `{} · loads the Plug-ins folder again`
 - `effect.remove` Remove Effect
   `{layer?, effect: uid|index|name}`
 - `effect.removeAll` Remove All · Effect · Cmd+Alt+Shift+E
@@ -763,14 +769,46 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 ## face
 
 - `face.models` Face Tracking Models
+  `{} -> the classical detector and the learned MediaPipe Face Landmarker (detector and 478-point mesh), which is installed and which one face tracking uses`
 - `face.model.select` Use Face Tracking Model
-  `{id: classical, wait?}`
+  `{id: classical|facelandmarker, wait?}`
 - `face.model.install` Install Face Tracking Model
-  `{path, id?, wait?}`
+  `{path: face_landmarker.task, id?} · verified against the official SHA-256`
 - `face.model.download` Download Face Tracking Model
-  `{id, wait?}`
+  `{id?: facelandmarker} · the official Face Landmarker bundle (Apache-2.0), verified against its SHA-256 (uses the system curl)`
 - `face.model.remove` Remove Face Tracking Model
-  `{id}`
+  `{id?}`
+
+## essential
+
+- `essential.addProperty` Add Property to Essential Graphics · Animation
+  `{layer?, path|prop, comp?, name? (controller name, default the property's), group? (a group controller id)} · the property becomes a controller of the composition's template; every precomp layer of the composition gets it under Essential Properties`
+- `essential.addComment` Add Comment
+  `{comp?, text}`
+- `essential.addGroup` Add Group
+  `{comp?, name}`
+- `essential.remove` Remove Controller
+  `{comp?, controller (id, name or 1-based index)}`
+- `essential.rename` Rename Controller
+  `{comp?, controller, name?, text? (a comment's text)}`
+- `essential.move` Move Controller
+  `{comp?, controller, index (1-based), group? (a group controller id, or "" for none)}`
+- `essential.setTemplateName` Set Template Name
+  `{comp?, name}`
+- `essential.open` Open in Essential Graphics · Composition
+  `{comp?}`
+- `essential.list` Essential Graphics Controllers
+  `{comp? (default: the composition open in Essential Graphics, else the active one)} -> {comp, templateName, controllers: [{id, name, kind: property|comment|group, group, layer, path, value, ui}], instances}`
+- `essential.revertToMaster` Revert to Master
+  `{layers?, controller? (default: all)} · precomp layers: Essential Properties follow the master values again`
+- `essential.exportTemplate` Export as Motion Graphics Template · Composition
+  `{comp?, path? (.fvxtemplate), folder? (default the Templates folder; the file is named after the template), name?, overwrite?: bool} · formvfx's own template: the composition, what it uses, its media and a poster frame in one file`
+- `essential.importTemplate` Motion Graphics Template · File > Import
+  `{path (.fvxtemplate), addToComp?: bool, comp?, time?} -> {comp, folder, layer}`
+- `essential.templates` Installed Templates
+  `{} -> templates in the Templates folder with name, size, duration, controller count and poster`
+- `essential.installTemplate` Install Motion Graphics Template
+  `{path (.fvxtemplate)} · copies it into the Templates folder`
 
 ## expr
 

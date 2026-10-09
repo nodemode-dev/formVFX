@@ -62,6 +62,14 @@ export class EffectsPresetsPanel implements Panel {
     }).catch(() => undefined);
   }
 
+  refresh(): void {
+    if (!this.loaded) return;
+    void this.ctx.effects().then((s) => {
+      this.specs = s;
+      this.render();
+    });
+  }
+
   private async applyPreset(id: string): Promise<void> {
     const layers = (this.ctx.store.state?.selection.layers ?? []).filter((l) => this.ctx.store.layers.find((x) => x.id === l)?.type === 'Text');
     if (!layers.length) {

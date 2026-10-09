@@ -53,6 +53,7 @@ Check: `contact_sheet` across the shot with the insert visible; the insert's edg
 
 - `track.mask {layer, mask, method: position|positionScale|positionScaleRotation|positionScaleRotationSkew|perspective|faceOutline|faceDetailed, direction, wait: true}` keys the mask path to follow the footage.
 - Face tracking uses `method: faceOutline` or `faceDetailed`; `track.extractFaceMeasurements {layer}` turns the detailed points into keys on a Face Measurements effect for expressions.
+- Face tracking is best with the learned model: `face.models` says whether the MediaPipe Face Landmarker is installed; `face.model.download` fetches it once (3.8 MB, verified). With it the mask becomes the 36-point face oval and the Face Track Points sit on a 478-point face mesh that holds through head turns and tilts; without it a classical skin and feature detector is used. Draw the starting mask roughly around the head on the first frame.
 
 ## Check
 

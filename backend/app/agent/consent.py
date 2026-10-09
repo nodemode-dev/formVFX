@@ -17,6 +17,7 @@ _QUERY_IDS = {
     "project.summary", "project.usage", "prop.get", "puppet.info", "renderQueue.formats", "renderQueue.list",
     "renderQueue.templates", "shortcuts.conflicts", "shortcuts.list", "text.animatorProperties", "text.presets",
     "track.status", "warp.status", "text.fonts", "text.fontFeatures", "view.get3D",
+    "essential.list", "essential.templates", "effect.plugins.list", "face.models", "file.scripts.list", "scriptui.list",
 }
 _READ_RPC = {"command.list", "command.describe", "ui.state", "ui.overlays", "ui.graph", "ui.flowchart", "text.library", "roto.objectPreview", "menu.bar", "menu.titles", "effects.catalog", "frame.png", "engine.info", "activity.list", "project.json", "link.info"}
 

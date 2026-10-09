@@ -2,11 +2,30 @@
 
 Generated from the formvfx engine by `./formvfx agents sync`; do not edit by hand.
 
-289 effects in 19 categories. Apply with `apply_effect {layer, effect, params}` (the id or the name) or `execute effect.apply {effect, layers}`. Each parameter is listed as `id` = default (control). After applying, the parameter's property path is `effects/#N/[id]` where N is the effect's position on the layer (1 = top); `get_layer` shows the exact paths. GPU marks effects that render on the GPU when it is available; every effect also renders on the CPU.
+300 effects in 20 categories. Apply with `apply_effect {layer, effect, params}` (the id or the name) or `execute effect.apply {effect, layers}`. Each parameter is listed as `id` = default (control). After applying, the parameter's property path is `effects/#N/[id]` where N is the effect's position on the layer (1 = top); `get_layer` shows the exact paths. GPU marks effects that render on the GPU when it is available; every effect also renders on the CPU.
 
 ## Contents
 
-`Audio` (13) `Blur & Sharpen` (15) `Channel` (14) `Color Correction` (39) `Distort` (37) `Expression Controls` (8) `Generate` (26) `Immersive Video` (12) `Keying` (11) `Matte` (4) `Noise & Grain` (13) `Obsolete` (10) `Perspective` (10) `Simulation` (18) `Stylize` (26) `Text` (2) `Time` (7) `Transition` (17) `Utility` (7)
+`3D Channel` (8) `Audio` (13) `Blur & Sharpen` (16) `Channel` (14) `Color Correction` (39) `Distort` (38) `Expression Controls` (8) `Generate` (26) `Immersive Video` (12) `Keying` (11) `Matte` (4) `Noise & Grain` (13) `Obsolete` (10) `Perspective` (10) `Simulation` (18) `Stylize` (26) `Text` (2) `Time` (8) `Transition` (17) `Utility` (7)
+
+## 3D Channel
+
+- **3D Channel Extract** `fx.3d.channelExtract`
+  `channel` = 0 (menu Z-Depth|Object ID|Texture UV|Surface Normals|Coverage|Background RGB|Unclamped RGB|Material ID); `blackPoint` = 5000 (slider 0..10000); `whitePoint` = 0 (slider 0..10000); `antiAlias` = false (checkbox); `clamp` = true (checkbox); `invert` = false (checkbox)
+- **Cryptomatte** `fx.3d.cryptomatte`
+  `layer` = "" (plain); `selection` = "" (plain); `display` = 0 (menu Colors|Edges|Matte); `matteOnly` = false (checkbox); `invert` = false (checkbox)
+- **Depth Matte** `fx.3d.depthMatte`
+  `depth` = 0 (slider 0..10000); `feather` = 0 (slider 0..1000); `invert` = false (checkbox)
+- **Depth of Field** `fx.3d.depthOfField`
+  `focalPlane` = 100 (slider 0..10000); `maxRadius` = 0 (slider 0..50); `thickness` = 0 (slider 0..1000); `bias` = 50 (slider 0..100)
+- **EXtractoR** `fx.3d.extractor`
+  `red` = "R" (plain); `green` = "G" (plain); `blue` = "B" (plain); `alpha` = "A" (plain); `blackPoint` = 0 (slider 0..1); `whitePoint` = 1 (slider 0..1); `unmult` = false (checkbox)
+- **Fog 3D** `fx.3d.fog3d`
+  `fogColor` = [0.5, 0.5, 0.5, 1] (color); `start` = 0 (slider 0..10000); `end` = 1000 (slider 0..10000); `opacity` = 100 (slider 0..100); `density` = 50 (slider 0..100); `foggyBackground` = true (checkbox); `gradientLayer` = null (layer); `contribution` = 0 (slider 0..100)
+- **ID Matte** `fx.3d.idMatte`
+  `auxChannel` = 0 (menu Object ID|Material ID); `idSelection` = 0 (slider 0..65535); `feather` = 0 (slider 0..10); `invert` = false (checkbox); `useCoverage` = false (checkbox)
+- **IDentifier** `fx.3d.identifier`
+  `channel` = "" (plain); `display` = 0 (menu Colors|Luma Matte|Alpha Matte|Raw); `id` = 0 (slider 0..65535)
 
 ## Audio
 
@@ -43,6 +62,8 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `radius` = 5 (slider 0..30); `threshold` = 20 (slider 0..100); `colorize` = true (checkbox)
 - **Camera Lens Blur** `fx.blur.cameraLens`
   `radius` = 5 (slider 0..50); `shape` = 3 (menu Triangle|Square|Pentagon|Hexagon|Heptagon|Octagon|Nonagon|Decagon); `rotation` = 0 (angle); `roundness` = 0 (slider 0..100); `aspect` = 1 (slider 0.1..10); `blurMap` = null (layer); `blurMapChannel` = 0 (menu Luminance|Red|Green|Blue|Alpha); `focalDistance` = 0 (slider 0..255); `invertMap` = false (checkbox); `gain` = 0 (slider 0..100); `threshold` = 255 (slider 0..255); `saturation` = 0 (slider 0..100); `repeatEdge` = false (checkbox)
+- **Camera-Shake Deblur** `fx.blur.cameraShakeDeblur`
+  `duration` = 3 (slider 1..10); `method` = 0 (menu High Quality|Standard); `strength` = 100 (slider 100..200); `sensitivity` = 50 (slider 0..100)
 - **CC Cross Blur** `fx.blur.ccCrossBlur`
   `radiusX` = 10 (slider 0..100); `radiusY` = 10 (slider 0..100); `mode` = 0 (menu Normal|Add|Screen|Lighten|Darken); `repeatEdge` = false (checkbox)
 - **CC Radial Blur** `fx.blur.ccRadialBlur`
@@ -242,6 +263,8 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `sourceMask` = 0 (mask); `destinationMask` = 0 (mask); `boundaryMask` = 0 (mask); `percent` = 100 (slider 0..100); `elasticity` = 3 (menu Stiff|Less Stiff|Below Normal|Normal|Above Normal|Loose|Liquid)
 - **Ripple** `fx.distort.ripple`
   `radius` = 50 (slider 0..100); `center` = {"relative": [0.5, 0.5]} (point); `conversion` = 0 (menu Asymmetric|Symmetric); `speed` = 1 (slider -10..10); `width` = 30 (slider 2..200); `height` = 30 (slider 0..200); `phase` = 0 (angle)
+- **Rolling Shutter Repair** `fx.distort.rollingShutterRepair`
+  `rate` = 50 (slider 0..100); `direction` = 0 (menu Top → Bottom|Bottom → Top|Left → Right|Right → Left); `method` = 0 (menu Warp|Pixel Motion)
 - **Smear** `fx.distort.smear`
   `sourceMask` = 0 (mask); `boundaryMask` = 0 (mask); `offset` = [0, 0] (plain); `rotation` = 0 (angle); `scale` = 100 (slider 0..100); `percent` = 100 (slider 0..100); `elasticity` = 2 (menu Stiff|Less Stiff|Below Normal|Normal|Above Normal|Loose|Liquid)
 - **Spherize** `fx.distort.spherize`
@@ -579,6 +602,8 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `forward` = 3 (slider 0..50); `backward` = 3 (slider 0..50); `nativeMotionBlur` = false (checkbox)
 - **Echo** `fx.time.echo`
   `echoTime` = -0.033 (slider -10..10); `echoes` = 1 (slider 0..50); `startingIntensity` = 1 (slider 0..1); `decay` = 1 (slider 0..1); `operator` = 0 (menu Add|Maximum|Minimum|Screen|Composite In Back|Composite In Front|Blend)
+- **Pixel Motion Blur** `fx.time.pixelMotionBlur`
+  `shutterControl` = 0 (menu Automatic|Manual); `shutterAngle` = 180 (slider 0..360); `samples` = 16 (slider 2..64); `vectorDetail` = 20 (slider 0..100)
 - **Posterize Time** `fx.time.posterizeTime`
   `frameRate` = 12 (slider 0.1..99)
 - **Time Difference** `fx.time.timeDifference`

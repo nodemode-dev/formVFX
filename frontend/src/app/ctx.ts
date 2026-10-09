@@ -59,6 +59,10 @@ const PICKERS: Record<string, Picker> = {
   'file.installScript': { key: 'path', mode: 'open', ext: ['jsx', 'js'] },
   'file.installScriptUIPanel': { key: 'path', mode: 'open', ext: ['jsx', 'js'] },
   'effect.plugins.load': { key: 'path', mode: 'open', ext: ['wasm', 'wat'], when: (p) => p.folder === undefined },
+  'essential.exportTemplate': { key: 'path', mode: 'save', ext: ['fvxtemplate'], name: 'Template.fvxtemplate', when: (p) => p.folder === undefined },
+  'essential.importTemplate': { key: 'path', mode: 'open', ext: ['fvxtemplate'] },
+  'essential.installTemplate': { key: 'path', mode: 'open', ext: ['fvxtemplate'] },
+  'track.faceModel.install': { key: 'path', mode: 'open', ext: ['task'] },
   'file.replaceFootage': { key: 'path', mode: 'open', ext: MEDIA },
   'file.collectFiles': { key: 'folder', mode: 'folder' },
   'file.watchFolder': { key: 'folder', mode: 'folder', when: (p) => p.stop === undefined },
@@ -117,6 +121,10 @@ export class Ctx {
   async effects(): Promise<EffectSpec[]> {
     this.effectCache ??= await this.client.call<EffectSpec[]>('effects.catalog');
     return this.effectCache;
+  }
+
+  dropEffects(): void {
+    this.effectCache = null;
   }
 
   setTool(t: ToolId): void {

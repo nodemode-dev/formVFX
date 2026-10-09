@@ -5,6 +5,7 @@ import { AgentsPanel } from '../panels/agents';
 import { MotionSketchPanel, SmootherPanel, WigglerPanel } from '../panels/assistants';
 import { EffectControlsPanel } from '../panels/effect-controls';
 import { EffectsPresetsPanel } from '../panels/effects-presets';
+import { EssentialGraphicsPanel } from '../panels/essential';
 import { FlowchartPanel } from '../panels/flowchart';
 import { ProjectPanel } from '../panels/project';
 import { AlignPanel, CharacterPanel, CommandPanel, HistoryPanel, InfoPanel, ParagraphPanel, PreviewPanel, RenderQueuePanel } from '../panels/small';
@@ -174,6 +175,7 @@ class App {
     this.dock.register('info', 'Info', () => new InfoPanel(ctx));
     this.dock.register('preview', 'Preview', () => new PreviewPanel(ctx));
     this.dock.register('effectsPresets', 'Effects & Presets', () => this.effects);
+    this.dock.register('essential', 'Essential Graphics', () => new EssentialGraphicsPanel(ctx));
     this.dock.register('align', 'Align', () => new AlignPanel(ctx));
     this.dock.register('character', 'Character', () => new CharacterPanel(ctx));
     this.dock.register('paragraph', 'Paragraph', () => new ParagraphPanel(ctx));
@@ -323,7 +325,7 @@ class App {
     this.home = el(`<div class="cv-home fx-home" hidden>
       <div class="cv-home-center">
         <h1 class="cv-home-brand">${brandMark(40)} formvfx <span class="cv-home-by">motion graphics and visual effects</span></h1>
-        <p class="cv-home-sub">Compositions, layers, keyframes, 289 effects, 3D, expressions and a render queue, driven by you or by an agent.</p>
+        <p class="cv-home-sub">Compositions, layers, keyframes, 300 effects, 3D, expressions, templates and a render queue, driven by you or by an agent.</p>
         <div class="cv-home-actions">
           <button class="cv-home-action" type="button" data-h="new"><span class="cv-home-label">New Composition</span><span class="cv-key">↵</span></button>
           <button class="cv-home-action" type="button" data-h="open"><span class="cv-home-label">Open Project</span><span class="cv-key">O</span></button>
@@ -412,6 +414,9 @@ class App {
         return this.scriptui.show(params as unknown as SuiTree);
       case 'scriptui.close':
         return this.scriptui.close(Number(params.window));
+      case 'effects.refresh':
+        ctx.dropEffects();
+        return this.effects.refresh();
       case 'app.settings':
         void this.prefs.open(String(params.page ?? 'interface'));
         return;

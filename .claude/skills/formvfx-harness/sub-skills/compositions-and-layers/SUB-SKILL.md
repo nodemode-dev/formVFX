@@ -1,6 +1,6 @@
 ---
 name: compositions-and-layers
-description: Compositions and layers in formvfx. Use to create or change a composition (size, frame rate, duration, background, work area), add solids, text, shapes, nulls, adjustment layers or footage, import files, arrange and time layers, parent them, set track mattes, blend modes and switches, duplicate, split, delete or precompose layers.
+description: Compositions and layers in formvfx. Use to create or change a composition (size, frame rate, duration, background, work area), add solids, text, shapes, nulls, adjustment layers or footage, import files, arrange and time layers, parent them, set track mattes, blend modes and switches, duplicate, split, delete or precompose layers, or build, use, export and import Essential Graphics templates.
 ---
 
 # compositions-and-layers
@@ -69,6 +69,14 @@ All return `{"layer": id}` and land above the selected layer (or on top).
 - **Switches**: `layer.setSwitch {layers, switch, value}` with `video` (visible), `audio`, `solo`, `lock`, `shy`, `collapse` (continuous rasterization for vector layers), `quality`, `fx`, `frameBlend`, `motionBlur`, `adjustment`, `threeD`, `guide`, `preserveTransparency`.
 - **Solid settings**: `layer.settings {layer, name, color, width, height}` changes a solid's colour or size.
 - **Labels and comments**: `edit.label {label: Red|Yellow|Aqua|..., layers}`; `project.setComment {items, comment}` on project items.
+
+## Essential Graphics templates
+
+A template is a composition with some of its properties exposed, so each use of it can be changed without opening it (a lower third whose name, colour and bar width differ per shot).
+
+1. In the template composition: `essential.addProperty {comp, layer, path, name}` for each property to expose (`text/sourceText`, `effects/#1/color`, `transform/opacity`...). `essential.addComment` and `essential.addGroup` organise the panel; `essential.rename`, `essential.move`, `essential.remove`; `essential.list {comp}` shows the controllers.
+2. Use it: add the composition to other compositions (`layer.addItem {item}`). Each of those layers gets an Essential Properties group (`essentialProperties/c1`, `c2`...). `set_property` on one of them overrides that instance only; unchanged ones follow the template's own values. `essential.revertToMaster {layers}` drops the overrides.
+3. Share it: `essential.exportTemplate {comp, path}` writes a `.fvxtemplate` (the composition, everything it uses, its media and a poster frame); `essential.importTemplate {path, addToComp: true}` brings one into another project; `essential.installTemplate` puts it in the Essential Graphics panel's Browse tab.
 
 ## Check
 

@@ -4,6 +4,7 @@ backend/venv/
 backend/build/
 backend/dist-engine/
 native/fvx-core/target/
+native/plugins/*/target/
 *.so
 __pycache__/
 *.pyc

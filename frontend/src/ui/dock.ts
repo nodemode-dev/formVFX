@@ -508,6 +508,8 @@ export class Dock {
   }
 
   private home(id: string): Group | undefined {
+    const beside = id === 'essential' ? this.find('effectsPresets') : undefined;
+    if (beside && beside.area !== 'float') return beside;
     const area: Area = id === 'composition' ? 'center' : ['timeline', 'renderQueue', 'terminal', 'agents', 'graph', 'flowchart'].includes(id) ? 'bottom' : 'right';
     return this.groups[area][0] ?? this.groups.right[0] ?? this.groups.bottom[0] ?? this.groups.center[0];
   }

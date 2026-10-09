@@ -1,6 +1,6 @@
 ---
 name: formvfx-harness
-description: Drive formvfx, the motion graphics and visual effects app (an After Effects alternative), through its formvfx MCP server or the formvfx command line. Use whenever the person wants a composition, animation, title, lower third, logo reveal, kinetic type, transition, shape animation, 3D scene, camera move, light, effect, glow, blur, colour grade, keying, mask, rotoscoping, paint, puppet pins, tracking, stabilizing, expression, script, ScriptUI tool or a render to MP4, ProRes, GIF, PNG sequence, EXR or Lottie made or changed in formvfx; when formvfx tools such as status, batch, set_keyframes, apply_effect, render_frame or contact_sheet are available; when the person describes an After Effects technique and wants it done here; or when a formvfx tool fails and the next step is unclear. Not for editing formvfx's own source code (use formvfx-skillset for that).
+description: Drive formvfx, the motion graphics and visual effects app (an After Effects alternative), through its formvfx MCP server or the formvfx command line. Use whenever the person wants a composition, animation, title, lower third, logo reveal, kinetic type, transition, shape animation, 3D scene, camera move, light, effect, glow, blur, colour grade, keying, mask, rotoscoping, paint, puppet pins, tracking, stabilizing, face tracking, expression, script, ScriptUI tool, Essential Graphics template, effect plug-in, EXR render pass or a render to MP4, ProRes, GIF, PNG sequence, EXR or Lottie made or changed in formvfx; when formvfx tools such as status, batch, set_keyframes, apply_effect, render_frame or contact_sheet are available; when the person describes an After Effects technique and wants it done here; or when a formvfx tool fails and the next step is unclear. Not for editing formvfx's own source code (use formvfx-skillset for that).
 ---
 
 # formvfx harness
@@ -15,7 +15,7 @@ These tools are the hands. This skill is the knowledge of how a motion designer 
 - A **composition** has a size, frame rate, duration, work area and background, and a stack of **layers**. Layer 1 is on top.
 - A **layer** is a solid, text, shape, null, adjustment, camera, light, footage, precomposition or 3D model. It has an in and out point, switches (visible, solo, lock, shy, 3D, motion blur, adjustment...), a blend mode, an optional parent and an optional track matte.
 - Every value a layer has is a **property** in its tree, addressed by a path: `transform/position`, `effects/#1/blurriness`, `masks/#2/feather`, `text/animators/#1/selectors/#1/offset`, `contents/trim/end`. Properties are static, keyframed or driven by an expression.
-- Every action is a **command** (about 650). Commands that change the project are undoable; `batch` makes several one step.
+- Every action is a **command** (about 500). Commands that change the project are undoable; `batch` makes several one step.
 
 `references/concepts.md` has the details that save the most time: how layers, compositions and properties are addressed, composition time versus layer time, value formats, colours, effect point parameters, and the result each kind of command returns.
 
@@ -42,9 +42,9 @@ Load the sub-skill for the part of the job in front of you. For a whole piece (a
 | --- | --- |
 | A whole piece, a brief, anything broad or unscoped | `sub-skills/harness-director/SUB-SKILL.md` |
 | Connecting: the MCP server, the command line, permission prompts, the engine not running | `sub-skills/session-and-connection/SUB-SKILL.md` |
-| Compositions, layers, footage, precomps, parenting, track mattes, blend modes, switches, timing | `sub-skills/compositions-and-layers/SUB-SKILL.md` |
+| Compositions, layers, footage, precomps, parenting, track mattes, blend modes, switches, timing, Essential Graphics templates | `sub-skills/compositions-and-layers/SUB-SKILL.md` |
 | Keyframes, easing, the Graph Editor, motion paths, sequencing, time remapping, wiggle | `sub-skills/animation-and-keyframes/SUB-SKILL.md` |
-| Effects, their parameters, layer styles, animation presets, colour work, keying | `sub-skills/effects-and-presets/SUB-SKILL.md` |
+| Effects, their parameters, layer styles, animation presets, colour work, keying, the 3D Channel effects on EXR passes, WebAssembly effect plug-ins | `sub-skills/effects-and-presets/SUB-SKILL.md` |
 | Text layers, type styling, text animators, text presets, shape layers, Trim Paths, repeaters | `sub-skills/text-and-shapes/SUB-SKILL.md` |
 | Masks, feathering, Roto Brush, paint strokes, puppet pins, Content-Aware Fill | `sub-skills/masks-roto-paint/SUB-SKILL.md` |
 | 3D layers, cameras, lights, shadows, materials, primitives, 3D models, views | `sub-skills/camera-lights-3d/SUB-SKILL.md` |
