@@ -117,6 +117,13 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - Events go back as `scriptui.event` with the control id and the new value; the handler runs on the engine and its changes come back as one more `scriptui.show`. Windows outlive a reload: on each socket open `restore` asks `scriptui.list` and mounts what the engine still holds.
 - The window is `position: fixed` and the head drags it by `left` and `top`, so dragging never moves anything around it; new windows cascade by 24 pixels.
 
+## Essential Graphics panel and plug-ins (0.23.0)
+
+- `panels/essential.ts` has an Edit tab (primary composition, template name, the controllers) and a Browse tab (installed templates as poster cards that import into the active composition). Controller rows are keyed by controller id and patched in place: a rename writes only the input's value, so typing in one row never rebuilds another; a move reorders the existing nodes. The list is fetched with `essential.list` only when the revision changes and the panel is showing, so playback (which updates the time, not the revision) costs nothing.
+- Rows are a small grid: the layer name on top, the name field with move and remove buttons, and the value under them, so the panel stays usable at the narrow width of the right column.
+- `Dock.home` opens Essential Graphics beside Effects & Presets (the tallest right-hand group in the built-in workspaces) instead of the first right-hand group, which is Info's short strip.
+- Loading a plug-in emits the frontend command `effects.refresh`: the context drops its effect catalogue and Effects & Presets re-reads it if it was ever shown; the engine service drops its cached catalogue whenever an `effect.plugins.*` command runs.
+
 ## Boot ground
 
 - The critical style paints only `html` (`#0a0a0a`, then the boot script's profile ground); `body` is transparent until `tokens.css` gives it `--bg-primary`. Painting `body` too showed `#0a0a0a` for the first frames before the Studio ground `#111111`.
