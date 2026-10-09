@@ -10,6 +10,7 @@ formvfx is licensed under the Apache License 2.0 (`LICENSE`). It includes or dep
 | kurbo | Bezier arc length and subdivision (Trim Paths) in `native/fvx-core` | MIT OR Apache-2.0 |
 | rustybuzz, ttf-parser, fontdb | text shaping, glyph outlines and system font lookup in `native/fvx-core` | MIT, MIT OR Apache-2.0 |
 | image, parking_lot, serde, serde_json | image files, locks and project files in `native/fvx-core` | MIT OR Apache-2.0 |
+| fancy-regex, regex-automata, regex-syntax, aho-corasick, bit-set, bit-vec | regular expressions in expressions and scripts in `native/fvx-core` | MIT, MIT OR Apache-2.0, Unlicense OR MIT |
 | i_overlay, i_float, i_shape, i_tree, i_key_sort | polygon boolean operations and offsets (Merge Paths, Offset Paths) in `native/fvx-core` | MIT OR Apache-2.0, MIT |
 | usvg, svgtypes, roxmltree, simplecss, data-url, float-cmp, imagesize, pico-args, siphasher | SVG reading (SVG footage, paste as shapes) in `native/fvx-core` | MIT OR Apache-2.0, MIT |
 | exr, half, lebe, bit_field, zune-inflate | OpenEXR reading and writing (EXR footage, sequences, layered frames) in `native/fvx-core` | BSD-3-Clause, MIT OR Apache-2.0 |

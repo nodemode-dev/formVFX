@@ -111,6 +111,12 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - The Render Queue row gains two links between the name and the colour label: the Render Settings template and the Output Module template (with `(+N)` when an item has more output modules). Each opens the command's form through the engine's "needs a setting" answer, the way the colour label does. The row's grid now has a column per child (it had five columns for six in-flow children, so the remove button wrapped). Both labels are created once in `create` and only their text changes in `update`.
 - The Project panel's info lines name the proxy file, with `(off)` when Use Proxy is off.
 
+## ScriptUI windows (0.22.0)
+
+- `ui/scriptui.ts` draws the windows a script builds. The engine sends the whole tree with `scriptui.show`; the first show mounts a floating section in the overlay root (so it stacks on `--z-companion`, above the dock, below menus) and every later show patches it: controls are keyed by id, a control whose type is unchanged keeps its node and only its text, value, checked state or enabled state is written, and a dropdown or list rebuilds its options only when the item list changed. A button that renames itself in its own handler therefore keeps focus and position.
+- Events go back as `scriptui.event` with the control id and the new value; the handler runs on the engine and its changes come back as one more `scriptui.show`. Windows outlive a reload: on each socket open `restore` asks `scriptui.list` and mounts what the engine still holds.
+- The window is `position: fixed` and the head drags it by `left` and `top`, so dragging never moves anything around it; new windows cascade by 24 pixels.
+
 ## Boot ground
 
 - The critical style paints only `html` (`#0a0a0a`, then the boot script's profile ground); `body` is transparent until `tokens.css` gives it `--bg-primary`. Painting `body` too showed `#0a0a0a` for the first frames before the Studio ground `#111111`.

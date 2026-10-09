@@ -12,6 +12,7 @@ Living context for the engine service. Code carries almost no comments; the reas
 ## Agent substrate
 
 - `app/agent/tools.py`: the MCP tools and the guide texts. The tool catalogue is the source the harness skill's `references/tools.md` is generated from (`./formvfx agents sync`).
+- `run_script` (0.22.0) sends `script.run` with the code and returns the engine's `{ok, result, output, error}` as it is, so an agent sees `$.writeln` output and the failing line without a second call. A script is one undo step and asks for consent like any other change.
 - Consent (`app/agent/consent.py`): a per-boot token in the Terminal panel's environment marks trusted agents; others ask once in a window (Allow, Allow Always, Don't Allow) unless `FORMVFX_AGENTS` is `allow` or `deny`. Reads never ask.
 - `app/agent/workspace.py` writes the agent workspace (`~/Formvfx/agent-workspace`): CLAUDE.md, AGENTS.md, MCP configs for the three clients, a `formvfx` shim on PATH and the harness skill.
 - `app/agent/stdio.py` is the stdio relay `./formvfx mcp` runs: it finds the engine (FORMVFX_URL, the discovery record, the default port) and starts one headless when none answers.
