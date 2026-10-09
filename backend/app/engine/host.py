@@ -61,6 +61,12 @@ class EngineHost:
         self.gpu = performance.gpu_status(probe, attached) if probe is not None or not performance.gpu_allowed() else {"enabled": False, "adapter": None, "reason": "turned off in Settings"}
         return self.gpu
 
+    def apply_multi_frame(self) -> None:
+        from . import performance
+
+        if self.engine is not None and hasattr(self.engine, "set_multi_frame"):
+            self.engine.set_multi_frame(bool(performance.load()["multiFrame"]))
+
     def start(self, loop: asyncio.AbstractEventLoop) -> None:
         self.bus.bind(loop)
         if self._thread:
@@ -94,6 +100,7 @@ class EngineHost:
             self._ready.set()
             return
         self.attach_gpu()
+        self.apply_multi_frame()
         self._ready.set()
         last_tick = 0.0
         while True:

@@ -354,9 +354,10 @@ export class RenderQueuePanel implements Panel {
     patchList(this.list, items, {
       key: (x) => String(x.id ?? x.index),
       create: (x) => {
-        const n = el(`<div class="fx-rq-item"><input type="checkbox" class="fx-check"><span class="fx-rq-name"></span><span class="fx-rq-fmt"></span><button class="fx-link fx-rq-out" type="button"></button><span class="fx-rq-state"></span><div class="fx-rq-prog"><span></span></div><button class="cv-icon-btn" type="button" data-rm title="Remove">${icon('close', 12)}</button></div>`);
+        const n = el(`<div class="fx-rq-item"><input type="checkbox" class="fx-check"><span class="fx-rq-name"></span><button class="fx-link fx-rq-fmt" type="button" title="Output colour and bit depth"></button><button class="fx-link fx-rq-out" type="button"></button><span class="fx-rq-state"></span><div class="fx-rq-prog"><span></span></div><button class="cv-icon-btn" type="button" data-rm title="Remove">${icon('close', 12)}</button></div>`);
         const id = x.id ?? x.index;
         q<HTMLInputElement>(n, 'input').addEventListener('change', (e) => void this.ctx.run('renderQueue.setRender', { item: id, render: (e.target as HTMLInputElement).checked }, true));
+        q(n, '.fx-rq-fmt').addEventListener('click', () => void this.ctx.invoke('renderQueue.setColor', { item: id }));
         q(n, '[data-rm]').addEventListener('click', () => void this.ctx.run('renderQueue.remove', { item: id }).then(() => this.load()));
         q(n, '.fx-rq-out').addEventListener('click', async () => {
           const got = await pickFiles({ title: 'Output To', mode: 'save', defaultName: String(x.output && typeof x.output === 'object' ? ((x.output as Record<string, unknown>).path ?? 'render.mp4') : 'render.mp4').split(/[\\/]/).pop() });
@@ -367,8 +368,10 @@ export class RenderQueuePanel implements Panel {
       update: (n, x) => {
         const out = (x.output && typeof x.output === 'object' ? x.output : {}) as Record<string, unknown>;
         setText(q(n, '.fx-rq-name'), String(x.compName ?? x.comp ?? 'Composition'));
-        setText(q(n, '.fx-rq-fmt'), String(out.format ?? out.kind ?? ''));
-        setText(q(n, '.fx-rq-out'), String(out.path ?? x.output_path ?? 'Not yet specified').split(/[\\/]/).pop() || '');
+        const fmt = String(out.format ?? out.kind ?? x.format ?? '');
+        const extra = [x.outputSpace ? String(x.outputSpace) : '', Number(x.depth) >= 16 ? '16 bpc' : ''].filter(Boolean).join(', ');
+        setText(q(n, '.fx-rq-fmt'), extra ? `${fmt} (${extra})` : fmt);
+        setText(q(n, '.fx-rq-out'), String(out.path ?? (typeof x.output === 'string' ? x.output : undefined) ?? x.output_path ?? 'Not yet specified').split(/[\\/]/).pop() || '');
         setText(q(n, '.fx-rq-state'), String(x.status ?? x.state ?? 'Queued'));
         const pct = Number(x.progress ?? 0);
         (q(n, '.fx-rq-prog span') as HTMLElement).style.width = `${Math.round((pct > 1 ? pct : pct * 100))}%`;

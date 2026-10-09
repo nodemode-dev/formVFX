@@ -194,6 +194,8 @@ async def dispatch(method: str, params: Any, source: str = "ui") -> Any:
             if any(k in p for k in ("multiFrame", "reservedCores", "gpu")):
                 saved = performance.save(p)
                 host.set_preview_frames(performance.preview_frames(saved))
+                if "multiFrame" in p:
+                    await host.call(lambda e: host.apply_multi_frame(), source)
                 if "gpu" in p:
                     await host.call(lambda e: host.attach_gpu(), source, touches=True)
             return {**performance.describe(), "gpuStatus": host.gpu}

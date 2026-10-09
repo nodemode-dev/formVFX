@@ -106,9 +106,9 @@ def main() -> int:
     if "--selfcheck" in args:
         return selfcheck()
     if "--gpu-probe" in args:
-        import fvx_core
+        from app import native
 
-        print(fvx_core.gpu_probe(), flush=True)
+        print(native.module().gpu_probe(), flush=True)
         return 0
     serve(headless="--headless" in args)
     return 0

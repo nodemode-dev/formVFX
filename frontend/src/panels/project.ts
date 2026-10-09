@@ -86,6 +86,7 @@ export class ProjectPanel implements Panel {
     });
     this.list.addEventListener('drop', (e) => void this.dropFiles(e));
     ctx.store.events.on('items', (st) => this.render(st));
+    ctx.store.events.on('project', (st) => setText(q(this.el, '.fx-proj-depth'), st.bitDepth));
     if (ctx.store.state) queueMicrotask(() => ctx.store.state && this.render(ctx.store.state));
     ctx.ui.on('find', (term) => {
       this.search.value = term;
