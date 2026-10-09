@@ -6,7 +6,7 @@ pushd backend
 call oc_install.bat || ( popd & exit /b 1 )
 popd
 echo [formvfx] building the compositing engine (the first build takes a few minutes)
-call setup\build_native.bat %1 || ( echo [formvfx] the compositing core did not build, run formvfx.bat doctor & exit /b 1 )
+call setup\build_native.bat %1 || ( echo [formvfx] the compositing engine did not build, run formvfx.bat doctor & exit /b 1 )
 echo [formvfx] installing the interface
 pushd frontend
 call oc_install.bat || ( popd & exit /b 1 )

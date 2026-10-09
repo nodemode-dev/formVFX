@@ -12,12 +12,10 @@ _session: set[str] = set()
 _declined: dict[str, float] = {}
 _QUERY_IDS = {
     "app.capabilities", "cache.diskStats", "camera.points", "camera.solveStatus", "command.describe", "command.list", "comp.info",
-    "comp.vr.environments", "editor.state", "effect.list", "essential.canAdd", "essential.instance", "essential.list",
-    "essential.templateInfo", "expr.errors", "expr.languageMenu", "file.recoveryInfo", "file.scripts.list", "footage.info",
-    "help.systemInfo", "item.metadata", "jobs.list", "jobs.wait", "keys.info", "layer.style.list", "layer.tree", "markers.list",
-    "mask.featherPoint.list", "mediaBrowser.fileInfo", "mediaBrowser.list", "paint.presets", "prefs.get", "prefs.pages",
+    "effect.list", "expr.errors", "item.metadata", "keys.info", "layer.style.list", "layer.tree", "markers.list",
+    "mask.featherPoint.list", "paint.presets", "prefs.get", "prefs.pages",
     "project.summary", "project.usage", "prop.get", "puppet.info", "renderQueue.formats", "renderQueue.list",
-    "renderQueue.templates", "scriptui.list", "shortcuts.conflicts", "shortcuts.list", "text.animatorProperties", "text.presets",
+    "renderQueue.templates", "shortcuts.conflicts", "shortcuts.list", "text.animatorProperties", "text.presets",
     "track.status", "warp.status", "text.fonts", "text.fontFeatures", "view.get3D",
 }
 _READ_RPC = {"command.list", "command.describe", "ui.state", "ui.overlays", "ui.graph", "ui.flowchart", "text.library", "roto.objectPreview", "menu.bar", "menu.titles", "effects.catalog", "frame.png", "engine.info", "activity.list", "project.json", "link.info"}

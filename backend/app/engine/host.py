@@ -96,7 +96,7 @@ class EngineHost:
             self.engine = native.module().Engine()
             self.revision = self.engine.revision()
         except BaseException as exc:
-            self.error = f"the compositing core did not load: {exc!r}. Run ./formvfx install-native"
+            self.error = f"the compositing engine did not load: {exc!r}. Run ./formvfx install-native"
             self._ready.set()
             return
         self.attach_gpu()
@@ -155,7 +155,7 @@ class EngineHost:
     def submit(self, fn: Callable[[Any], Any], source: str = "ui", touches: bool = False) -> concurrent.futures.Future:
         fut: concurrent.futures.Future = concurrent.futures.Future()
         if self.engine is None:
-            fut.set_exception(EngineError(self.error or "the compositing core is not loaded"))
+            fut.set_exception(EngineError(self.error or "the compositing engine is not loaded"))
             return fut
         self._q.put((fn, fut, source, touches))
         return fut

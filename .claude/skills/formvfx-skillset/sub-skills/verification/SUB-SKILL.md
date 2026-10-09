@@ -13,8 +13,8 @@ description: Verifying a change to formvfx before it ships. Use after any interf
 | Text hygiene | `python3 setup/lint_text.py .` | 0 findings |
 | Agent references | `./formvfx agents sync --check` | in step |
 | Skills | the god-tier `validate_skill.py` on `.claude/skills/formvfx-harness` and `formvfx-skillset` | 0 FAIL |
-| Core | `backend/venv/bin/python backend/formvfx_engine.py --selfcheck` | `"ok": true` with 655 commands, 306 effects |
-| Sidecar | `./formvfx freeze` | the frozen binary's selfcheck reports core, interface and skills |
+| Engine | `backend/venv/bin/python backend/formvfx_engine.py --selfcheck` | `"ok": true` with the engine's command and effect counts |
+| Sidecar | `./formvfx freeze` | the frozen binary's selfcheck reports the engine, interface and skills |
 | Shell | `cd src-tauri && cargo check` | compiles |
 
 ## Interface under throttling

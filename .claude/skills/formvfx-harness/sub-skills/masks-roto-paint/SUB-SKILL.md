@@ -55,10 +55,9 @@ For one whole object (a person, a car, a product), skip the strokes: `object_mat
 3. `puppet.mesh {layer, density, expansion}` adjusts the mesh; `puppet.info {layer, time}` reads pins and the deformed mesh.
 4. `puppet.recordPin` records a drag; `puppet.follow` makes pins trail a leader.
 
-## Liquify, Auto-trace, Content-Aware Fill
+## Liquify, Content-Aware Fill
 
-- `liquify.stroke {layer, tool: warp|turbulence|twirlClockwise|pucker|bloat|..., points, size, pressure, time}` after applying the Liquify effect.
-- `layer.autoTrace {layer, channel: alpha|luminance, threshold, timeSpan}` turns a layer's alpha or luma into masks.
+- `liquify.stroke {layer, points: [[x, y]] (layer pixels), tool: warp|turbulence|twirlClockwise|pucker|bloat|..., brushSize, brushPressure}` after applying the Liquify effect; `liquify.clear` removes the strokes.
 - Object removal: mask the object on the footage layer (mode Subtract or an animated mask), then `layer.newContentAwareFill {layer, method: object|surface|edgeBlend, range: workArea, wait: true}`. It renders a fill layer above the footage.
 
 ## Check

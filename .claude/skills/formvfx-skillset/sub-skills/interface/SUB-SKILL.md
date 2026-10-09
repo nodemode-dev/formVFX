@@ -28,4 +28,5 @@ description: The formvfx interface in frontend/src. Use to add or change a panel
 
 - No rebuilds of live containers; no `innerHTML` on a populated list; reserve space for anything that loads (the viewer fills the comp rectangle before the first frame).
 - The Timeline's row height (`ROW` in `panels/timeline.ts`) equals `--fx-row-h`; waveform rows are `WAVE_ROWS` times that (`.fx-row-wave`). The track canvas maps y to rows through `tops` (prefix sums from `rowH`), so a new row kind with another height changes `rowH` and its CSS together.
+- Menus come from the engine's menu bar as they are; a label to change is changed in `native/fvx-core/src/engine/menus.rs` or `registry.rs`, not patched in the interface.
 - `npm run build` (tsc with `noUnusedLocals`, then Vite) must pass; Vite keeps `server.host: false` and port 5230.

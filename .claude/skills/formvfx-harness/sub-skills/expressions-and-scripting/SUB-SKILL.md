@@ -1,6 +1,6 @@
 ---
 name: expressions-and-scripting
-description: Procedural motion in formvfx. Use to write or fix expressions (wiggle, loopOut, linear and ease mapping, valueAtTime delays, links between layers, expression controls, random and posterized motion), to read expression errors, to run After Effects style JavaScript scripts against the project, and to build Essential Graphics templates with exposed controls.
+description: Procedural motion in formvfx. Use to write or fix expressions (wiggle, loopOut, linear and ease mapping, valueAtTime delays, links between layers, expression controls, random and posterized motion), to read expression errors, to run After Effects style JavaScript scripts against the project (loops, data, many layers, computed keys) and to build ScriptUI tool windows.
 ---
 
 # expressions-and-scripting
@@ -26,7 +26,7 @@ Rules of thumb:
 
 - Return the property's full shape: three values for transform position and scale (`[x, y, z]`), four for colours.
 - Name layers and controls before referencing them; references are by name, and a rename breaks them.
-- Rigs: add controls (`apply_effect` with `ec.control.slider`, `ec.control.angle`, `ec.control.checkbox`, `ec.control.color`, `ec.control.point`, `ec.control.layer`) to a null named Controls, rename the effect if several (`prop.renameGroup`), and reference `thisComp.layer("Controls").effect("Speed")("Slider")`.
+- Rigs: add controls (`apply_effect` with `fx.control.slider`, `fx.control.angle`, `fx.control.checkbox`, `fx.control.color`, `fx.control.point`, `fx.control.point3d`, `fx.control.layer`, `fx.control.dropdown`) to a null named Controls, rename the effect if several (`prop.renameGroup`), and reference `thisComp.layer("Controls").effect("Speed")("Slider")`.
 - `prop.pickWhip {layer, path, target: {layer, path}}` writes the reference expression for you.
 - `prop.convertExpressionToKeyframes {layer, path}` bakes an expression into keys.
 - `layer.expressions {layers, enabled: false}` switches every expression on the layers off, for speed or for debugging.
@@ -35,30 +35,31 @@ Rules of thumb:
 
 ## Scripts
 
-`run_script {code}` runs JavaScript against the project with the After Effects scripting object model: `app.project`, `app.project.activeItem` (the active composition), `comp.layers.addText(...)`, `addSolid`, `addNull`, `layer.property("Transform").property("Position").setValueAtTime(t, v)`, `setValue`, `numLayers`, `layer(i)` and the rest. It returns `{ok, result, output, error: {message, line, column}}`; `result` is the value of the last expression.
+`run_script {code}` runs JavaScript against the project with the After Effects scripting object model: `app.project` (`items`, `item(i)`, `activeItem`, `items.addComp(name, w, h, pixelAspect, duration, fps)`, `items.addFolder`, `importFile(new ImportOptions(new File(path)))`, `renderQueue.items.add(comp)`), `CompItem` (`layers`, `layer(i or name)`, `numLayers`, `time`, `workAreaStart`), `comp.layers.addSolid([r, g, b], name, w, h, 1)`, `addText`, `addBoxText`, `addNull`, `addShape`, `addCamera`, `addLight`, `add(item)`, `precompose([indices], name)`, layers (`name`, `parent`, `enabled`, `threeDLayer`, `blendingMode = BlendingMode.SCREEN`, `inPoint`, `duplicate()`, `moveToEnd()`), properties (`property("Transform").property("Position")`, `setValue`, `setValueAtTime`, `setValuesAtTimes`, `keyValue`, `setInterpolationTypeAtKey`, `setTemporalEaseAtKey(i, [new KeyframeEase(0, 75)])`, `expression`), `property("Effects").addProperty("Gaussian Blur")` (After Effects match names such as `ADBE Gaussian Blur 2` work), shape contents through `addProperty("ADBE Vector Group")`, `TextDocument` values on Source Text, `File`, `Folder`, `app.settings`, `app.beginUndoGroup(name)`. It returns `{ok, result, output, error: {message, line}}`; `result` is the value of the last expression and `output` collects `writeLn`, `alert` and `$.writeln`.
 
 Use a script for loops and data: fifty layers from a list, keys computed from a table, renaming by a pattern. The whole script is one undo step. For a handful of known operations, `batch` with commands is clearer.
 
-Example that adds and animates a text layer:
+Checked against the engine:
 
 ```javascript
-var c = app.project.activeItem;
-var t = c.layers.addText("From script");
-t.name = "Scripted";
+app.beginUndoGroup("Build");
+var comp = app.project.items.addComp("Scripted", 1280, 720, 1, 4, 30);
+var t = comp.layers.addText("From script");
+t.name = "Title";
 var p = t.property("Transform").property("Position");
-p.setValueAtTime(0, [200, 200]);
-p.setValueAtTime(1, [600, 200]);
-c.numLayers;
+p.setValueAtTime(0, [200, 360]);
+p.setValueAtTime(2, [1080, 360]);
+p.setTemporalEaseAtKey(2, [new KeyframeEase(0, 75)]);
+comp.layers.addSolid([0.1, 0.1, 0.2], "Back", 1280, 720, 1).moveToEnd();
+app.endUndoGroup();
+comp.numLayers;
 ```
 
-## Essential Graphics
+`app.executeCommand(id, params)` runs any formvfx command from a script. Scripts read and write files the way After Effects scripts do, so they run with the person's consent like any edit.
 
-Expose a composition's properties as a template others can edit without opening it:
+## ScriptUI
 
-1. `essential.setPrimary {comp}` makes it the template composition.
-2. `essential.addProperty {comp, layer, path, name}` exposes a property (Source Text, a colour, a slider); `essential.addGroup`, `essential.addComment`, `essential.move`, `essential.rename` organise the panel.
-3. Instances: put the template in another composition (`layer.addItem`), then `essential.set {layer, control, value}` sets a control on that instance; `essential.list {comp}` shows the controls.
-4. `essential.exportTemplate {comp, path}` writes an `.ectemplate`; `essential.importTemplate {path}` brings one in.
+`new Window("palette", "Title")` with `add("button" | "statictext" | "edittext" | "checkbox" | "radiobutton" | "slider" | "progressbar" | "dropdownlist" | "listbox" | "group" | "panel", ...)` and `onClick`, `onChange` or `onChanging` handlers, then `show()`, opens a tool window in the formvfx interface; each handler runs later, when the person uses the control, as its own undo step. `show()` returns at once (dialogs are not modal), so read the controls inside the handlers. Scripts installed with `file.installScript` appear in File > Scripts; panels installed with `file.installScriptUIPanel` appear in the Window menu, where `this` is the Panel.
 
 ## Check
 

@@ -14,7 +14,7 @@ The Terminal panel opens a shell in formvfx's agent workspace (`~/Formvfx/agent-
 
 ## The tools
 
-`status`, `list_commands`, `describe_command`, `execute`, `batch`, `get_comp`, `get_layer`, `get_property`, `set_property`, `set_keyframes`, `apply_effect`, `list_effects`, `render_frame`, `contact_sheet`, `render`, `project`, `import_files`, `history`, `run_script`, `ui`, `wait`, `guide`. The full reference is `.claude/skills/formvfx-harness/references/tools.md`.
+`status`, `list_commands`, `describe_command`, `execute`, `batch`, `get_comp`, `get_layer`, `get_property`, `set_property`, `set_keyframes`, `apply_effect`, `list_effects`, `text_preset`, `shapes_from_svg`, `planar_track`, `object_matte`, `render_frame`, `contact_sheet`, `render`, `dynamic_link`, `project`, `import_files`, `history`, `ui`, `wait`, `guide`. The full reference is `.claude/skills/formvfx-harness/references/tools.md`.
 
 ## Command line
 

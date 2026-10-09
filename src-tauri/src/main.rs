@@ -57,7 +57,10 @@ fn check_for_updates(handle: tauri::AppHandle) {
 fn project_argument() -> Option<String> {
     std::env::args()
         .skip(1)
-        .find(|arg| arg.to_lowercase().ends_with(".ecproj") && std::path::Path::new(arg).is_file())
+        .find(|arg| {
+            let lower = arg.to_lowercase();
+            (lower.ends_with(".fvxproj") || lower.ends_with(".ecproj")) && std::path::Path::new(arg).is_file()
+        })
 }
 
 fn main() {

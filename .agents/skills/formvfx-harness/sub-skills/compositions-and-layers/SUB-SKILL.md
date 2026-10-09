@@ -15,7 +15,7 @@ description: Compositions and layers in formvfx. Use to create or change a compo
 | Work area (what previews and renders cover) | `comp.workArea {start, end}` |
 | Composition switches | `comp.setSwitch {switch: hideShy|motionBlur|frameBlending|draft3d, value}` |
 | Read it | `get_comp {comp}` (layers top to bottom with ids, timing, switches, parent, matte) |
-| Trim to the work area, crop to a region | `comp.trimToWorkArea`, `comp.cropToRegionOfInterest`, `comp.cropToLayerBounds {layers}` |
+| Trim to the work area | `comp.trimToWorkArea` |
 
 A composition background colour is not rendered into transparent formats; use a solid as the bottom layer when the background must be in the file.
 
@@ -44,12 +44,11 @@ All return `{"layer": id}` and land above the selected layer (or on top).
 | --- | --- |
 | Stacking order | `layer.arrange {layers, to: front|forward|backward|back}` or `{layers, above: layer}` |
 | In, out and start | `layer.timing {layers, in, out, start}`; `{layers, delta}` shifts by seconds |
-| Slide footage inside its bar | `layer.slip {layers, delta}` |
 | One after another | `layer.sequence {layers (in order), overlap, duration, transition: off|dissolveFront|crossDissolve}` |
 | Speed | `layer.timeStretch {layers, percent}` (200 is half speed), `layer.timeReverse {layers}` |
 | Rename | `layer.rename {layer, name}` |
 | Align or distribute in the frame | `layer.align {edge: left|hcenter|right|top|vcenter|bottom, to: composition|selection, layers}`, `layer.distribute {mode, layers}` |
-| Centre, fit, flip | `layer.transform {layers, op: center|fit|fitWidth|fitHeight|flipH|flipV|reset}`, `layer.centerAnchor {layers}` |
+| Centre, fit, flip | `set_property` on `transform/position` (the composition centre), `transform/scale` (fit is the composition size over the layer size; a negative x or y flips) and `transform/anchor` |
 
 ## Selection-based edits
 
@@ -69,7 +68,7 @@ All return `{"layer": id}` and land above the selected layer (or on top).
 - **Precompose**: `layer.precompose {layers, name, mode: move|leave}` returns `{comp, layer}`: the new composition and the layer that now holds it.
 - **Switches**: `layer.setSwitch {layers, switch, value}` with `video` (visible), `audio`, `solo`, `lock`, `shy`, `collapse` (continuous rasterization for vector layers), `quality`, `fx`, `frameBlend`, `motionBlur`, `adjustment`, `threeD`, `guide`, `preserveTransparency`.
 - **Solid settings**: `layer.settings {layer, name, color, width, height}` changes a solid's colour or size.
-- **Labels and comments**: `edit.label {label: Red|Yellow|Aqua|..., layers}`, `layer.setComment {layers, comment}`.
+- **Labels and comments**: `edit.label {label: Red|Yellow|Aqua|..., layers}`; `project.setComment {items, comment}` on project items.
 
 ## Check
 

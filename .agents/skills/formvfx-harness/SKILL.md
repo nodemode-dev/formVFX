@@ -1,6 +1,6 @@
 ---
 name: formvfx-harness
-description: Drive formvfx, the motion graphics and visual effects app (an After Effects alternative), through its formvfx MCP server or the formvfx command line. Use whenever the person wants a composition, animation, title, lower third, logo reveal, kinetic type, transition, shape animation, 3D scene, camera move, light, effect, glow, blur, colour grade, keying, mask, rotoscoping, paint, puppet pins, tracking, stabilizing, expression, script, Essential Graphics template or a render to MP4, ProRes, GIF, PNG sequence, EXR or Lottie made or changed in formvfx; when formvfx tools such as status, batch, set_keyframes, apply_effect, render_frame or contact_sheet are available; when the person describes an After Effects technique and wants it done here; or when a formvfx tool fails and the next step is unclear. Not for editing formvfx's own source code (use formvfx-skillset for that).
+description: Drive formvfx, the motion graphics and visual effects app (an After Effects alternative), through its formvfx MCP server or the formvfx command line. Use whenever the person wants a composition, animation, title, lower third, logo reveal, kinetic type, transition, shape animation, 3D scene, camera move, light, effect, glow, blur, colour grade, keying, mask, rotoscoping, paint, puppet pins, tracking, stabilizing, expression, script, ScriptUI tool or a render to MP4, ProRes, GIF, PNG sequence, EXR or Lottie made or changed in formvfx; when formvfx tools such as status, batch, set_keyframes, apply_effect, render_frame or contact_sheet are available; when the person describes an After Effects technique and wants it done here; or when a formvfx tool fails and the next step is unclear. Not for editing formvfx's own source code (use formvfx-skillset for that).
 ---
 
 # formvfx harness
@@ -49,7 +49,7 @@ Load the sub-skill for the part of the job in front of you. For a whole piece (a
 | Masks, feathering, Roto Brush, paint strokes, puppet pins, Content-Aware Fill | `sub-skills/masks-roto-paint/SUB-SKILL.md` |
 | 3D layers, cameras, lights, shadows, materials, primitives, 3D models, views | `sub-skills/camera-lights-3d/SUB-SKILL.md` |
 | Point tracking, stabilizing, the 3D camera tracker, mask tracking, face tracking | `sub-skills/tracking-and-stabilizing/SUB-SKILL.md` |
-| Expressions, the expression language, scripts, Essential Graphics templates | `sub-skills/expressions-and-scripting/SUB-SKILL.md` |
+| Expressions, the expression language, control rigs, scripts and ScriptUI windows | `sub-skills/expressions-and-scripting/SUB-SKILL.md` |
 | Rendering movies, image sequences, frames, GIF, Lottie, the Render Queue, saving projects | `sub-skills/render-and-export/SUB-SKILL.md` |
 | Checking work: frames, contact sheets, property reads, expression errors, sanity checks | `sub-skills/verification/SUB-SKILL.md` |
 | The formvfx window itself: panels, workspaces, tools, zoom, what the person sees | `sub-skills/ui-automation/SUB-SKILL.md` |

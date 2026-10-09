@@ -36,10 +36,10 @@ The facts below were checked against the running engine. They are the things tha
 | Command family | Typical result |
 | --- | --- |
 | `comp.new` | `{"comp": id}` |
-| `layer.new*`, `layer.addItem` | `{"layer": id}` |
-| `effect.apply` | `{"effect": "ec.blur.gaussian", "effects": [uid], "paths": ["effects/#1"]}` |
-| `layer.addShapeItem` | `{"uid": n, "path": "contents/trim"}` |
-| `layer.addTextAnimator` | `{"animator": uid}` |
+| `layer.new*`, `layer.addItem` | `{"layer": id, "index": n}` |
+| `effect.apply` | `{"effect": "fx.blur.gaussian", "name": "Gaussian Blur", "applied": [{"layer": id, "index": n, "uid": uid}]}` |
+| `layer.addShapeItem` | `{"layer": id, "uid": n}` |
+| `layer.addTextAnimator` | `{"layer": id, "index": n, "animator": uid}` |
 | `prop.set` | the value now stored |
 | `batch` | `{"steps": n, "results": [each step's result]}` |
 | `import_files` | `{"items": [ids], "errors": [], "warnings": []}` |

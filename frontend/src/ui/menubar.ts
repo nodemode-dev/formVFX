@@ -3,9 +3,6 @@ import type { MenuNode } from '../engine/types';
 import { el, setClass } from './dom';
 import { closeAllMenus, PopupMenu, type PopupEntry } from './popup';
 
-const HIDDEN = new Set(['help.discord', 'help.website', 'help.appPage', 'help.github', 'help.sibling', 'help.onlineTutorials', 'help.reportIssue']);
-const HIDDEN_SUBMENUS = new Set<string>();
-
 export interface MenuExtras {
   before?: Record<string, PopupEntry[]>;
   after?: Record<string, PopupEntry[]>;
@@ -67,12 +64,10 @@ export class MenuBar {
         continue;
       }
       if (n.type === 'submenu') {
-        if (HIDDEN_SUBMENUS.has(n.label || '')) continue;
         const kids = this.toEntries(n.children || []);
         if (kids.some((k) => k !== '-')) out.push({ label: n.label || '', children: kids });
         continue;
       }
-      if (n.command && HIDDEN.has(n.command)) continue;
       const cmd = n.command || '';
       const params = n.params ?? null;
       out.push({

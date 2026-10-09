@@ -1,6 +1,6 @@
 # formvfx
 
-Motion graphics and visual effects in the form family, beside formvis (images) and formcut (video). Compositions, layers, keyframes and the Graph Editor, 307 effects, text and shape animation, masks, Roto Brush, paint, puppet pins, 3D cameras and lights, tracking, expressions, scripting and a Render Queue, on macOS, Windows, Linux and in the browser.
+Motion graphics and visual effects in the form family, beside formvis (images) and formcut (video). Compositions, layers, keyframes and the Graph Editor, 289 effects, text and shape animation, masks, Roto Brush, paint, puppet pins, 3D cameras and lights, tracking, expressions and a Render Queue, on macOS, Windows, Linux and in the browser.
 
 Every action in formvfx is a command with an id, so people and agents use the same tools: Claude Code, Codex and Cursor drive formvfx from its embedded terminal through MCP, with a skill that teaches them the workflow.
 
@@ -8,7 +8,7 @@ Every action in formvfx is a command with an id, so people and agents use the sa
 
 - [Getting Started](Getting-Started) · install, run, the first composition
 - [Agents](Agents) · MCP, the Terminal panel, the command line, permissions
-- [Architecture](Architecture) · the compositing core, the engine service, the interface
+- [Architecture](Architecture) · the compositing engine, the engine service, the interface
 - [Desktop](Desktop) · the Tauri app, the frozen engine, bundles
 - [Releasing](Releasing) · versions, tags, CI
 - [Parity](Parity) · formvfx against After Effects, row by row

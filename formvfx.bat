@@ -33,7 +33,7 @@ if exist backend\venv\Scripts\python.exe ( backend\venv\Scripts\python.exe %* ) 
 exit /b %errorlevel%
 :usage
 echo formvfx.bat [command]
-echo   boot ^| install [--dev] ^| install-native [--dev] [--cpu] ^| install-desktop ^| backend ^| frontend
+echo   boot ^| install [--dev] ^| install-native [--dev] ^| install-desktop ^| backend ^| frontend
 echo   build ^| serve ^| freeze ^| desktop dev ^| desktop build ^| doctor
 echo   exec ID [JSON] ^| batch JSON ^| commands [FILTER] ^| describe ID ^| state ^| frame OUT.png ^| render
 echo   mcp ^| agents install^|sync^|status ^| counts ^| presets ^| clean [--all] ^| help

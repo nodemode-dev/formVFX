@@ -24,7 +24,6 @@ BACKEND = ROOT / "backend"
 SKILL = ROOT / ".claude" / "skills" / "formvfx-harness"
 MIRROR = ROOT / ".agents" / "skills" / "formvfx-harness"
 GENERATED = ("commands.md", "effects.md", "property-paths.md", "tools.md")
-HIDDEN = {"help.discord", "help.website", "help.appPage", "help.github", "help.sibling", "help.onlineTutorials", "help.reportIssue"}
 ORDER = ["file", "edit", "project", "item", "footage", "comp", "layer", "prop", "keys", "anim", "time", "markers", "effect", "mask", "path",
          "paths", "shape", "text", "camera", "light", "material", "track", "warp", "roto", "paint", "puppet", "liquify", "contentFill", "face",
          "essential", "expr", "script", "scriptui", "render", "renderQueue", "playback", "view", "window", "editor", "scopes", "cache", "jobs",
@@ -47,12 +46,8 @@ def ensure_core() -> None:
         if py and Path(sys.prefix).resolve() != (BACKEND / "venv").resolve() and not os.environ.get("FORMVFX_AGENTS_REEXEC"):
             os.environ["FORMVFX_AGENTS_REEXEC"] = "1"
             os.execv(str(py), [str(py), __file__, *sys.argv[1:]])
-        sys.exit("agents: the native core is not built; run ./formvfx install first")
+        sys.exit("agents: the compositing engine is not built; run ./formvfx install first")
     sys.path.insert(0, str(BACKEND))
-
-
-def brand(s: str) -> str:
-    return s
 
 
 class Engine:
@@ -68,7 +63,7 @@ class Engine:
 
 
 def commands_md(eng: Engine) -> str:
-    cmds = [c for c in eng.x("command.list") if c["id"] not in HIDDEN]
+    cmds = eng.x("command.list")
     groups: dict[str, list] = {}
     for c in cmds:
         groups.setdefault(c["id"].split(".")[0], []).append(c)
@@ -85,9 +80,9 @@ def commands_md(eng: Engine) -> str:
         for c in groups[n]:
             menu = " > ".join(c.get("menu") or [])
             keys = f" · {c['shortcut']}" if c.get("shortcut") else ""
-            where = f" · {brand(menu)}" if menu else ""
-            out.append(f"- `{c['id']}` {brand(c['label']).rstrip('.')}{where}{keys}")
-            params = brand(c.get("params") or "{}").strip()
+            where = f" · {menu}" if menu else ""
+            out.append(f"- `{c['id']}` {c['label'].rstrip('.')}{where}{keys}")
+            params = (c.get("params") or "{}").strip()
             if params and params != "{}":
                 out.append(f"  `{params}`")
         out.append("")
@@ -130,7 +125,7 @@ def effects_md(eng: Engine) -> str:
         out += [f"## {cat}", ""]
         for f in sorted(cats[cat], key=lambda f: f["name"].lower()):
             flags = " · GPU" if f.get("gpu") else ""
-            out.append(f"- **{brand(f['name'])}** `{f['id']}`{flags}")
+            out.append(f"- **{f['name']}** `{f['id']}`{flags}")
             ps = [f"`{p['id']}` = {_default(p.get('default'))} ({_ui(p)})" for p in f.get("params", []) if p.get("id")]
             if ps:
                 out.append("  " + "; ".join(ps))
@@ -155,12 +150,12 @@ def _walk(node: dict, out: list) -> None:
     for c in node.get("children", []):
         if "children" in c:
             if c.get("path"):
-                out.append(f"- `{c['path']}` · {brand(c.get('name', ''))} (group)")
+                out.append(f"- `{c['path']}` · {c.get('name', '')} (group)")
             _walk(c, out)
         elif c.get("path"):
             v = c.get("value")
             shown = _default(v) if not isinstance(v, (dict, str)) or isinstance(v, str) and len(v) < 40 else "..."
-            out.append(f"- `{c['path']}` · {brand(c.get('name', ''))} · {c.get('type', '')} · {shown}")
+            out.append(f"- `{c['path']}` · {c.get('name', '')} · {c.get('type', '')} · {shown}")
 
 
 def paths_md(eng: Engine) -> str:
@@ -231,7 +226,7 @@ def generate() -> dict[str, str]:
     eng = Engine()
     docs = {"commands.md": commands_md(eng), "effects.md": effects_md(eng), "tools.md": tools_md()}
     docs["property-paths.md"] = paths_md(Engine())
-    return {k: re.sub(r"<([A-Za-z#][^<>\n]{0,40})>", r"[\1]", brand(v).replace(" — ", " · ").replace("—", "·")) for k, v in docs.items()}
+    return {k: re.sub(r"<([A-Za-z#][^<>\n]{0,40})>", r"[\1]", v.replace(" — ", " · ").replace("—", "·")) for k, v in docs.items()}
 
 
 def _files(folder: Path) -> dict:

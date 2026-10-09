@@ -543,9 +543,9 @@ export class TimelinePanel implements Panel {
       '-',
       cmd('3D Layer', 'layer.setSwitch', { switch: 'threeD' }),
       cmd('Auto-Orient...', 'layer.autoOrient'),
-      cmd('Convert to Editable Text', 'layer.convertToEditableText'),
-      cmd('Create Shapes from Text', 'layer.createShapesFromText'),
-      cmd('Create Masks from Text', 'layer.createMasksFromText'),
+      cmd('Convert to Editable Text', 'layer.create', { op: 'editableText' }),
+      cmd('Create Shapes from Text', 'layer.create', { op: 'shapesFromText' }),
+      cmd('Create Masks from Text', 'layer.create', { op: 'masksFromText' }),
       '-',
       cmd('Reveal Layer Source in Project', 'layer.revealSource'),
     ]);

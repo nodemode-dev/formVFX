@@ -27,4 +27,3 @@ formvfx is licensed under the Apache License 2.0 (`LICENSE`). It includes or dep
 | FastAPI, Starlette, Uvicorn, python-multipart | the engine service | MIT, BSD-3-Clause |
 | pywinpty (Windows only) | the terminal on Windows | MIT |
 | Vite, TypeScript, Tauri API and plugins | build and desktop | MIT, Apache-2.0 |
-

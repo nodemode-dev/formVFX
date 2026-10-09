@@ -17,7 +17,7 @@ You are running inside formvfx {{VERSION}}, an After Effects alternative, in its
 
 ## Facts that save time
 
-- Every menu item, button and drag in formvfx is a command with an id (about 655). `list_commands` filters them; `describe_command` gives the JSON Schema.
+- Every menu item, button and drag in formvfx is a command with an id (about 480). `list_commands` filters them; `describe_command` gives the JSON Schema.
 - Layers are addressed by id, `#n` (1 is the top layer) or name; compositions by id or name. Times are seconds in composition time unless a tool says layer time.
 - Properties are paths in the layer's tree: `transform/position`, `transform/scale`, `transform/opacity`, `effects/#1/blurriness`, `masks/#1/feather`, `text/sourceText`. `get_layer` lists them with values.
 - Colours are `#rrggbb` or `[r, g, b]` from 0 to 1. Positions are composition pixels.

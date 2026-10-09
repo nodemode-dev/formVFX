@@ -6,11 +6,11 @@ Motion graphics and visual effects (an After Effects alternative) in the form fa
 
 **Making motion graphics with formvfx** (a title, an animation, an effect, a render): use the `formvfx` MCP server (`.mcp.json` runs `./formvfx mcp`, which starts the engine when needed) with the `formvfx-harness` skill in `.claude/skills/formvfx-harness`. Start with `status`, build with `batch`, look with `render_frame` and `contact_sheet`. The first change asks the person once in the formvfx window; agents started from formvfx's Terminal panel never ask.
 
-**Changing formvfx's code**: route through `.claude/skills/formvfx-skillset/SKILL.md` (subsystem map, rules, specialists) and read the living logs `frontend/HASHOUT_LOG.md` and `backend/HASHOUT_LOG.md` before editing.
+**Changing formvfx's code**: route through `.claude/skills/formvfx-skillset/SKILL.md` (subsystem map, rules, specialists) and read the living logs `frontend/HASHOUT_LOG.md`, `backend/HASHOUT_LOG.md` and `native/fvx-core/HASHOUT_LOG.md` before editing.
 
 ## Layout
 
-- `native/fvx-core/` · the compositing engine (`fvx_core`), written for formvfx in Rust: project model, commands, undo, renderer, effects, gestures, events, UI state, overlays, graph samples and frame, audio and thumbnail jobs, exposed to Python with PyO3. `.fvxproj` is the project file. Build with `./formvfx install-native`; read `native/fvx-core/HASHOUT_LOG.md` before changing it.
+- `native/fvx-core/` · the compositing engine (`fvx_core`), written for formvfx in Rust: project model, commands, undo, renderer (CPU and GPU), effects, colour management, tracking, roto, formats and the Render Queue, exposed to Python with PyO3. `.fvxproj` is the project file; `.ecproj` and `.ecprojx` projects from earlier formvfx releases open as imports. Build with `./formvfx install-native`; read `native/fvx-core/HASHOUT_LOG.md` and the `engine-core` specialist before changing it.
 - `backend/app/` · the engine service: `engine/` (the engine thread, the event bus, JSON-RPC), `routers/` (live socket, viewer frames, files, terminal, MCP, agents), `agent/` (MCP tools, consent, workspace, CLI).
 - `frontend/src/` · the interface: `engine/` (client, store, frames, playback; no DOM), `ui/` (dock, menus, palette, widgets, formvis design files), `panels/`, `app/`.
 - `setup/` · install, boot, build, freeze and desktop scripts behind the `./formvfx` dispatcher; `setup/agents.py` regenerates the harness skill's references from the engine.

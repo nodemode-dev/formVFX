@@ -14,7 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 AREAS = [
-    ("Compositing core (Rust, PyO3)", ["native/fvx-core/src"], (".rs",)),
+    ("Compositing engine (Rust, fvx-core)", ["native/fvx-core/src"], (".rs",)),
     ("Engine service (Python)", ["backend/app", "backend/formvfx_engine.py"], (".py",)),
     ("Interface (TypeScript)", ["frontend/src"], (".ts",)),
     ("Interface styles (CSS)", ["frontend/src/styles"], (".css",)),

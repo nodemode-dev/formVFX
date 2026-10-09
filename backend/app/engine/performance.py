@@ -79,7 +79,7 @@ def gpu_status(probe: dict | None, attached: dict | None) -> dict:
     if not gpu_allowed():
         return {"enabled": False, "adapter": None, "reason": "FORMVFX_GPU turns the GPU off"}
     if probe is not None and not probe.get("ok"):
-        return {"enabled": False, "adapter": None, "reason": probe.get("error") or ("no usable GPU adapter" if probe.get("built", True) else "the core was built without the GPU compositor")}
+        return {"enabled": False, "adapter": None, "reason": probe.get("error") or ("no usable GPU adapter" if probe.get("built", True) else "the engine was built without the GPU compositor")}
     return {"enabled": bool(attached and attached.get("enabled")), "adapter": (attached or {}).get("adapter") or (probe or {}).get("adapter"), "reason": None}
 
 

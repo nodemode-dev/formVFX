@@ -6,7 +6,7 @@ The `formvfx` MCP server has 27 tools. `./formvfx mcp` serves them over stdio (i
 
 ## Contents
 
-`status` `list_commands` `describe_command` `execute` `batch` `get_comp` `get_layer` `get_property` `set_property` `set_keyframes` `apply_effect` `list_effects` `text_preset` `shapes_from_svg` `planar_track` `object_matte` `render_frame` `contact_sheet` `render` `dynamic_link` `project` `import_files` `history` `run_script` `ui` `wait` `guide`
+`status` `list_commands` `describe_command` `execute` `batch` `get_comp` `get_layer` `get_property` `set_property` `set_keyframes` `apply_effect` `list_effects` `text_preset` `shapes_from_svg` `planar_track` `object_matte` `render_frame` `contact_sheet` `render` `dynamic_link` `project` `import_files` `run_script` `history` `ui` `wait` `guide`
 
 ## status
 
@@ -102,7 +102,7 @@ Animates a property: one keyframe per entry at composition time (seconds) with a
 
 ## apply_effect
 
-Adds an effect (id like ec.blur.gaussian or its After Effects name like Gaussian Blur) to a layer and sets its parameters by id ({"blurriness": 20}). Returns the effect's index for paths effects/#n/....
+Adds an effect (id like fx.blur.gaussian or its After Effects name like Gaussian Blur) to a layer and sets its parameters by id ({"blurriness": 20}). Returns the effect's index for paths effects/#n/....
 
 - `layer`: id or name; required; Layer id, `#n` (1 = top) or name.
 - `effect`: string; required
@@ -111,7 +111,7 @@ Adds an effect (id like ec.blur.gaussian or its After Effects name like Gaussian
 
 ## list_effects
 
-The effects (307) by category with ids; with detail, their parameters (id, name, default, control). Filter by name, id or category.
+The effects by category with ids; with detail, their parameters (id, name, default, control). Filter by name, id or category.
 
 - `query`: string
 - `category`: string
@@ -206,7 +206,7 @@ Renders a composition to a file through the Render Queue and waits for it: forma
 Dynamic Link: another app (formcut, an editor, a script) uses a composition as a live clip with no render. export writes a .fvxlink descriptor beside the saved project (or at path) naming the project, the comp and the frame and audio URLs; the editor fetches GET /api/link/frame.png?project=&comp=&time= and /api/link/audio with the x-formvfx-local: 1 header, so every saved change shows up on its next frame (the open project serves its unsaved state too). info reads a comp's size, rate and duration from any saved project file, and frame renders one of its frames, both without opening that project in the window.
 
 - `action`: string (export | info | frame); required
-- `project`: string; absolute project path, .ecproj or .fvxproj (default the open project)
+- `project`: string; absolute project path, .fvxproj or .ecproj (default the open project)
 - `comp`: id or name; Composition id or name; omit for the active composition.
 - `path`: string
 - `time`: number; Composition time in seconds; omit for the current time.
@@ -214,7 +214,7 @@ Dynamic Link: another app (formcut, an editor, a script) uses a composition as a
 
 ## project
 
-Project files: new, open (path), save (path for the first save), saveAs (path), close. formvfx projects are .fvxproj JSON; .ecproj projects from earlier releases open as imports.
+Project files: new, open (path), save (path for the first save), saveAs (path), close. formvfx projects are .fvxproj JSON; projects saved as .ecproj by earlier formvfx releases open as imports.
 
 - `action`: string (new | open | save | saveAs | close | demo); required
 - `path`: string
@@ -228,6 +228,12 @@ Imports footage, images, audio, PSD, SVG, PDF, Lottie or 3D models (absolute pat
 - `paths`: array; required
 - `addToComp`: boolean; default false
 
+## run_script
+
+Runs an After Effects style JavaScript program against the project (app.project, items.addComp, CompItem, layers.addSolid/addText/addNull/addShape, layer.property('Transform').property('Position').setValueAtTime(t, v), effects through property('Effects').addProperty, File, app.settings, ScriptUI windows). The whole script is one undo step. Returns {ok, result, output (writeLn, alert and $.writeln), error: {message, line}}.
+
+- `code`: string; required
+
 ## history
 
 Undo, redo, list the history, or go to a step.
@@ -235,12 +241,6 @@ Undo, redo, list the history, or go to a step.
 - `action`: string (undo | redo | list | goto); required
 - `steps`: integer; default 1
 - `index`: integer
-
-## run_script
-
-Runs an ExtendScript-style JavaScript program against the project (app.project, CompItem, layers, properties, as in After Effects scripting). Returns its result and console output.
-
-- `code`: string; required
 
 ## ui
 
@@ -290,7 +290,7 @@ layer.newShape {kind: rect|rounded|ellipse|polygon|star, size, position, fill, s
 
 ### effects
 
-list_effects {query} finds effects (307: blur, color correction, distort, generate, keying, matte, noise, perspective, simulation, stylize, time, transition, audio...). apply_effect {layer, effect, params: {paramId: value}} adds and sets one; get_layer shows effects/#n/... paths. Common ids: ec.blur.gaussian (Gaussian Blur: blurriness), ec.stylize.glow (Glow), ec.generate.fill (Fill: color), ec.color.curves, ec.keying.keylight. Layer styles: execute layer.style.add {layers, style: dropShadow|outerGlow|stroke|bevelEmboss...}.
+list_effects {query} finds effects (blur, color correction, distort, generate, keying, matte, noise, perspective, simulation, stylize, time, transition, audio...). apply_effect {layer, effect, params: {paramId: value}} adds and sets one; get_layer shows effects/#n/... paths. Common ids: fx.blur.gaussian (Gaussian Blur: blurriness), fx.stylize.glow (Glow), fx.generate.fill (Fill: color), fx.color.curves, fx.keying.keylight. Layer styles: execute layer.style.add {layers, style: dropShadow|outerGlow|stroke|bevelEmboss...}.
 
 ### masks
 
@@ -302,7 +302,7 @@ layer.setSwitch {layers, switch: threeD, value: true} makes a layer 3D (transfor
 
 ### expressions
 
-prop.setExpression {layer, path, expression}. The language is JavaScript with the After Effects object model: time, value, wiggle(freq, amp), loopOut('cycle'), linear(t, a, b, c, d), ease(), thisComp.layer('Name').transform.position, effect('Slider Control')('Slider'). Errors: execute expr.errors.
+prop.setExpression {layer, path, expression}. The language is JavaScript with the After Effects object model: time, value, wiggle(freq, amp), loopOut('cycle'), linear(t, a, b, c, d), ease(), thisComp.layer('Name').transform.position, effect('Slider Control')('Slider'). Errors: execute expr.errors. Scripts: run_script {code} runs After Effects scripting JavaScript (app.project, comp.layers.addText, property(...).setValueAtTime) as one undo step, for loops and data.
 
 ### tracking
 

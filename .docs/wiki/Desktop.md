@@ -17,9 +17,9 @@ On Debian or Ubuntu the shell needs `libwebkit2gtk-4.1-dev build-essential libxd
 
 1. The splash window appears.
 2. The shell starts `formvfx-engine` with port 0; the engine picks a free port, prints its URL and serves the built interface from inside the binary.
-3. The shell opens the main window on that URL and closes the splash. Opening an `.ecproj` file passes it to the engine, which opens it.
+3. The shell opens the main window on that URL and closes the splash. Opening an `.fvxproj` file (or an `.ecproj` from an earlier release) passes it to the engine, which opens it.
 4. Quitting the app stops the engine.
 
 ## The frozen engine
 
-`./formvfx freeze` builds `src-tauri/binaries/formvfx-engine-[target triple]` with PyInstaller: the engine service, the compositing core, the built interface, the agent templates and the skills, in one file. It runs `--selfcheck` after building. Freeze a release build of the core; the development build carries about a gigabyte of debug information.
+`./formvfx freeze` builds `src-tauri/binaries/formvfx-engine-[target triple]` with PyInstaller: the engine service, the compositing engine, the built interface, the agent templates and the skills, in one file. It runs `--selfcheck` after building. Freeze a release build of the engine; the development build carries about a gigabyte of debug information.

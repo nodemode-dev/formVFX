@@ -1,7 +1,7 @@
 """Writes presets/text-animators.json, formvfx's text animation preset library.
 
 Every preset is data in the text animator preset format the engine applies in one undo step
-(native/fvx-core/src/engine/cmd/textanim.rs): animators with properties, keys (seconds from the
+(`apply_text_preset` in native/fvx-core): animators with properties, keys (seconds from the
 current time), selectors (range, wiggly, expression) and their settings. Run
 `./formvfx presets` after changing this file.
 """

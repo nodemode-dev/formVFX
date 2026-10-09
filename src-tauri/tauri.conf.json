@@ -38,7 +38,8 @@
       "entitlements": "entitlements.plist"
     },
     "fileAssociations": [
-      { "ext": ["ecproj"], "name": "formvfx Project", "description": "formvfx motion graphics project", "role": "Editor", "mimeType": "application/x-formvfx" }
+      { "ext": ["fvxproj"], "name": "formvfx Project", "description": "formvfx motion graphics project", "role": "Editor", "mimeType": "application/x-formvfx" },
+      { "ext": ["ecproj"], "name": "formvfx Project (earlier releases)", "description": "formvfx project from an earlier release, opened as an import", "role": "Viewer", "mimeType": "application/x-formvfx-legacy" }
     ],
     "createUpdaterArtifacts": false
   },

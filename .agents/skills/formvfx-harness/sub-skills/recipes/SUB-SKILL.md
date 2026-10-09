@@ -85,8 +85,10 @@ The imported layer is named after its file; use that name as the matted layer.
 ## Write-on line
 
 ```json
-["execute", {"command": "shape.newPath", "params": {"vertices": [[100, 500], [600, 300], [1100, 500]], "closed": false, "fill": false, "stroke": "#ffffff", "strokeWidth": 8, "name": "Line"}}]
-["execute", {"command": "layer.addShapeItem", "params": {"layer": "Line", "kind": "trim"}}]
+["batch", {"label": "Write-on line", "steps": [
+  {"command": "shape.newPath", "params": {"vertices": [[100, 500], [600, 300], [1100, 500]], "closed": false, "fill": false, "stroke": "#ffffff", "strokeWidth": 8}},
+  {"command": "layer.rename", "params": {"layer": "$1.layer", "name": "Line"}},
+  {"command": "layer.addShapeItem", "params": {"layer": "$1.layer", "kind": "trim"}}]}]
 ["set_keyframes", {"layer": "Line", "path": "contents/trim/end", "keys": [{"time": 0, "value": 0, "ease": "easyEaseOut"}, {"time": 1, "value": 100, "ease": "easyEase"}]}]
 ```
 

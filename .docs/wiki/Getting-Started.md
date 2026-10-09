@@ -7,13 +7,13 @@ Node 20.19+ or 22.12+, Python 3.12+, Rust 1.95+ (`https://rustup.rs`). `./formvf
 ## Install and run
 
 ```bash
-./formvfx install    # engine venv, the Rust compositing core, interface packages
+./formvfx install    # engine venv, the Rust compositing engine, interface packages
 ./formvfx            # engine on 127.0.0.1:8230, interface on http://localhost:5230
 ```
 
 The first install compiles the compositing engine (`native/fvx-core`) in release mode and takes a few minutes. `./formvfx install-native --dev` rebuilds it quickly while developing.
 
-Projects save as `.fvxproj`, and `.ecproj` projects from earlier releases open as imports. Install FFmpeg for video and audio footage and movie renders.
+Projects save as `.fvxproj`; `.ecproj` projects from earlier formvfx releases open as imports. Install FFmpeg for video and audio footage and movie renders.
 
 ## First composition
 

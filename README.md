@@ -1,6 +1,6 @@
 # formvfx
 
-Motion graphics and visual effects for the desktop and the browser, in the form family beside formvis and formcut. Compositions, layers, keyframes and the Graph Editor, 307 effects, text animators with 177 presets, shape layers and SVG paste, masks, Roto Brush, paint, puppet pins, 3D cameras and lights, tracking and stabilizing, expressions, scripting, Essential Graphics and a Render Queue, with an agent harness so Claude Code, Codex and Cursor can drive every tool from formvfx's embedded terminal.
+Motion graphics and visual effects for the desktop and the browser, in the form family beside formvis and formcut. Compositions, layers, keyframes and the Graph Editor, 289 effects, text animators with 169 presets, shape layers and SVG paste, masks, Roto Brush, paint, puppet pins, 3D cameras and lights, tracking and stabilizing, expressions, colour management and a Render Queue, with an agent harness so Claude Code, Codex and Cursor can drive every tool from formvfx's embedded terminal.
 
 Version 0.21.0 · Apache-2.0 · compositing engine: formvfx's own, in Rust (`native/fvx-core`)
 
@@ -16,6 +16,10 @@ Needs Node 20.19+ or 22.12+, Python 3.12+, and Rust 1.95+ (`https://rustup.rs`).
 The GPU compositor is part of the default build and is used when the engine finds a working adapter (Settings > Memory & CPU shows which; `FORMVFX_GPU=0` keeps everything on the CPU). Windows: `formvfx.bat install`, then `formvfx.bat`. One process serving the built interface: `./formvfx serve` (http://127.0.0.1:8230).
 
 Open http://localhost:5230, choose **Open the demo project** on the start screen, and work as in After Effects: Project, Effect Controls, Composition viewer, Timeline, Effects and Presets, Preview, Character, Render Queue. Cmd or Ctrl+K searches every command and effect.
+
+## The engine
+
+`native/fvx-core` is formvfx's compositing engine, written for formvfx in Rust and loaded by the engine service as the `fvx_core` Python extension; `./formvfx install-native` rebuilds it. It saves projects as `.fvxproj` and opens `.ecproj` and `.ecprojx` projects from earlier formvfx releases as imports (they are never written). It renders on the GPU through wgpu or on the CPU, whichever is faster for each composition, reads footage through FFmpeg when FFmpeg is installed and stills, image sequences, OpenEXR, Photoshop (as footage, one layer or a composition), PDF and Illustrator pages and Lottie on its own, and covers compositions, precomps, solids, shapes, text with character styles, OpenType features and variable fonts, text animators with range, wiggly and expression selectors, text on a path and per-character 3D, the 169 text animation presets, shape layers with every After Effects operator and tapered, wavy and dashed strokes, SVG import and paste as shapes, shapes and masks from text, nulls, cameras with depth of field, lights with soft shadows, glTF, GLB and OBJ models and 3D primitives, Classic and Advanced 3D, environment lights and the 3D views, point, planar, mask and face tracking, the Warp Stabilizer and the 3D Camera Tracker, Roto Brush and Object Matte (with formvfx's own MobileSAM runtime), paint, puppet pins, Content-Aware Fill, masks with variable feather and Smart Mask Interpolation, Pixel Motion frame blending, track mattes, 39 blend modes, layer styles, keyframes with eases, roving keys and the Graph Editor, the Keyframe Assistant, Wiggler, Smoother and Motion Sketch, time stretch, time remapping and freeze frames, markers with chapters and cue points, Responsive Design: Time, Collect Files and the other dependency tools, animation presets, snapshots and a locked viewer, expressions on its own interpreter, 297 effects (with the Expression Controls) including keying, Lumetri Color, the OCIO transforms, the CC set, particles and simulations, immersive video and the 13 audio effects, Liquify strokes, 8, 16 and 32-bit projects with colour management, OCIO and ACES (its own config reader and transforms), a disk cache, proxies, the Render Queue with Render Settings, several output modules, templates, field rendering and pulldown, multi-frame rendering and HDR output to H.264, HEVC, AV1, ProRes 4444, WebM, GIF, PNG, TIFF, EXR, WAV and AIFF, layered Photoshop and EXR frames, and Lottie export; [`docs/PARITY.md`](docs/PARITY.md) grades it and lists what it does not do yet.
 
 ## Agents
 
@@ -39,7 +43,7 @@ Tagging `vX.Y.Z` builds macOS, Linux and Windows bundles in GitHub Actions and o
 | Command | Does |
 | --- | --- |
 | `./formvfx` / `boot` | engine and interface for development |
-| `install`, `install-native` | everything, or only the Rust engine (`--dev`; `--cpu` leaves out the GPU compositor) |
+| `install`, `install-native` | everything, or only the Rust compositing engine (`--dev` for a quicker debug build) |
 | `serve` | the built interface from the engine |
 | `install-desktop`, `freeze`, `desktop dev`, `desktop build` | the desktop app |
 | `doctor` | checks the toolchain and ports |
@@ -55,19 +59,19 @@ Tagging `vX.Y.Z` builds macOS, Linux and Windows bundles in GitHub Actions and o
 
 ## Parity
 
-[`docs/PARITY.md`](docs/PARITY.md) grades formvfx against After Effects 26.5 on 72 traced capability rows: 64 Full, 6 Partial, 2 None, a score of 93%. It lists where formvfx trails, in priority order, and where it leads. The wiki (`.docs/wiki`) covers getting started, agents, the architecture, the desktop app and releasing.
+[`docs/PARITY.md`](docs/PARITY.md) grades formvfx against After Effects 26.5 on 72 traced capability rows: 60 Full, 6 Partial, 6 None, a score of 63 of 72 (88%). It lists where formvfx trails, in priority order, and where it leads. The wiki (`.docs/wiki`) covers getting started, agents, the architecture, the desktop app and releasing.
 
 ## Code size
 
 | Area | Files | Lines |
 | --- | ---: | ---: |
-| Compositing core (Rust, PyO3) | 142 | 69,371 |
-| Engine service (Python) | 33 | 2,527 |
-| Interface (TypeScript) | 44 | 10,464 |
+| Compositing engine (Rust, fvx-core) | 142 | 69,371 |
+| Engine service (Python) | 33 | 2,518 |
+| Interface (TypeScript) | 44 | 10,452 |
 | Interface styles (CSS) | 8 | 1,781 |
-| Desktop shell (Rust, Tauri) | 1 | 138 |
-| Setup and CLI | 35 | 1,095 |
-| Agent skill (Markdown, hand-written) | 16 | 737 |
-| Total | 279 | 86,113 |
+| Desktop shell (Rust, Tauri) | 1 | 141 |
+| Setup and CLI | 35 | 1,074 |
+| Agent skill (Markdown, hand-written) | 16 | 726 |
+| Total | 279 | 86,063 |
 
 Non-blank lines in tracked files; generated skill references excluded. `./formvfx counts` prints this table.

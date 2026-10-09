@@ -41,15 +41,14 @@ const PICKERS: Record<string, Picker> = {
   'file.import': { key: 'paths', mode: 'open', multiple: true, ext: MEDIA },
   'file.importMultiple': { key: 'paths', mode: 'open', multiple: true, ext: MEDIA },
   'file.open': { key: 'path', mode: 'open', ext: ['fvxproj', 'ecproj', 'ecprojx', 'json'] },
-  'file.save': { key: 'path', mode: 'save', ext: ['ecproj'], name: 'Untitled Project.ecproj', when: (_p, c) => !c.store.state?.path },
-  'file.saveAs': { key: 'path', mode: 'save', ext: ['ecproj'], name: 'Untitled Project.ecproj' },
-  'file.saveCopy': { key: 'path', mode: 'save', ext: ['ecproj'], name: 'Untitled Project copy.ecproj' },
-  'file.saveCopyAsXml': { key: 'path', mode: 'save', ext: ['ecprojx'], name: 'Untitled Project.ecprojx' },
-  'comp.saveFrameAs': { key: 'path', mode: 'save', ext: ['png', 'jpg', 'tif'], name: 'Frame.png' },
+  'file.save': { key: 'path', mode: 'save', ext: ['fvxproj'], name: 'Untitled Project.fvxproj', when: (_p, c) => !c.store.state?.path },
+  'file.saveAs': { key: 'path', mode: 'save', ext: ['fvxproj'], name: 'Untitled Project.fvxproj' },
+  'file.saveCopy': { key: 'path', mode: 'save', ext: ['fvxproj'], name: 'Untitled Project copy.fvxproj' },
+  'comp.saveFrameAs': { key: 'path', mode: 'save', ext: ['png', 'jpg', 'tif', 'exr'], name: 'Frame.png' },
   'comp.saveFrameAsPsd': { key: 'path', mode: 'save', ext: ['psd'], name: 'Frame.psd' },
   'comp.saveFrameAsExr': { key: 'path', mode: 'save', ext: ['exr'], name: 'Frame.exr' },
-  'anim.savePreset': { key: 'path', mode: 'save', ext: ['ecpreset'], name: 'Preset.ecpreset' },
-  'anim.applyPreset': { key: 'path', mode: 'open', ext: ['ecpreset', 'json'] },
+  'anim.savePreset': { key: 'path', mode: 'save', ext: ['fvxpreset'], name: 'Preset.fvxpreset' },
+  'anim.applyPreset': { key: 'path', mode: 'open', ext: ['fvxpreset', 'json'] },
   'view.exportGuides': { key: 'path', mode: 'save', ext: ['json'], name: 'Guides.json' },
   'view.importGuides': { key: 'path', mode: 'open', ext: ['json'] },
   'file.exportLottie': { key: 'path', mode: 'save', ext: ['json', 'lottie'], name: 'Animation.json' },
@@ -64,8 +63,6 @@ const PICKERS: Record<string, Picker> = {
   'file.collectFiles': { key: 'folder', mode: 'folder' },
   'file.watchFolder': { key: 'folder', mode: 'folder', when: (p) => p.stop === undefined },
   'keys.rpfCameraImport': { key: 'path', mode: 'open', ext: ['json', 'csv', 'txt'] },
-  'essential.exportTemplate': { key: 'path', mode: 'save', ext: ['ectemplate'], name: 'Template.ectemplate' },
-  'essential.importTemplate': { key: 'path', mode: 'open', ext: ['ectemplate'] },
   'file.setProxy': { key: 'path', mode: 'open', ext: MEDIA },
   'file.exportTimeline': { key: 'path', mode: 'save', ext: ['xml', 'fcpxml', 'otio', 'edl'], name: 'Timeline.fcpxml' },
 };
@@ -93,8 +90,8 @@ export class Ctx {
   shape = { fill: '#f97316', stroke: '#ffffff', strokeWidth: 0, useFill: true, useStroke: false };
   private effectCache: EffectSpec[] | null = null;
   focusedPanel = 'composition';
-  projectExt = 'ecproj';
-  presetExt = 'ecpreset';
+  projectExt = 'fvxproj';
+  presetExt = 'fvxpreset';
   engineName = 'fvx';
 
   start(): void {
@@ -109,8 +106,8 @@ export class Ctx {
       this.specs.clear();
       for (const r of rows) this.specs.set(r.id, r);
       const info = await this.client.call<{ capabilities?: { projectExtension?: string; presetExtension?: string; engine?: string } }>('engine.info');
-      this.projectExt = info.capabilities?.projectExtension || 'ecproj';
-      this.presetExt = info.capabilities?.presetExtension || 'ecpreset';
+      this.projectExt = info.capabilities?.projectExtension || 'fvxproj';
+      this.presetExt = info.capabilities?.presetExtension || 'fvxpreset';
       this.engineName = info.capabilities?.engine || 'fvx';
     } catch (e) {
       console.warn('[formvfx] command list failed', e);
@@ -150,10 +147,7 @@ export class Ctx {
     if (!command) return undefined;
     const p: Record<string, unknown> = { ...(params || {}) };
     const empty = Object.keys(p).length === 0;
-    const base = PICKERS[command];
-    const ext0 = base?.ext?.[0];
-    const swap = ext0 === 'ecproj' && base?.mode === 'save' ? this.projectExt : ext0 === 'ecpreset' ? this.presetExt : '';
-    const picker = base && swap && swap !== ext0 ? { ...base, ext: base.mode === 'open' ? [swap, ...(base.ext ?? [])] : [swap], name: base.name?.replace(`.${ext0}`, `.${swap}`) } : base;
+    const picker = PICKERS[command];
     if (picker && p[picker.key] === undefined && (!picker.when || picker.when(p, this))) {
       const label = this.specs.get(command)?.label?.replace(/\.\.\.$/, '') || command;
       const got = await pickFiles({ title: label, mode: picker.mode, multiple: picker.multiple, extensions: picker.ext, defaultName: picker.name });

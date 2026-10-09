@@ -23,6 +23,7 @@ import { MenuBar } from '../ui/menubar';
 import { Palette } from '../ui/palette';
 import { contextMenu, type PopupEntry } from '../ui/popup';
 import { Preferences } from '../ui/prefs';
+import { ScriptUIHost, type SuiTree } from '../ui/scriptui';
 import { ShortcutEditor } from '../ui/shortcut-editor';
 import { applyTheme } from '../ui/themes';
 import { toast } from '../ui/toast';
@@ -58,7 +59,6 @@ const COMMAND_PANELS: Array<[string, string, string[], string]> = [
   ['lumetriScopes', 'Lumetri Scopes', ['scopes.', 'view.scopes'], 'Waveform, parade, vectorscope and histogram.'],
   ['createNullsFromPaths', 'Create Nulls From Paths', ['path.'], 'Points follow nulls, nulls follow points, trace a path.'],
   ['vrCompEditor', 'VR Comp Editor', ['vr.', 'comp.vr'], '360 and VR composition editing.'],
-  ['essentialGraphics', 'Essential Graphics', ['essential.'], 'Expose properties as a template.'],
   ['properties', 'Properties', ['layer.setTransform', 'prop.'], 'The selected layer’s main properties.'],
   ['tools', 'Tools', ['tool.'], 'Tools.'],
 ];
@@ -66,6 +66,7 @@ const COMMAND_PANELS: Array<[string, string, string[], string]> = [
 class App {
   private readonly dock = new Dock();
   private readonly prefs = new Preferences(ctx);
+  private readonly scriptui = new ScriptUIHost(ctx);
   private readonly keys = new Keys(ctx);
   private shortcuts: ShortcutEditor | null = null;
   private palette!: Palette;
@@ -322,7 +323,7 @@ class App {
     this.home = el(`<div class="cv-home fx-home" hidden>
       <div class="cv-home-center">
         <h1 class="cv-home-brand">${brandMark(40)} formvfx <span class="cv-home-by">motion graphics and visual effects</span></h1>
-        <p class="cv-home-sub">Compositions, layers, keyframes, 307 effects, 3D, expressions and a render queue, driven by you or by an agent.</p>
+        <p class="cv-home-sub">Compositions, layers, keyframes, 289 effects, 3D, expressions and a render queue, driven by you or by an agent.</p>
         <div class="cv-home-actions">
           <button class="cv-home-action" type="button" data-h="new"><span class="cv-home-label">New Composition</span><span class="cv-key">↵</span></button>
           <button class="cv-home-action" type="button" data-h="open"><span class="cv-home-label">Open Project</span><span class="cv-key">O</span></button>
@@ -362,6 +363,7 @@ class App {
 
   private bindEngine(): void {
     ctx.client.events.on('frontend', (ev) => this.frontend(String(ev.command), (ev.params as Record<string, unknown>) ?? {}));
+    ctx.client.events.on('open', () => void this.scriptui.restore());
     ctx.client.events.on('toast', (ev) => toast(String(ev.message), ev.error ? 'error' : 'info'));
     ctx.client.events.on('openUrl', (ev) => window.open(String(ev.url), '_blank'));
     ctx.client.events.on('consent', (ev) => this.askConsent(ev));
@@ -406,6 +408,10 @@ class App {
     switch (command) {
       case 'app.about':
         return this.about();
+      case 'scriptui.show':
+        return this.scriptui.show(params as unknown as SuiTree);
+      case 'scriptui.close':
+        return this.scriptui.close(Number(params.window));
       case 'app.settings':
         void this.prefs.open(String(params.page ?? 'interface'));
         return;

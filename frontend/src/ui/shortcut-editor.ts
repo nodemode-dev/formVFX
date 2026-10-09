@@ -52,7 +52,6 @@ const PAD: KeyDef[][] = [
   [k('Num0', '0', 2), k('Num.', '.')],
 ];
 
-const brand = (s: string): string => s;
 const show = (combo: string): string => (isMac ? combo : combo.replace(/\bCmd\b/g, 'Ctrl'));
 
 export class ShortcutEditor extends Dialog {
@@ -225,7 +224,7 @@ export class ShortcutEditor extends Dialog {
       this.preset.replaceChildren(...presets.map((p) => {
         const o = document.createElement('option');
         o.value = p;
-        o.textContent = brand(p);
+        o.textContent = p;
         return o;
       }));
     }
@@ -243,7 +242,7 @@ export class ShortcutEditor extends Dialog {
       create: () => el(`<div class="fx-sc-row" role="listitem"><span class="fx-sc-label"></span><span class="fx-sc-path"></span><span class="fx-sc-keys"></span><span class="fx-sc-acts"><button class="cv-icon-btn" type="button" data-rec title="Add a shortcut: press the keys">${icon('plus', 13)}</button><button class="cv-icon-btn" type="button" data-reset title="Reset to the default">${icon('undo', 13)}</button></span></div>`),
       update: (n, r) => {
         n.dataset.automationId = `shortcuts.row.${r.key}`;
-        setText(q(n, '.fx-sc-label'), brand(r.label));
+        setText(q(n, '.fx-sc-label'), r.label);
         setText(q(n, '.fx-sc-path'), r.scope === APP ? r.path.join(' > ') : `${r.scope} panel`);
         const keys = q(n, '.fx-sc-keys');
         patchList(keys, r.keys, {
@@ -278,15 +277,15 @@ export class ShortcutEditor extends Dialog {
       setClass(b, 'is-panel', panel && !app);
       setClass(b, 'is-both', app && panel);
       setClass(b, 'is-picked', this.keySel === combo);
-      setText(q(b, '.fx-sc-kcmd'), hits.length ? brand(hits[0].label) : '');
-      setTitle(b, hits.length ? `${show(combo)}: ${hits.map((r) => brand(r.label)).join(', ')}` : show(combo));
+      setText(q(b, '.fx-sc-kcmd'), hits.length ? hits[0].label : '');
+      setTitle(b, hits.length ? `${show(combo)}: ${hits.map((r) => r.label).join(', ')}` : show(combo));
     }
     const ks = this.keySel;
     setHidden(q(this.body, '.fx-sc-keyinfo'), !ks);
     if (ks) {
       const hits = by.get(ks) ?? [];
       setText(q(this.body, '.fx-sc-keyname'), show(ks));
-      setText(q(this.body, '.fx-sc-keycmds'), hits.length ? hits.map((r) => `${brand(r.label)} (${r.scope})`).join(', ') : 'Not assigned');
+      setText(q(this.body, '.fx-sc-keycmds'), hits.length ? hits.map((r) => `${r.label} (${r.scope})`).join(', ') : 'Not assigned');
       q<HTMLButtonElement>(this.body, '[data-a="assign"]').disabled = !this.selected;
     }
   }
@@ -300,7 +299,7 @@ export class ShortcutEditor extends Dialog {
   private record(on: boolean): void {
     this.recording = on;
     setClass(q(this.body, '.fx-sc'), 'is-recording', on);
-    setText(q(this.body, '.fx-sc-status'), on ? `Press the keys for ${brand(this.labelOf(this.selected ?? ''))} (Esc cancels)` : '');
+    setText(q(this.body, '.fx-sc-status'), on ? `Press the keys for ${this.labelOf(this.selected ?? '')} (Esc cancels)` : '');
   }
 
   private modKey(e: KeyboardEvent, down: boolean): void {
@@ -341,7 +340,7 @@ export class ShortcutEditor extends Dialog {
   private async action(a: string): Promise<void> {
     const cur = this.data?.preset ?? DEFAULT;
     if (a === 'duplicate') {
-      const name = await promptName('Duplicate Preset', `${brand(cur)} copy`, 'Duplicate');
+      const name = await promptName('Duplicate Preset', `${cur} copy`, 'Duplicate');
       if (name) await this.act('shortcuts.preset', { op: 'duplicate', from: cur, name });
     } else if (a === 'rename') {
       const name = await promptName('Rename Preset', cur, 'Rename');
@@ -349,10 +348,10 @@ export class ShortcutEditor extends Dialog {
     } else if (a === 'delete') {
       if (await confirmAction('Delete Preset', `Delete the shortcut preset "${cur}"?`, 'Delete', true)) await this.act('shortcuts.preset', { op: 'delete', name: cur });
     } else if (a === 'import') {
-      const got = await pickFiles({ title: 'Import Keyboard Shortcuts', mode: 'open', extensions: ['json', 'ecshortcuts'] });
+      const got = await pickFiles({ title: 'Import Keyboard Shortcuts', mode: 'open', extensions: ['json'] });
       if (got?.length) await this.act('shortcuts.import', { path: got[0] });
     } else if (a === 'export') {
-      const got = await pickFiles({ title: 'Export Keyboard Shortcuts', mode: 'save', extensions: ['json'], defaultName: `${brand(cur)}.json` });
+      const got = await pickFiles({ title: 'Export Keyboard Shortcuts', mode: 'save', extensions: ['json'], defaultName: `${cur}.json` });
       if (got?.length) await this.act('shortcuts.export', { preset: cur, path: got[0] });
     } else if (a === 'assign') {
       const r = this.data?.commands.find((x) => x.key === this.selected);
