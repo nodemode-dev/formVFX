@@ -1,6 +1,6 @@
 # formvfx against After Effects
 
-formvfx 0.23.0 measured line by line against Adobe After Effects 26.5 (September 2026), the way the form family measures itself: each capability is traced through formvfx's data model and engine command, the interface that exposes it, and the render or export path that applies it.
+formvfx 0.23.1 measured line by line against Adobe After Effects 26.5 (September 2026), the way the form family measures itself: each capability is traced through formvfx's data model and engine command, the interface that exposes it, and the render or export path that applies it.
 
 - **Full** · implemented and wired from the interface through to the render or export.
 - **Partial** · present but narrower than After Effects, or reachable only as a command form where After Effects gives direct manipulation.
@@ -14,7 +14,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 
 | | Rows | Full | Partial | None | Score |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| formvfx 0.23.0 | 72 | 64 | 6 | 2 | 67 of 72 (93%) |
+| formvfx 0.23.1 | 72 | 64 | 6 | 2 | 67 of 72 (93%) |
 
 ## Rows
 
@@ -162,7 +162,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 
 ### Platform (not scored)
 
-| Capability | After Effects 26.5 | formvfx 0.23.0 |
+| Capability | After Effects 26.5 | formvfx 0.23.1 |
 | --- | --- | --- |
 | Desktop operating systems | macOS, Windows (x64, ARM) | macOS, Windows, Linux (Tauri) |
 | In a browser | no | yes (`./formvfx serve`) |
