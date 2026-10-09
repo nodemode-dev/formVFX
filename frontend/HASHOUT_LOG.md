@@ -105,6 +105,12 @@ Living context for the interface. Code carries almost no comments; the reasoning
 
 - `Ctx.presetExt` comes from `capabilities.presetExtension` the same way as `projectExt`. Save Animation Preset offers the engine's extension and default name (`Preset.fvxpreset`), Apply Animation Preset puts it first and keeps the others. No DOM change: the picker is the shared file dialog.
 
+## Import options and the Render Queue row (0.21.0)
+
+- `invoke` for `file.import` and `file.importMultiple`: when the picked files include `.psd`, `.psb`, `.pdf` or `.ai`, the command's own form opens with the paths filled in and Import As set to Footage, so Composition, Retain Layer Sizes, a layer or a page can be chosen; other files import straight away as before. The form is the shared `commandForm`, built from the engine's parameter summary (which names `layer` without an option list on purpose, so the field is free text).
+- The Render Queue row gains two links between the name and the colour label: the Render Settings template and the Output Module template (with `(+N)` when an item has more output modules). Each opens the command's form through the engine's "needs a setting" answer, the way the colour label does. The row's grid now has a column per child (it had five columns for six in-flow children, so the remove button wrapped). Both labels are created once in `create` and only their text changes in `update`.
+- The Project panel's info lines name the proxy file, with `(off)` when Use Proxy is off.
+
 ## Boot ground
 
 - The critical style paints only `html` (`#0a0a0a`, then the boot script's profile ground); `body` is transparent until `tokens.css` gives it `--bg-primary`. Painting `body` too showed `#0a0a0a` for the first frames before the Studio ground `#111111`.

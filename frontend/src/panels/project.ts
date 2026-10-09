@@ -160,6 +160,7 @@ export class ProjectPanel implements Panel {
     if (i.size) lines.push(`${i.size[0]} x ${i.size[1]}`);
     if (i.duration !== undefined) lines.push(`Δ ${fmtDur(i.duration, i.frameRate)}, ${i.frameRate ? i.frameRate.toFixed(2) + ' fps' : ''}`);
     if (i.footage) lines.push(i.footage.codec || i.footage.kind, i.footage.missing ? 'Missing' : '');
+    if (i.proxyInfo) lines.push(`Proxy: ${i.proxyInfo.path.split(/[\\/]/).pop() ?? ''}${i.proxyInfo.enabled ? '' : ' (off)'}`);
     setText(this.info, lines.filter(Boolean).join('\n'));
     const canThumb = i.type !== 'Folder';
     this.preview.hidden = !canThumb;

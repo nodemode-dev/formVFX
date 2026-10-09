@@ -9,6 +9,7 @@ export interface Item {
   parent: number | null;
   comment: string;
   proxy: boolean;
+  proxyInfo?: { path: string; enabled: boolean; missing: boolean; size: [number, number] };
   size?: [number, number];
   duration?: number;
   frameRate?: number;

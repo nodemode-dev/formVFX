@@ -348,9 +348,10 @@
 .fx-rq-top { display: flex; align-items: center; gap: 8px; padding: 0 10px; border-bottom: 1px solid var(--line-0); }
 .fx-rq-status { color: var(--text-muted); font-size: var(--fs-11); }
 .fx-rq-list { min-height: 0; padding: 4px 0; overflow: auto; }
-.fx-rq-item { position: relative; display: grid; grid-template-columns: 18px minmax(120px, 1fr) minmax(100px, 160px) minmax(120px, 1.2fr) 90px; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border-bottom: 1px solid var(--line-0); color: var(--text-secondary); font-size: var(--fs-12); }
+.fx-rq-item { position: relative; display: grid; grid-template-columns: 18px minmax(100px, 1fr) minmax(80px, 130px) minmax(80px, 170px) minmax(80px, 140px) minmax(100px, 1.1fr) 76px 22px; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border-bottom: 1px solid var(--line-0); color: var(--text-secondary); font-size: var(--fs-12); }
 .fx-rq-name { overflow: hidden; color: var(--text-primary); text-overflow: ellipsis; white-space: nowrap; }
 .fx-rq-fmt { overflow: hidden; color: var(--text-muted); text-overflow: ellipsis; white-space: nowrap; }
+.fx-rq-rs, .fx-rq-om { overflow: hidden; color: var(--fx-hot); text-align: left; text-overflow: ellipsis; white-space: nowrap; }
 .fx-rq-out { overflow: hidden; color: var(--fx-hot); text-align: left; text-overflow: ellipsis; }
 .fx-rq-state { font-size: var(--fs-11); text-align: right; }
 .fx-rq-prog { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; }

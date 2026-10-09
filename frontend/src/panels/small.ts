@@ -354,9 +354,11 @@ export class RenderQueuePanel implements Panel {
     patchList(this.list, items, {
       key: (x) => String(x.id ?? x.index),
       create: (x) => {
-        const n = el(`<div class="fx-rq-item"><input type="checkbox" class="fx-check"><span class="fx-rq-name"></span><button class="fx-link fx-rq-fmt" type="button" title="Output colour and bit depth"></button><button class="fx-link fx-rq-out" type="button"></button><span class="fx-rq-state"></span><div class="fx-rq-prog"><span></span></div><button class="cv-icon-btn" type="button" data-rm title="Remove">${icon('close', 12)}</button></div>`);
+        const n = el(`<div class="fx-rq-item"><input type="checkbox" class="fx-check"><span class="fx-rq-name"></span><button class="fx-link fx-rq-rs" type="button" title="Render Settings"></button><button class="fx-link fx-rq-om" type="button" title="Output Module Settings"></button><button class="fx-link fx-rq-fmt" type="button" title="Output colour and bit depth"></button><button class="fx-link fx-rq-out" type="button"></button><span class="fx-rq-state"></span><div class="fx-rq-prog"><span></span></div><button class="cv-icon-btn" type="button" data-rm title="Remove">${icon('close', 12)}</button></div>`);
         const id = x.id ?? x.index;
         q<HTMLInputElement>(n, 'input').addEventListener('change', (e) => void this.ctx.run('renderQueue.setRender', { item: id, render: (e.target as HTMLInputElement).checked }, true));
+        q(n, '.fx-rq-rs').addEventListener('click', () => void this.ctx.invoke('renderQueue.setRenderSettings', { item: id }).then(() => this.load()));
+        q(n, '.fx-rq-om').addEventListener('click', () => void this.ctx.invoke('renderQueue.setOutputModule', { item: id }).then(() => this.load()));
         q(n, '.fx-rq-fmt').addEventListener('click', () => void this.ctx.invoke('renderQueue.setColor', { item: id }));
         q(n, '[data-rm]').addEventListener('click', () => void this.ctx.run('renderQueue.remove', { item: id }).then(() => this.load()));
         q(n, '.fx-rq-out').addEventListener('click', async () => {
@@ -368,6 +370,10 @@ export class RenderQueuePanel implements Panel {
       update: (n, x) => {
         const out = (x.output && typeof x.output === 'object' ? x.output : {}) as Record<string, unknown>;
         setText(q(n, '.fx-rq-name'), String(x.compName ?? x.comp ?? 'Composition'));
+        const settings = (x.settings && typeof x.settings === 'object' ? x.settings : {}) as Record<string, unknown>;
+        const modules = Array.isArray(x.modules) ? x.modules.length : 1;
+        setText(q(n, '.fx-rq-rs'), String(settings.template || x.template || 'Render Settings'));
+        setText(q(n, '.fx-rq-om'), `${String(x.outputModule || 'Output Module')}${modules > 1 ? ` (+${modules - 1})` : ''}`);
         const fmt = String(out.format ?? out.kind ?? x.format ?? '');
         const extra = [x.outputSpace ? String(x.outputSpace) : '', Number(x.depth) >= 16 ? '16 bpc' : ''].filter(Boolean).join(', ');
         setText(q(n, '.fx-rq-fmt'), extra ? `${fmt} (${extra})` : fmt);

@@ -159,6 +159,13 @@ export class Ctx {
       const got = await pickFiles({ title: label, mode: picker.mode, multiple: picker.multiple, extensions: picker.ext, defaultName: picker.name });
       if (!got || !got.length) return undefined;
       p[picker.key] = picker.multiple ? got : got[0];
+      const layered = command.startsWith('file.import') && got.some((g) => /\.(psd|psb|pdf|ai)$/i.test(g));
+      const importSpec = layered ? this.specs.get(command) : undefined;
+      if (importSpec) {
+        const r = await commandForm(importSpec, { ...p, importAs: 'footage' });
+        if (!r) return undefined;
+        return this.run(command, { ...r.params, [picker.key]: p[picker.key] });
+      }
       return this.run(command === 'file.save' ? 'file.saveAs' : command, p);
     }
     const spec = this.specs.get(command);
