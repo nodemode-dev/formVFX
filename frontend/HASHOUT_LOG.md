@@ -96,6 +96,11 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - `Ctx.projectExt` and `Ctx.engineName` come from `engine.info` (`capabilities.projectExtension`, `capabilities.engine`) when the socket opens. The save pickers (Save, Save As, Save a Copy) use the engine's extension and default name, `.fvxproj`.
 - Open Project and Import accept `.fvxproj`, `.ecproj` and `.ecprojx`; which ones load is the engine's call.
 
+## Text animators in the Timeline (0.13.0)
+
+- `panels/timeline.ts` group context menu: an `animator` group offers Add Property (the animator property kinds, `layer.addTextAnimatorProperty` with the animator uid) and Add Selector (range, wiggly, expression, `layer.addTextSelector`). Text and Animators keep Add Text Animator. The menu is the shared popup; rows appear through the normal keyed patch on the next state pull.
+- The tree marks list items (animators, selectors, masks, effects, shape items) with `kind: "indexed"`, which is what offers Rename, Duplicate and Delete; the list groups themselves do not carry it.
+
 ## Boot ground
 
 - The critical style paints only `html` (`#0a0a0a`, then the boot script's profile ground); `body` is transparent until `tokens.css` gives it `--bg-primary`. Painting `body` too showed `#0a0a0a` for the first frames before the Studio ground `#111111`.

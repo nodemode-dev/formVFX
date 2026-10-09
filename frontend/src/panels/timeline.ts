@@ -679,6 +679,10 @@ export class TimelinePanel implements Panel {
       if (g.match === 'text' || g.match === 'animators') {
         items.push('-', { label: 'Add Text Animator', children: ['position', 'anchorPoint', 'scale', 'rotation', 'opacity', 'fillColor', 'strokeColor', 'tracking', 'lineSpacing', 'blur', 'skew', 'characterOffset'].map((p) => ({ label: p, run: () => void this.ctx.run('layer.addTextAnimator', { layer: layer.id, property: p }) })) });
       }
+      if (g.match === 'animator') {
+        items.push('-', { label: 'Add Property', children: ['anchorPoint', 'position', 'scale', 'skew', 'rotation', 'opacity', 'lineSpacing', 'characterOffset', 'characterValue', 'blur', 'fillColor', 'fillHue', 'fillSaturation', 'fillBrightness', 'fillOpacity', 'strokeColor', 'strokeWidth', 'tracking'].map((p) => ({ label: p, run: () => void this.ctx.run('layer.addTextAnimatorProperty', { layer: layer.id, animator: g.uid, property: p }) })) });
+        items.push({ label: 'Add Selector', children: ['range', 'wiggly', 'expression'].map((k) => ({ label: k, run: () => void this.ctx.run('layer.addTextSelector', { layer: layer.id, animator: g.uid, kind: k }) })) });
+      }
       if (g.match === 'contents') {
         items.push('-', { label: 'Add', children: ['rectangle', 'ellipse', 'polystar', 'path', 'fill', 'stroke', 'gradientFill', 'gradientStroke', 'mergePaths', 'offsetPaths', 'puckerBloat', 'repeater', 'roundCorners', 'trimPaths', 'twist', 'wigglePaths', 'wiggleTransform', 'zigZag'].map((k) => ({ label: k, run: () => void this.ctx.run('shape.add', { layer: layer.id, kind: k }) })) });
       }
