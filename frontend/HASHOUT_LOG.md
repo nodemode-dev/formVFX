@@ -101,6 +101,10 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - `panels/timeline.ts` group context menu: an `animator` group offers Add Property (the animator property kinds, `layer.addTextAnimatorProperty` with the animator uid) and Add Selector (range, wiggly, expression, `layer.addTextSelector`). Text and Animators keep Add Text Animator. The menu is the shared popup; rows appear through the normal keyed patch on the next state pull.
 - The tree marks list items (animators, selectors, masks, effects, shape items) with `kind: "indexed"`, which is what offers Rename, Duplicate and Delete; the list groups themselves do not carry it.
 
+## Animation preset files (0.15.0)
+
+- `Ctx.presetExt` comes from `capabilities.presetExtension` the same way as `projectExt`. Save Animation Preset offers the engine's extension and default name (`Preset.fvxpreset`), Apply Animation Preset puts it first and keeps the others. No DOM change: the picker is the shared file dialog.
+
 ## Boot ground
 
 - The critical style paints only `html` (`#0a0a0a`, then the boot script's profile ground); `body` is transparent until `tokens.css` gives it `--bg-primary`. Painting `body` too showed `#0a0a0a` for the first frames before the Studio ground `#111111`.

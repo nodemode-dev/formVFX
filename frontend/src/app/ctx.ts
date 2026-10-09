@@ -94,6 +94,7 @@ export class Ctx {
   private effectCache: EffectSpec[] | null = null;
   focusedPanel = 'composition';
   projectExt = 'ecproj';
+  presetExt = 'ecpreset';
   engineName = 'fvx';
 
   start(): void {
@@ -107,8 +108,9 @@ export class Ctx {
       const rows = await this.client.call<CommandSpec[]>('command.list', { schemas: true });
       this.specs.clear();
       for (const r of rows) this.specs.set(r.id, r);
-      const info = await this.client.call<{ capabilities?: { projectExtension?: string; engine?: string } }>('engine.info');
+      const info = await this.client.call<{ capabilities?: { projectExtension?: string; presetExtension?: string; engine?: string } }>('engine.info');
       this.projectExt = info.capabilities?.projectExtension || 'ecproj';
+      this.presetExt = info.capabilities?.presetExtension || 'ecpreset';
       this.engineName = info.capabilities?.engine || 'fvx';
     } catch (e) {
       console.warn('[formvfx] command list failed', e);
@@ -149,7 +151,9 @@ export class Ctx {
     const p: Record<string, unknown> = { ...(params || {}) };
     const empty = Object.keys(p).length === 0;
     const base = PICKERS[command];
-    const picker = base && base.mode === 'save' && base.ext?.[0] === 'ecproj' ? { ...base, ext: [this.projectExt], name: base.name?.replace(/\.ecproj$/, `.${this.projectExt}`) } : base;
+    const ext0 = base?.ext?.[0];
+    const swap = ext0 === 'ecproj' && base?.mode === 'save' ? this.projectExt : ext0 === 'ecpreset' ? this.presetExt : '';
+    const picker = base && swap && swap !== ext0 ? { ...base, ext: base.mode === 'open' ? [swap, ...(base.ext ?? [])] : [swap], name: base.name?.replace(`.${ext0}`, `.${swap}`) } : base;
     if (picker && p[picker.key] === undefined && (!picker.when || picker.when(p, this))) {
       const label = this.specs.get(command)?.label?.replace(/\.\.\.$/, '') || command;
       const got = await pickFiles({ title: label, mode: picker.mode, multiple: picker.multiple, extensions: picker.ext, defaultName: picker.name });
