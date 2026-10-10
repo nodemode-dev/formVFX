@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 
 use serde_json::{Value as Json, json};
 
-use crate::engine::{Engine, Res, ps, pu};
+use crate::engine::{Engine, Res, ps};
 use crate::expr::{script, scriptui};
 
 pub fn scripts_dir() -> PathBuf {
@@ -23,13 +23,22 @@ fn guarded(e: &mut Engine, f: impl FnOnce(&mut Engine) -> Json) -> Res {
     Ok(r)
 }
 
+fn no_dialog() -> Result<(), String> {
+    match scriptui::pending_window() {
+        Some(w) => Err(format!("a script is waiting for its dialog (ScriptUI window {w}); answer or close it first")),
+        None => Ok(()),
+    }
+}
+
 pub fn run(e: &mut Engine, p: &Json) -> Res {
+    no_dialog()?;
     let code = ps(p, "code").ok_or("pass `code` (JavaScript with the After Effects scripting object model)")?.to_string();
     let file = ps(p, "file").unwrap_or("").to_string();
     guarded(e, |e| script::run(e, &code, &file, None))
 }
 
 pub fn run_file(e: &mut Engine, p: &Json) -> Res {
+    no_dialog()?;
     let path = match ps(p, "path") {
         Some(x) => PathBuf::from(x),
         None => {
@@ -100,9 +109,30 @@ pub fn ui_list(_: &mut Engine, _: &Json) -> Res {
     Ok(json!({"windows": scriptui::list(), "panels": script_files(&panels_dir())}))
 }
 
+fn resume(e: &mut Engine, out: Json) -> Res {
+    let Some(p) = scriptui::take_resumable() else { return Ok(out) };
+    let answers = scriptui::answer_of(&p);
+    scriptui::flush(e);
+    let r = guarded(e, |e| script::run_with(e, &p.code, &p.file, None, answers))?;
+    Ok(json!({"ok": out["ok"], "handled": out.get("handled"), "resumed": r}))
+}
+
+fn window_of(p: &Json) -> Result<u64, String> {
+    match p.get("window") {
+        Some(Json::Number(n)) => n.as_u64().ok_or_else(|| "bad `window`".into()),
+        Some(Json::String(t)) => scriptui::windows().into_iter().find(|w| w.1 == *t || w.2 == *t).map(|w| w.0).ok_or_else(|| format!("no open ScriptUI window \"{t}\"")),
+        _ => scriptui::pending_window().or_else(|| scriptui::windows().last().map(|w| w.0)).ok_or_else(|| "no ScriptUI window is open".into()),
+    }
+}
+
+fn control_of(w: u64, p: &Json) -> Result<u64, String> {
+    let key = p.get("control").ok_or("pass `control` (its id, name or text)")?;
+    scriptui::find_control(w, key).ok_or_else(|| "no such control in that window (scriptui.get lists them)".into())
+}
+
 pub fn ui_event(e: &mut Engine, p: &Json) -> Res {
-    let w = pu(p, "window").ok_or("pass `window`")?;
-    let c = pu(p, "control").ok_or("pass `control`")?;
+    let w = window_of(p)?;
+    let c = control_of(w, p)?;
     let event = ps(p, "event").unwrap_or("click");
     scriptui::update(w, c, p)?;
     let name = match event {
@@ -112,16 +142,30 @@ pub fn ui_event(e: &mut Engine, p: &Json) -> Res {
         "doubleclick" => "onDoubleClick",
         other => other,
     };
+    if name == "onClick"
+        && let Some(r) = scriptui::default_button(w, c)
+    {
+        let out = match scriptui::close_with(w, r) {
+            Some(f) => {
+                let this = scriptui::control(w, 0);
+                guarded(e, |e| script::call(e, &f, this, vec![]))?
+            }
+            None => json!({"ok": true}),
+        };
+        scriptui::flush(e);
+        return resume(e, json!({"ok": out["ok"], "handled": true, "closed": r}));
+    }
     let Some(f) = scriptui::handler(w, c, name) else {
         scriptui::flush(e);
-        return Ok(json!({"ok": true, "handled": false}));
+        return resume(e, json!({"ok": true, "handled": false}));
     };
     let this = scriptui::control(w, c);
-    guarded(e, |e| script::call(e, &f, this, vec![]))
+    let out = guarded(e, |e| script::call(e, &f, this, vec![]))?;
+    resume(e, out)
 }
 
 pub fn ui_close(e: &mut Engine, p: &Json) -> Res {
-    let w = pu(p, "window").ok_or("pass `window`")?;
+    let w = window_of(p)?;
     let handler = scriptui::close(w);
     let out = match handler {
         Some(f) => {
@@ -131,7 +175,50 @@ pub fn ui_close(e: &mut Engine, p: &Json) -> Res {
         None => json!({"ok": true}),
     };
     scriptui::flush(e);
-    Ok(out)
+    resume(e, out)
+}
+
+pub fn ui_get(_: &mut Engine, p: &Json) -> Res {
+    let all = scriptui::list();
+    match p.get("window") {
+        None => Ok(json!({"windows": all, "modal": scriptui::pending_window()})),
+        Some(_) => {
+            let w = window_of(p)?;
+            all.as_array().and_then(|a| a.iter().find(|x| x["window"] == w).cloned()).ok_or_else(|| "that ScriptUI window is not open".into())
+        }
+    }
+}
+
+pub fn ui_set(e: &mut Engine, p: &Json) -> Res {
+    let w = window_of(p)?;
+    let c = control_of(w, p)?;
+    scriptui::update(w, c, p)?;
+    scriptui::touch_window(w);
+    let fire = p.get("notify").and_then(Json::as_bool).unwrap_or(true);
+    let f = if fire { scriptui::handler(w, c, "onChange") } else { None };
+    let out = match f {
+        Some(f) => {
+            let this = scriptui::control(w, c);
+            guarded(e, |e| script::call(e, &f, this, vec![]))?
+        }
+        None => {
+            scriptui::flush(e);
+            json!({"ok": true, "handled": false})
+        }
+    };
+    resume(e, out)
+}
+
+pub fn ui_click(e: &mut Engine, p: &Json) -> Res {
+    let mut q = p.clone();
+    if let Some(o) = q.as_object_mut() {
+        o.insert("event".into(), json!("click"));
+    }
+    ui_event(e, &q)
+}
+
+pub fn script_panel(e: &mut Engine, p: &Json) -> Res {
+    open_panel(e, p)
 }
 
 pub fn open_panel(e: &mut Engine, p: &Json) -> Res {

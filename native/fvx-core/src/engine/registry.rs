@@ -3,7 +3,7 @@ use std::sync::OnceLock;
 
 use serde_json::{Value as Json, json};
 
-use super::cmd::{browser, camtrack, color, comp, deps, edit, editing, effect, essential, expression, file, fill, footage, formats, help, keys, keytools, layer, layermisc, markers, mask, maskshape, paint, project, ptemplates, puppet, replace, roto, prop, script, session, shapes, styles, text, textanim, three, time, timeline, track, view3d, viewer, vr, warp, watch};
+use super::cmd::{browser, camtrack, color, comp, deps, edit, editing, effect, essential, expression, file, fill, footage, formats, help, keys, keytools, layer, layermisc, markers, mask, maskshape, paint, project, ptemplates, puppet, replace, roto, prop, script, session, shapes, styles, text, textanim, three, time, timeline, track, view3d, viewer, viewing, vr, warp, watch, extensions};
 use super::{Engine, Res, export, rq};
 
 pub type Handler = fn(&mut Engine, &Json) -> Res;
@@ -695,6 +695,31 @@ pub static COMMANDS: &[Cmd] = &[
     c("camera.stereoRig", "Create Stereo 3D Rig", "Layer/Camera", "", "{comp? (a 3D composition), view?: anaglyph|sideBySide|left|right|balanced, sceneDepth? (% of width), convergence?: bool} -> {left, right, output, controls}", U, vr::stereo_rig),
     c("comp.cropToRegionOfInterest", "Crop Comp to Region of Interest", "Composition", "", "{comp?, rect? [x, y, w, h] (default the viewer's region of interest)}", U, vr::crop_to_roi),
     c("comp.cropToLayerBounds", "Crop Comp to Selected Layer(s) Bounds", "Composition", "", "{comp?, layers?}", U, vr::crop_to_layer_bounds),
+    c("view.exposure", "Adjust Exposure", "", "", "{value? (stops) | delta?} · the viewer only, never the render", N, viewing::exposure),
+    c("view.customRgb", "My Custom RGB", "", "", "{red?, green?, blue?: bool, show?: bool (default true: switches the viewer to Custom)}", N, viewing::custom_rgb),
+    c("view.displayColor", "Viewer Color State", "", "", "{} -> {channel, customRgb, exposure, displayColorManagement, simulateOutput, fastPreviews, workingSpace}", Q, viewing::display_color),
+    c("view.extendedViewer", "Extended Viewer", "View", "", "{value?: bool (default toggle)} · the composition frame alone in its own window, for a second display", N, viewing::extended_viewer),
+    c("view.fastPreviewMode", "Fast Previews", "", "", "{mode: off|adaptive|draft|fastDraft|wireframe}", N, viewing::fast_preview_mode),
+    c("view.moveGuide", "Move Guide", "", "", "{comp?, index (0-based), position (px)}", U, viewing::move_guide),
+    c("view.removeGuide", "Remove Guide", "", "", "{comp?, index}", U, viewing::remove_guide),
+    c("view.shareViewOptions", "Share View Options", "View/Switch View Layout", "", "{value?: bool}", N, viewing::share_view_options),
+    c("view.assign3dShortcut", "Assign Shortcut to 3D View", "View/Assign Shortcut", "", "{view (front, left, top, back, right, bottom, custom1-3, activeCamera), key: F10|F11|F12}", N, viewing::assign_3d_shortcut),
+    c("window.assignWorkspaceShortcut", "Assign Shortcut to Workspace", "Window/Assign Shortcut", "", "{name (workspace), key: Shift+F10|Shift+F11|Shift+F12}", N, viewing::assign_workspace_shortcut),
+    c("playback.scrubAudio", "Scrub Audio", "Composition/Preview", "", "{value?: bool} · plays a short slice of audio while dragging the time", N, viewing::scrub_audio),
+    c("playback.settings.get", "Preview Settings", "", "", "{} -> {includeAudio, loop, cacheBeforePlayback, range, resolution, frameRate, skip, fullScreen, scrubAudio, fastPreviews}", Q, viewing::playback_get),
+    c("playback.settings.set", "Change Preview Settings", "", "", "{includeAudio?, loop?, cacheBeforePlayback?, range?: workArea|workAreaExtended|comp|aroundCurrent|playFromCurrent, resolution?: auto|full|half|third|quarter, frameRate?: auto|fps, skip?: frames, fullScreen?, scrubAudio?}", N, viewing::playback_set),
+    c("render.backend", "Video Rendering and Effects", "", "", "{backend?: gpu|cpu (omit to read)} -> {backend, gpu, gpuAvailable}", U, viewing::render_backend),
+    c("expr.languageMenu", "Expression Language Menu", "", "", "{} -> {categories: [{name, items}]}", Q, viewing::language_menu),
+    c("scopes.analyze", "Lumetri Scopes", "", "", "{comp?, time?, scope?: all|histogram|waveform|parade|vectorscope, maxSide?, columns?, levels?, vectorscopeSize?} -> Rec. 709 histograms, waveform, parade, vectorscope and luma stats of the frame", N, viewing::scopes),
+    c("scriptui.get", "Script Window Controls", "", "", "{window? (id or title; default all)} -> each control's id, type, text, value, items and selection", Q, script::ui_get),
+    c("scriptui.set", "Set Script Window Control", "", "", "{window?, control (id, name or text), text?, value?, selection?, notify?: bool (run onChange, default true)}", U, script::ui_set),
+    c("scriptui.click", "Click Script Window Control", "", "", "{window?, control (id, name or text)} · a button's onClick, or OK and Cancel closing a dialog", U, script::ui_click),
+    c("window.scriptPanel", "ScriptUI Panel", "", "", "{name (an installed ScriptUI panel)}", U, script::script_panel),
+    c("extensions.list", "Extensions", "", "", "{} -> {folder, extensions: [{id, name, main, width, height, kind: cep|formvfx}]}", Q, extensions::list),
+    c("extensions.install", "Install Extension...", "Window/Extensions", "", "{path (an extension folder with CSXS/manifest.xml or manifest.json, or a .zxp or .zip of one)}", N, extensions::install),
+    c("extensions.uninstall", "Uninstall Extension", "", "", "{id}", N, extensions::uninstall),
+    c("extensions.open", "Open Extension", "", "", "{id} · docks the extension's HTML panel", N, extensions::open),
+    c("extensions.evalScript", "Evaluate Script for an Extension", "", "", "{script, extension?} -> {result (a string, as CSInterface.evalScript gives it)}", U, extensions::eval_script),
     c("layer.geometryOptions", "Geometry Options", "Layer", "", "{layers? (text or shape), bevelStyle?: none|angular|concave|convex, bevelDepth? (px), holeBevelDepth? (%), extrusionDepth? (px), sideColor?, sidesUseFill?: bool} · extrudes in the Advanced 3D renderer (turns it on)", U, three::geometry_options),
 ];
 

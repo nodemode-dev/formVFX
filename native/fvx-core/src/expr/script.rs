@@ -131,6 +131,24 @@ fn finish(e: &mut Engine, ok: Result<Json, String>) -> Json {
 }
 
 pub fn run(e: &mut Engine, code: &str, file: &str, this: Option<V>) -> Json {
+    run_with(e, code, file, this, vec![])
+}
+
+pub fn run_with(e: &mut Engine, code: &str, file: &str, this: Option<V>, answers: Vec<scriptui::Answer>) -> Json {
+    let before = e.project.clone();
+    scriptui::begin_run(answers);
+    let out = run_once(e, code, file, this);
+    if let Some((w, first, answers)) = scriptui::end_run() {
+        e.project = before;
+        scriptui::suspend(code.to_string(), file.to_string(), w, first, answers);
+        scriptui::flush(e);
+        e.set_label("Run Script");
+        return json!({"ok": true, "suspended": true, "dialog": w, "result": null, "output": out["output"], "error": null});
+    }
+    out
+}
+
+fn run_once(e: &mut Engine, code: &str, file: &str, this: Option<V>) -> Json {
     let parsed = super::program(code);
     let prog = match &*parsed {
         Ok(p) => p,
@@ -412,15 +430,35 @@ fn g_noop(_: &mut Interp, _: &V, _: Vec<V>) -> R {
     Ok(V::Undef)
 }
 
-fn g_confirm(_: &mut Interp, _: &V, _: Vec<V>) -> R {
-    Ok(V::Bool(true))
+fn g_confirm(it: &mut Interp, _: &V, a: Vec<V>) -> R {
+    if !scriptui::modal_active() {
+        return Ok(V::Bool(true));
+    }
+    let msg = it.to_string(&arg(&a, 0))?;
+    let title = match arg(&a, 2) {
+        V::Undef | V::Null => "Confirm".to_string(),
+        v => it.to_string(&v)?,
+    };
+    scriptui::ask(it, false, &title, &msg, "")
 }
 
-fn g_prompt(_: &mut Interp, _: &V, a: Vec<V>) -> R {
-    Ok(match arg(&a, 1) {
-        V::Undef => V::Null,
-        v => v,
-    })
+fn g_prompt(it: &mut Interp, _: &V, a: Vec<V>) -> R {
+    if !scriptui::modal_active() {
+        return Ok(match arg(&a, 1) {
+            V::Undef => V::Null,
+            v => v,
+        });
+    }
+    let msg = it.to_string(&arg(&a, 0))?;
+    let default = match arg(&a, 1) {
+        V::Undef | V::Null => String::new(),
+        v => it.to_string(&v)?,
+    };
+    let title = match arg(&a, 2) {
+        V::Undef | V::Null => "Script Prompt".to_string(),
+        v => it.to_string(&v)?,
+    };
+    scriptui::ask(it, true, &title, &msg, &default)
 }
 
 fn g_is_valid(it: &mut Interp, _: &V, a: Vec<V>) -> R {

@@ -483,14 +483,25 @@ pub fn disk_clean(_: &mut Engine, _: &Json) -> Res {
 }
 
 pub fn shortcuts_list(e: &mut Engine, _: &Json) -> Res {
-    let rows: Vec<Json> = registry::all()
+    let taken: Vec<String> = e.session.param_shortcuts.iter().map(|x| x.0.clone()).collect();
+    let mut rows: Vec<Json> = e
+        .session
+        .param_shortcuts
+        .iter()
+        .map(|(k, c, p)| {
+            let label = registry::find(c).map(|x| x.label).unwrap_or("");
+            json!({"key": format!("{c}|{k}"), "command": c, "params": p, "label": format!("{label}: {}", p.get("name").and_then(Json::as_str).unwrap_or("")), "path": "", "scope": "global", "defaults": [], "keys": [k]})
+        })
+        .collect();
+    let base: Vec<Json> = registry::all()
         .iter()
         .map(|c| {
             let defaults: Vec<String> = if c.key.is_empty() { vec![] } else { c.key.split(" or ").map(str::to_string).collect() };
-            let keys = e.shortcuts.get(c.id).cloned().unwrap_or_else(|| defaults.clone());
+            let keys: Vec<String> = e.shortcuts.get(c.id).cloned().unwrap_or_else(|| defaults.clone()).into_iter().filter(|k| !taken.contains(k)).collect();
             json!({"key": c.id, "command": c.id, "params": null, "label": c.label, "path": registry::menu_path(c), "scope": "global", "defaults": defaults, "keys": keys})
         })
         .collect();
+    rows.extend(base);
     Ok(json!({"preset": e.shortcut_preset, "presets": super::viewer::presets(e), "commands": rows}))
 }
 

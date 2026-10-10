@@ -27,6 +27,7 @@ import { Palette } from '../ui/palette';
 import { contextMenu, type PopupEntry } from '../ui/popup';
 import { Preferences } from '../ui/prefs';
 import { ScriptUIHost, type SuiTree } from '../ui/scriptui';
+import { ExtensionHost, type ExtensionOpen } from '../ui/extensions';
 import { ShortcutEditor } from '../ui/shortcut-editor';
 import { LearnCoach } from '../ui/learn';
 import { TemplateGallery } from '../ui/templates';
@@ -72,6 +73,9 @@ class App {
   private readonly templates = new TemplateGallery(ctx);
   private readonly learn = new LearnCoach(ctx);
   private readonly scriptui = new ScriptUIHost(ctx);
+  private readonly extensions = new ExtensionHost(ctx);
+  private extended: Window | null = null;
+  private readonly viewerChannel = new BroadcastChannel('formvfx-viewer');
   private readonly keys = new Keys(ctx);
   private shortcuts: ShortcutEditor | null = null;
   private palette!: Palette;
@@ -376,6 +380,9 @@ class App {
   private bindEngine(): void {
     ctx.client.events.on('frontend', (ev) => this.frontend(String(ev.command), (ev.params as Record<string, unknown>) ?? {}));
     ctx.client.events.on('open', () => void this.scriptui.restore());
+    ctx.playback.events.on('time', (t) => {
+      if (this.extended && !this.extended.closed) this.viewerChannel.postMessage({ comp: ctx.store.comp?.id ?? null, time: t });
+    });
     ctx.client.events.on('toast', (ev) => toast(String(ev.message), ev.error ? 'error' : 'info'));
     ctx.client.events.on('openUrl', (ev) => window.open(String(ev.url), '_blank'));
     ctx.client.events.on('consent', (ev) => this.askConsent(ev));
@@ -429,6 +436,17 @@ class App {
         return this.scriptui.show(params as unknown as SuiTree);
       case 'scriptui.close':
         return this.scriptui.close(Number(params.window));
+      case 'extensions.open':
+        return this.extensions.open(params as unknown as ExtensionOpen);
+      case 'view.extendedViewer':
+        if (params.open) {
+          if (!this.extended || this.extended.closed) this.extended = window.open(`${location.pathname}?extended=1`, 'formvfx-extended', 'popup,width=960,height=560');
+          this.extended?.focus();
+        } else {
+          this.extended?.close();
+          this.extended = null;
+        }
+        return;
       case 'effects.refresh':
         ctx.dropEffects();
         return this.effects.refresh();

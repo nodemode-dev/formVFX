@@ -1,3 +1,5 @@
 import { startApp } from './app/app';
+import { startExtended } from './ui/extended';
 
-startApp();
+if (new URLSearchParams(location.search).has('extended')) startExtended();
+else startApp();

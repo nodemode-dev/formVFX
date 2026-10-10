@@ -521,7 +521,7 @@ pub fn editor_state(e: &mut Engine, _: &Json) -> Res {
         "openComps": e.state.open_comps,
         "time": comp.map(|c| e.time_of(c)),
         "selection": {"items": e.state.project_selection, "layers": e.state.selected_layers, "properties": e.state.selected_props.len(), "keys": e.state.selected_keys.len()},
-        "viewer": {"layout": e.state.view_layout, "snapping": e.state.snapping, "channel": e.state.viewer.channel},
+        "viewer": {"layout": e.state.view_layout, "snapping": e.state.snapping, "channel": e.state.viewer.channel, "exposure": e.state.viewer.exposure, "fastPreviews": e.state.viewer.fast_previews, "shareViewOptions": e.state.viewer.share_view_options, "extended": e.state.viewer.extended, "guides": e.state.active_comp.and_then(|c| e.project.comp(c)).map(|c| c.guides.iter().map(|g| json!({"vertical": g.vertical, "position": g.position})).collect::<Vec<_>>())},
         "footagePanel": super::footage::info(e, &Json::Null)?,
         "mediaBrowser": e.session.browser.path.as_ref().map(|p| p.to_string_lossy().to_string()),
         "learn": state_json(e),

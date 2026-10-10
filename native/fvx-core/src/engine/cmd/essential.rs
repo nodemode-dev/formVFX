@@ -610,33 +610,67 @@ pub fn install_template(_: &mut Engine, p: &Json) -> Res {
     Ok(json!({"path": target.to_string_lossy(), "name": doc["name"]}))
 }
 
+const TICKS_PER_SECOND: f64 = 254_016_000_000.0;
+
+const MOGRT_TYPES: [(u64, &str); 7] = [(1, "checkbox"), (2, "slider"), (3, "angle"), (4, "color"), (5, "point"), (6, "text"), (10, "group")];
+
 fn kind_of(v: &Json) -> &'static str {
     match v {
         Json::Bool(_) => "checkbox",
         Json::Number(_) => "slider",
         Json::String(_) => "text",
         Json::Array(a) if a.len() >= 3 && a.iter().all(|x| x.as_f64().is_some_and(|f| (0.0..=1.0).contains(&f))) => "color",
+        Json::Array(a) if a.iter().all(Json::is_string) => "group",
         Json::Array(a) if a.len() == 2 || a.len() == 3 => "point",
-        Json::Object(o) if o.contains_key("text") => "text",
+        Json::Object(o) if o.contains_key("x") && o.contains_key("y") => "point",
+        Json::Object(o) if o.contains_key("text") || o.contains_key("strDB") => "text",
         _ => "other",
     }
 }
 
+fn str_db(s: &str) -> Json {
+    json!({"strDB": [{"localeString": "en_US", "str": s}]})
+}
+
 fn mogrt_definition(doc: &Json) -> Json {
     let name = doc["name"].as_str().unwrap_or("Template");
-    let controls: Vec<Json> = doc["controllers"]
-        .as_array()
-        .map(|a| {
-            a.iter()
-                .filter(|c| matches!(c["kind"].as_str(), Some("property" | "media" | "group" | "comment")))
-                .map(|c| {
-                    let value = if c["value"].get("text").is_some() { c["value"]["text"].clone() } else { c["value"].clone() };
-                    json!({"id": c["id"], "uiName": {"strDB": [{"localeString": "en_US", "str": c["name"]}]}, "formvfxKind": c["kind"], "kind": if c["kind"] == "property" { json!(kind_of(&value)) } else { c["kind"].clone() }, "value": value, "group": c["group"]})
-                })
-                .collect()
+    let all = doc["controllers"].as_array().cloned().unwrap_or_default();
+    let controls: Vec<Json> = all
+        .iter()
+        .filter(|c| matches!(c["kind"].as_str(), Some("property" | "media" | "group" | "comment")))
+        .map(|c| {
+            let ui = c["ui"]["kind"].as_str().unwrap_or("");
+            let raw = if c["value"].get("text").is_some() { c["value"]["text"].clone() } else { c["value"].clone() };
+            let kind = match c["kind"].as_str() {
+                Some("property") if ui == "Angle" => "angle",
+                Some("property") => kind_of(&raw),
+                Some(k) => k,
+                None => "other",
+            };
+            let value = match kind {
+                "text" => str_db(raw.as_str().unwrap_or("")),
+                "point" => json!({"x": raw[0], "y": raw[1]}),
+                "group" => json!(all.iter().filter(|x| x["group"] == c["id"]).map(|x| x["id"].clone()).collect::<Vec<_>>()),
+                _ => raw,
+            };
+            let mut o = json!({"id": c["id"], "canAnimate": true, "uiName": str_db(c["name"].as_str().unwrap_or("")), "formvfxKind": c["kind"], "value": value});
+            if let Some((t, _)) = MOGRT_TYPES.iter().find(|(_, k)| *k == kind) {
+                o["type"] = json!(t);
+            }
+            if ui == "Slider" {
+                o["min"] = c["ui"]["slider_min"].clone();
+                o["max"] = c["ui"]["slider_max"].clone();
+            }
+            o
         })
-        .unwrap_or_default();
-    json!({"capsuleName": name, "sourceInfoLocalized": {"en_US": {"name": name}}, "authoringApp": "formvfx", "authoringAppVersion": env!("CARGO_PKG_VERSION"), "width": doc["width"], "height": doc["height"], "duration": doc["duration"], "frameRate": doc["frameRate"], "clientControls": controls})
+        .collect();
+    let fps = doc["frameRate"].as_f64().unwrap_or(30.0).max(0.001);
+    let ms = (doc["duration"].as_f64().unwrap_or(0.0) * 1000.0).round();
+    json!({
+        "apiVersion": "1.6", "authorApp": "formvfx", "authorAppVersion": env!("CARGO_PKG_VERSION"), "capsuleName": name, "capsuleNameLocalized": str_db(name),
+        "sourceInfoLocalized": {"en_US": {"name": name, "framesize": {"size": {"x": doc["width"], "y": doc["height"]}, "topleft": {"x": 0, "y": 0}}, "duration": {"scale": 1000, "value": ms}, "framerate": {"ticksperframe": (TICKS_PER_SECOND / fps).round()}}},
+        "platformSupport": ["formvfx"], "clientControls": controls,
+    })
 }
 
 fn localized(v: &Json) -> Option<String> {
@@ -657,19 +691,37 @@ fn mogrt_info(path: &str) -> Result<Json, String> {
     let files = crate::engine::lottie::unzip(&bytes).map_err(|x| format!("{path}: {x}"))?;
     let def: Json = files.get("definition.json").map(|b| serde_json::from_slice(b)).transpose().map_err(|x| format!("{path}: {x}"))?.ok_or_else(|| format!("{path} has no definition.json"))?;
     let name = def.get("capsuleName").and_then(localized).or_else(|| def.get("sourceInfoLocalized").and_then(localized)).unwrap_or_else(|| Path::new(path).file_stem().and_then(|s| s.to_str()).unwrap_or("Template").to_string());
-    let controls: Vec<Json> = def
-        .get("clientControls")
-        .and_then(Json::as_array)
-        .map(|a| {
-            a.iter()
-                .map(|c| {
-                    let value = c.get("value").cloned().unwrap_or(Json::Null);
-                    let kind = c.get("kind").and_then(Json::as_str).map(str::to_string).unwrap_or_else(|| kind_of(&value).to_string());
-                    json!({"id": c.get("id"), "name": c.get("uiName").and_then(localized).unwrap_or_default(), "kind": kind, "type": c.get("type"), "value": value})
-                })
-                .collect()
+    let raw: Vec<Json> = def.get("clientControls").and_then(Json::as_array).cloned().unwrap_or_default();
+    let parent_of = |id: &Json| raw.iter().find(|g| g["type"] == 10 && g["value"].as_array().is_some_and(|a| a.contains(id))).and_then(|g| g["id"].as_str()).map(str::to_string);
+    let controls: Vec<Json> = raw
+        .iter()
+        .map(|c| {
+            let v = c.get("value").cloned().unwrap_or(Json::Null);
+            let by_type = c.get("type").and_then(Json::as_u64).and_then(|t| MOGRT_TYPES.iter().find(|x| x.0 == t)).map(|x| x.1);
+            let kind = c.get("formvfxKind").and_then(Json::as_str).filter(|k| *k == "media" || *k == "comment").or(by_type).unwrap_or_else(|| kind_of(&v)).to_string();
+            let value = match kind.as_str() {
+                "text" => localized(&v).map(Json::String).unwrap_or(v),
+                "point" if v.get("x").is_some() => json!([v["x"], v["y"]]),
+                _ => v,
+            };
+            let mut o = json!({"id": c.get("id"), "name": c.get("uiName").and_then(localized).unwrap_or_default(), "kind": kind, "type": c.get("type"), "value": value, "group": parent_of(&c["id"])});
+            if c.get("min").is_some() {
+                o["min"] = c["min"].clone();
+                o["max"] = c["max"].clone();
+            }
+            if let Some(f) = c.get("fonteditinfo") {
+                o["font"] = f["fontEditValue"].clone();
+                o["fontSize"] = f["fontSizeEditValue"].clone();
+            }
+            o
         })
-        .unwrap_or_default();
+        .collect();
+    let src = def.get("sourceInfoLocalized").and_then(|s| s.get("en_US").or_else(|| s.as_object().and_then(|o| o.values().next())));
+    let size = src.and_then(|s| s.get("framesize")).map(|f| (f["size"]["x"].clone(), f["size"]["y"].clone())).unwrap_or_else(|| (def["width"].clone(), def["height"].clone()));
+    let duration = src.and_then(|s| s.get("duration")).and_then(|d| Some(d["value"].as_f64()? / d["scale"].as_f64().filter(|x| *x > 0.0)?)).or_else(|| def["duration"].as_f64());
+    let fps = src.and_then(|s| s["framerate"]["ticksperframe"].as_f64()).filter(|t| *t > 0.0).map(|t| (TICKS_PER_SECOND / t * 1000.0).round() / 1000.0).or_else(|| def["frameRate"].as_f64());
+    let fonts = def.get("usedFontsLocalized").and_then(|f| f.get("en_US").or_else(|| f.as_object().and_then(|o| o.values().next()))).cloned().unwrap_or(json!([]));
+    let effects = def.get("usedEffects").cloned().unwrap_or(json!([]));
     let app = if files.contains_key(INNER) {
         "formvfx"
     } else if files.keys().any(|k| k.ends_with(".aegraphic")) {
@@ -680,7 +732,8 @@ fn mogrt_info(path: &str) -> Result<Json, String> {
         "unknown"
     };
     let poster = files.get("thumb.png").map(|b| format!("data:image/png;base64,{}", crate::engine::lottie::b64(b)));
-    Ok(json!({"path": path, "format": "mogrt", "name": name, "madeIn": app, "opens": app == "formvfx", "width": def.get("width"), "height": def.get("height"), "duration": def.get("duration"), "controls": controls, "poster": poster, "files": files.keys().collect::<Vec<_>>()}))
+    let inner: Vec<String> = files.iter().filter(|(k, _)| k.ends_with(".aegraphic") || k.ends_with(".prgraphic")).filter_map(|(_, b)| crate::engine::lottie::unzip(b).ok()).flat_map(|f| f.into_keys()).collect();
+    Ok(json!({"path": path, "format": "mogrt", "name": name, "madeIn": app, "opens": app == "formvfx", "width": size.0, "height": size.1, "duration": duration, "frameRate": fps, "platforms": def.get("platformSupport"), "fonts": fonts, "effects": effects, "controls": controls, "poster": poster, "files": files.keys().collect::<Vec<_>>(), "inner": inner}))
 }
 
 pub fn template_info(_: &mut Engine, p: &Json) -> Res {

@@ -218,9 +218,9 @@ impl Engine {
                 "layers": self.state.selected_layers, "props": self.state.selected_props.iter().map(|(l, u)| json!([l, u])).collect::<Vec<_>>(),
                 "vertices": self.state.selected_vertices.iter().map(|v| json!({"layer": v.layer, "mask": v.mask, "index": v.index})).collect::<Vec<_>>(),
             },
-            "snapping": self.state.snapping, "roi": self.state.roi, "viewLayout": self.state.view_layout, "snapshot": super::cmd::viewer::snapshot_json(self), "shareViewOptions": true,
+            "snapping": self.state.snapping, "roi": self.state.roi, "viewLayout": self.state.view_layout, "snapshot": super::cmd::viewer::snapshot_json(self), "shareViewOptions": self.state.viewer.share_view_options,
             "lockedViewer": super::cmd::viewer::locked_json(self),
-            "viewer": {"channel": self.state.viewer.channel, "colorized": self.state.viewer.colorized, "exposure": self.state.viewer.exposure, "show_snapshot": self.state.show_snapshot},
+            "viewer": {"channel": self.state.viewer.channel, "colorized": self.state.viewer.colorized, "exposure": self.state.viewer.exposure, "show_snapshot": self.state.show_snapshot, "custom_rgb": self.state.viewer.custom_rgb, "fast_previews": self.state.viewer.fast_previews, "extended": self.state.viewer.extended, "scrub_audio": self.state.viewer.scrub_audio, "playback": self.state.viewer.playback},
             "textEdit": self.state.text_edit.as_ref().map(|t| json!({"layer": t.layer, "anchor": t.anchor, "caret": t.caret})),
             "rendering": self.render.busy(), "comp": null, "layers": [], "trees": {}, "engine": "fvx",
         });
@@ -526,6 +526,9 @@ pub struct FrameJob {
     transparent: bool,
     guides: bool,
     channel: String,
+    exposure: f64,
+    custom_rgb: [bool; 3],
+    fast: String,
     view: Option<crate::eval::Camera>,
     display: Option<Arc<crate::render::ocio::Proc>>,
     cache_key: Option<String>,
@@ -541,14 +544,14 @@ impl FrameJob {
             bg = a.apply32(bg);
         }
         let display = pipe.display_proc(&crate::engine::cmd::color::display_of(e));
-        FrameJob { project: e.project.clone(), media: e.media.clone(), comp, t, scale, bg, transparent, guides, channel: "RGB".into(), view: None, display, cache_key: None, backend: crate::render::gpu::Backend::Auto, rev: e.revision }
+        FrameJob { project: e.project.clone(), media: e.media.clone(), comp, t, scale, bg, transparent, guides, channel: "RGB".into(), exposure: 0.0, custom_rgb: [true; 3], fast: "off".into(), view: None, display, cache_key: None, backend: crate::render::gpu::Backend::Auto, rev: e.revision }
     }
 
     fn keyed(mut self, e: &Engine) -> FrameJob {
         if crate::render::diskcache::enabled() {
             let base = crate::render::diskcache::closure_hash(&self.project, self.comp);
             let disp = format!("{:?}|{}", crate::engine::cmd::color::display_of(e), e.project.settings.renderer);
-            let text = format!("{base}|{:.6}|{:.5}|{}|{}|{:?}|{}|{:?}|{disp}", self.t, self.scale, self.guides, self.transparent, self.bg, self.channel, self.view);
+            let text = format!("{base}|{:.6}|{:.5}|{}|{}|{:?}|{}|{:?}|{disp}|{}|{:?}|{}", self.t, self.scale, self.guides, self.transparent, self.bg, self.channel, self.view, self.exposure, self.custom_rgb, self.fast);
             self.cache_key = Some(crate::render::roto::sha256_hex(text.as_bytes()));
         }
         self
@@ -568,6 +571,9 @@ impl FrameJob {
         let mut j = FrameJob::new(e, cid, t, scale, p.get("transparent").and_then(Json::as_bool).unwrap_or(false), p.get("guides").and_then(Json::as_bool).unwrap_or(true));
         if display {
             j.channel = e.state.viewer.channel.clone();
+            j.exposure = e.state.viewer.exposure;
+            j.custom_rgb = e.state.viewer.custom_rgb;
+            j.fast = ps(p, "fastPreviews").map(str::to_string).unwrap_or_else(|| e.state.viewer.fast_previews.clone());
         } else {
             let plain = crate::render::color::Display { profile: "srgb".into(), simulate: "none".into(), ..Default::default() };
             j.display = crate::render::color::Pipe::of(&e.project.settings).display_proc(&plain);
@@ -604,8 +610,32 @@ impl FrameJob {
     }
 
     fn render(&self) -> (u32, u32, Vec<u8>) {
-        let r = Renderer::new(&self.project, &self.media, RenderOpts { scale: self.scale, guides: self.guides, draft: false, motion_blur: true, roi: None, view: self.view, backend: self.backend });
-        let img = r.comp_frame(self.comp, self.t);
+        let draft = matches!(self.fast.as_str(), "draft" | "fastDraft");
+        let wire;
+        let project: &Project = if self.fast == "wireframe" {
+            let mut pj = (*self.project).clone();
+            for it in pj.items.iter_mut() {
+                if let crate::model::ItemKind::Comp(c) = &mut it.kind {
+                    for l in c.layers.iter_mut() {
+                        l.switches.quality = crate::model::Quality::Wireframe;
+                    }
+                }
+            }
+            wire = pj;
+            &wire
+        } else {
+            &self.project
+        };
+        let r = Renderer::new(project, &self.media, RenderOpts { scale: self.scale, guides: self.guides, draft, motion_blur: self.fast != "fastDraft", roi: None, view: self.view, backend: self.backend });
+        let mut img = r.comp_frame(self.comp, self.t);
+        if self.exposure.abs() > 1e-9 {
+            let k = 2f32.powf(self.exposure as f32);
+            for c in img.px.chunks_exact_mut(4) {
+                c[0] *= k;
+                c[1] *= k;
+                c[2] *= k;
+            }
+        }
         let mut px = match &self.display {
             None if self.transparent => img.to_rgba8(),
             None => img.to_rgba8_over(self.bg),
@@ -637,6 +667,15 @@ impl FrameJob {
                     c[1] = v;
                     c[2] = v;
                     c[3] = 255;
+                }
+            }
+            "Custom" => {
+                for c in px.chunks_exact_mut(4) {
+                    for k in 0..3 {
+                        if !self.custom_rgb[k] {
+                            c[k] = 0;
+                        }
+                    }
                 }
             }
             _ => {}

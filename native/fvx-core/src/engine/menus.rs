@@ -69,6 +69,11 @@ fn tree(recent_paths: &[String], projects: &[String], footage: &[String]) -> Vec
     if !panels.is_empty() {
         panels.insert(0, S);
     }
+    let mut extensions: Vec<M> = super::cmd::extensions::menu_items().into_iter().map(|(n, p)| Owned("extensions.open", n, p)).collect();
+    if !extensions.is_empty() {
+        extensions.push(S);
+    }
+    extensions.push(I("extensions.install"));
     let mut effect_menu = vec![I("effect.manage"), I("effect.applyLast"), I("effect.removeAll"), I("effect.plugins.load"), S];
     let mut cats: Vec<&str> = effects::every().into_iter().filter(|e| effects::listed(e)).map(|e| e.category).collect();
     cats.sort();
@@ -175,7 +180,7 @@ fn tree(recent_paths: &[String], projects: &[String], footage: &[String]) -> Vec
                 Sub("Save Frame As", vec![I("comp.saveFrameAs"), I("comp.saveFrameAsPsd"), I("comp.saveFrameAsExr")]),
                 I("render.preRender"),
                 I("render.saveCurrentPreview"),
-                Sub("Preview", vec![I("playback.audio"), I("playback.cacheWhenIdle")]),
+                Sub("Preview", vec![I("playback.audio"), I("playback.scrubAudio"), I("playback.cacheWhenIdle")]),
                 S,
                 I("comp.openInEssentialGraphics"),
                 I("essential.exportTemplate"),
@@ -419,6 +424,19 @@ fn tree(recent_paths: &[String], projects: &[String], footage: &[String]) -> Vec
                 I("view.takeSnapshot"),
                 I("view.showSnapshot"),
                 S,
+                Sub(
+                    "Fast Previews",
+                    vec![
+                        P("view.fastPreviewMode", "Off (Final Quality)", json!({"mode": "off"})),
+                        P("view.fastPreviewMode", "Adaptive Resolution", json!({"mode": "adaptive"})),
+                        P("view.fastPreviewMode", "Draft", json!({"mode": "draft"})),
+                        P("view.fastPreviewMode", "Fast Draft", json!({"mode": "fastDraft"})),
+                        P("view.fastPreviewMode", "Wireframe", json!({"mode": "wireframe"})),
+                    ],
+                ),
+                I("view.extendedViewer"),
+                I("view.shareViewOptions"),
+                S,
                 I("view.displayColorManagement"),
                 Sub(
                     "Simulate Output",
@@ -476,6 +494,8 @@ fn tree(recent_paths: &[String], projects: &[String], footage: &[String]) -> Vec
                 S,
                 Sub("Panels", PANELS.iter().map(|(id, l)| P("window.panel", l, json!({"panel": id}))).collect()),
                 Sub("Create Nulls from Paths", vec![I("paths.pointsFollowNulls"), I("paths.nullsFollowPoints"), I("paths.tracePath")]),
+                Sub("Extensions", extensions),
+                I("window.assignWorkspaceShortcut"),
                 I("app.commandPalette"),
             ]
             .into_iter()
@@ -502,6 +522,10 @@ fn item(e: &Engine, id: &str, label: Option<&str>, params: Json) -> Json {
         "help.enableLogging" => Json::Bool(e.prefs.get("logging.enabled").and_then(Json::as_bool).unwrap_or(false)),
         "file.useProxy" => Json::Bool(e.state.project_selection.iter().any(|i| e.project.item(*i).and_then(|it| it.proxy.as_ref()).is_some_and(|p| p.enabled))),
         "layer.mask.hideLocked" => Json::Bool(e.state.hide_locked_masks),
+        "view.extendedViewer" => Json::Bool(e.state.viewer.extended),
+        "view.shareViewOptions" => Json::Bool(e.state.viewer.share_view_options),
+        "playback.scrubAudio" => Json::Bool(e.state.viewer.scrub_audio),
+        "view.fastPreviewMode" => Json::Bool(params.get("mode").and_then(Json::as_str) == Some(e.state.viewer.fast_previews.as_str())),
         "layer.markersLock" => Json::Bool(e.state.active_comp.and_then(|c| e.project.comp(c)).is_some_and(|c| !e.state.selected_layers.is_empty() && e.state.selected_layers.iter().all(|l| c.layer(*l).is_some_and(|l| l.switches.markers_locked)))),
         _ if id.starts_with("view.3d.") && id != "view.3d.last" => Json::Bool(e.state.active_comp.is_some_and(|c| super::cmd::view3d::current(e, c) == &id[8..])),
         _ => Json::Null,

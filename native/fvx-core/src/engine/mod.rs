@@ -49,11 +49,30 @@ pub struct ViewerState {
     pub display_cm: bool,
     pub simulate: String,
     pub preserve_rgb: bool,
+    pub custom_rgb: [bool; 3],
+    pub fast_previews: String,
+    pub extended: bool,
+    pub share_view_options: bool,
+    pub scrub_audio: bool,
+    pub playback: Json,
 }
 
 impl Default for ViewerState {
     fn default() -> Self {
-        ViewerState { channel: "RGB".into(), colorized: false, exposure: 0.0, display_cm: true, simulate: "none".into(), preserve_rgb: false }
+        ViewerState {
+            channel: "RGB".into(),
+            colorized: false,
+            exposure: 0.0,
+            display_cm: true,
+            simulate: "none".into(),
+            preserve_rgb: false,
+            custom_rgb: [true, true, false],
+            fast_previews: "off".into(),
+            extended: false,
+            share_view_options: true,
+            scrub_audio: true,
+            playback: json!({"includeAudio": true, "loop": true, "cacheBeforePlayback": false, "range": "workArea", "resolution": "auto", "frameRate": "auto", "skip": 0, "fullScreen": false}),
+        }
     }
 }
 

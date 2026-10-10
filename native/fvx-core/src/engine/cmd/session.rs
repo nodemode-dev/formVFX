@@ -29,6 +29,7 @@ pub struct Session {
     pub learn: super::help::Learn,
     pub last_effect: Option<String>,
     pub effect_clip: Vec<crate::model::Group>,
+    pub param_shortcuts: Vec<(String, String, Json)>,
 }
 
 fn store() -> PathBuf {

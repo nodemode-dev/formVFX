@@ -24,6 +24,7 @@ export interface SuiControl {
 export interface SuiTree {
   window: number;
   kind: string;
+  modal?: boolean;
   title: string;
   panel: string;
   orientation: string;
@@ -34,6 +35,7 @@ type Field = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;
 
 class SuiWindow {
   readonly root: HTMLElement;
+  private scrim: HTMLElement | null = null;
   private readonly body: HTMLElement;
   private readonly titleEl: HTMLElement;
   private readonly nodes = new Map<number, HTMLElement>();
@@ -54,7 +56,14 @@ class SuiWindow {
     this.root.style.left = `${Math.max(16, Math.round(window.innerWidth / 2 - 180 + n * 24))}px`;
     this.root.style.top = `${Math.max(56, Math.round(window.innerHeight / 3 + n * 24))}px`;
     this.patch(tree);
-    document.getElementById('overlay-root')?.appendChild(this.root);
+    const host = document.getElementById('overlay-root');
+    if (tree.modal) {
+      this.scrim = el('<div class="fx-sui-scrim" data-automation-id="scriptui.scrim"></div>');
+      this.root.classList.add('is-modal');
+      this.root.setAttribute('aria-modal', 'true');
+      host?.appendChild(this.scrim);
+    }
+    host?.appendChild(this.root);
   }
 
   private drag(head: HTMLElement): void {
@@ -216,6 +225,7 @@ class SuiWindow {
   }
 
   destroy(): void {
+    this.scrim?.remove();
     this.root.remove();
   }
 }

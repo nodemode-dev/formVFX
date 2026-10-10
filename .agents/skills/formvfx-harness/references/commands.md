@@ -2,11 +2,11 @@
 
 Generated from the formvfx engine by `./formvfx agents sync`; do not edit by hand.
 
-657 commands in 54 namespaces. Every menu item, button and drag in formvfx is one of these. Run one with `execute {command, params}` over MCP, inside `batch` for several as one undo step, or `formvfx exec ID 'JSON'` from a shell. `describe_command ID` returns the JSON Schema. In the parameter summaries `?` marks an optional parameter, `a|b` lists the accepted values, and `layers?`/`layer?` default to the selected layers. Times are composition seconds unless the summary says layer seconds.
+682 commands in 56 namespaces. Every menu item, button and drag in formvfx is one of these. Run one with `execute {command, params}` over MCP, inside `batch` for several as one undo step, or `formvfx exec ID 'JSON'` from a shell. `describe_command ID` returns the JSON Schema. In the parameter summaries `?` marks an optional parameter, `a|b` lists the accepted values, and `layers?`/`layer?` default to the selected layers. Times are composition seconds unless the summary says layer seconds.
 
 ## Contents
 
-`file` (58) `edit` (26) `project` (11) `item` (1) `footage` (9) `comp` (26) `layer` (113) `prop` (17) `keys` (34) `anim` (8) `time` (13) `markers` (5) `effect` (17) `mask` (17) `path` (6) `paths` (3) `shape` (6) `text` (15) `camera` (19) `light` (3) `material` (4) `track` (22) `warp` (3) `roto` (14) `paint` (6) `puppet` (10) `liquify` (2) `contentFill` (2) `face` (5) `essential` (27) `expr` (1) `script` (1) `scriptui` (4) `render` (3) `renderQueue` (22) `playback` (3) `view` (52) `window` (6) `editor` (1) `cache` (2) `jobs` (3) `mediaBrowser` (7) `templates` (5) `prefs` (5) `shortcuts` (7) `storage` (3) `app` (12) `engine` (1) `command` (2) `motion` (1) `learn` (5) `help` (6) `clipboard` (1) `color` (2)
+`file` (58) `edit` (26) `project` (11) `item` (1) `footage` (9) `comp` (26) `layer` (113) `prop` (17) `keys` (34) `anim` (8) `time` (13) `markers` (5) `effect` (17) `mask` (17) `path` (6) `paths` (3) `shape` (6) `text` (15) `camera` (19) `light` (3) `material` (4) `track` (22) `warp` (3) `roto` (14) `paint` (6) `puppet` (10) `liquify` (2) `contentFill` (2) `face` (5) `essential` (27) `expr` (2) `script` (1) `scriptui` (7) `render` (4) `renderQueue` (22) `playback` (6) `view` (61) `window` (8) `editor` (1) `scopes` (1) `cache` (2) `jobs` (3) `mediaBrowser` (7) `templates` (5) `prefs` (5) `shortcuts` (7) `storage` (3) `app` (12) `engine` (1) `command` (2) `motion` (1) `learn` (5) `help` (6) `clipboard` (1) `color` (2) `extensions` (5)
 
 ## file
 
@@ -1050,6 +1050,8 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 
 - `expr.errors` Expression errors (the error bar)
   `{comp?, time? (s)}`
+- `expr.languageMenu` Expression Language Menu
+  `{} -> {categories: [{name, items}]}`
 
 ## script
 
@@ -1065,6 +1067,12 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `{window}`
 - `scriptui.openPanel` Open ScriptUI Panel
   `{name (an installed ScriptUI panel)}`
+- `scriptui.get` Script Window Controls
+  `{window? (id or title; default all)} -> each control's id, type, text, value, items and selection`
+- `scriptui.set` Set Script Window Control
+  `{window?, control (id, name or text), text?, value?, selection?, notify?: bool (run onChange, default true)}`
+- `scriptui.click` Click Script Window Control
+  `{window?, control (id, name or text)} · a button's onClick, or OK and Cancel closing a dialog`
 
 ## render
 
@@ -1074,6 +1082,8 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `{comp?, output?: path|template, format?} -> a Render Queue item with the Pre-render templates that imports the result and replaces the composition's usage`
 - `render.saveCurrentPreview` Save Current Preview · Composition
   `{comp?, path (.mp4 or .mov), resolution?} -> renders the work area now`
+- `render.backend` Video Rendering and Effects
+  `{backend?: gpu|cpu (omit to read)} -> {backend, gpu, gpuAvailable}`
 
 ## renderQueue
 
@@ -1125,6 +1135,12 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `{value?: include audio in previews}`
 - `playback.cacheWhenIdle` Cache Frames When Idle · Composition > Preview
   `{value?}`
+- `playback.scrubAudio` Scrub Audio · Composition > Preview
+  `{value?: bool} · plays a short slice of audio while dragging the time`
+- `playback.settings.get` Preview Settings
+  `{} -> {includeAudio, loop, cacheBeforePlayback, range, resolution, frameRate, skip, fullScreen, scrubAudio, fastPreviews}`
+- `playback.settings.set` Change Preview Settings
+  `{includeAudio?, loop?, cacheBeforePlayback?, range?: workArea|workAreaExtended|comp|aroundCurrent|playFromCurrent, resolution?: auto|full|half|third|quarter, frameRate?: auto|fps, skip?: frames, fullScreen?, scrubAudio?}`
 
 ## view
 
@@ -1221,6 +1237,24 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 - `view.res.quarter` Quarter · View > Resolution · Cmd+Alt+Shift+J
 - `view.res.custom` Custom · View > Resolution
   `{factor?: 1..40 (render every n-th pixel)}`
+- `view.exposure` Adjust Exposure
+  `{value? (stops) | delta?} · the viewer only, never the render`
+- `view.customRgb` My Custom RGB
+  `{red?, green?, blue?: bool, show?: bool (default true: switches the viewer to Custom)}`
+- `view.displayColor` Viewer Color State
+  `{} -> {channel, customRgb, exposure, displayColorManagement, simulateOutput, fastPreviews, workingSpace}`
+- `view.extendedViewer` Extended Viewer · View
+  `{value?: bool (default toggle)} · the composition frame alone in its own window, for a second display`
+- `view.fastPreviewMode` Fast Previews
+  `{mode: off|adaptive|draft|fastDraft|wireframe}`
+- `view.moveGuide` Move Guide
+  `{comp?, index (0-based), position (px)}`
+- `view.removeGuide` Remove Guide
+  `{comp?, index}`
+- `view.shareViewOptions` Share View Options · View > Switch View Layout
+  `{value?: bool}`
+- `view.assign3dShortcut` Assign Shortcut to 3D View · View > Assign Shortcut
+  `{view (front, left, top, back, right, bottom, custom1-3, activeCamera), key: F10|F11|F12}`
 
 ## window
 
@@ -1234,11 +1268,20 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `{name}`
 - `window.editWorkspaces` Edit Workspaces · Window > Workspace
   `{name, rename?: new name, delete?: bool}`
+- `window.assignWorkspaceShortcut` Assign Shortcut to Workspace · Window > Assign Shortcut
+  `{name (workspace), key: Shift+F10|Shift+F11|Shift+F12}`
+- `window.scriptPanel` ScriptUI Panel
+  `{name (an installed ScriptUI panel)}`
 
 ## editor
 
 - `editor.state` Editor State
   `{} -> {project, activeComp, openComps, time, selection, viewer, footagePanel, mediaBrowser, learn, jobs, undo, redo}`
+
+## scopes
+
+- `scopes.analyze` Lumetri Scopes
+  `{comp?, time?, scope?: all|histogram|waveform|parade|vectorscope, maxSide?, columns?, levels?, vectorscopeSize?} -> Rec. 709 histograms, waveform, parade, vectorscope and luma stats of the frame`
 
 ## cache
 
@@ -1394,3 +1437,16 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `{config? (.ocio path; empty for the project's)} · working spaces, profiles, OCIO colour spaces, displays, views, looks and roles`
 - `color.convert` Convert Colours
   `{values: [[r,g,b]...], src?, dst?, display?, view?, looks?, inverse?: bool, config?} · converts through formvfx's profiles or the OCIO config`
+
+## extensions
+
+- `extensions.list` Extensions
+  `{} -> {folder, extensions: [{id, name, main, width, height, kind: cep|formvfx}]}`
+- `extensions.install` Install Extension · Window > Extensions
+  `{path (an extension folder with CSXS/manifest.xml or manifest.json, or a .zxp or .zip of one)}`
+- `extensions.uninstall` Uninstall Extension
+  `{id}`
+- `extensions.open` Open Extension
+  `{id} · docks the extension's HTML panel`
+- `extensions.evalScript` Evaluate Script for an Extension
+  `{script, extension?} -> {result (a string, as CSInterface.evalScript gives it)}`

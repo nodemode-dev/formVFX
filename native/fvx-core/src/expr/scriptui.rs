@@ -58,6 +58,8 @@ struct Win {
     shown: bool,
     dirty: bool,
     closed: bool,
+    modal: bool,
+    result: Option<f64>,
 }
 
 #[derive(Default)]
@@ -68,6 +70,123 @@ struct Store {
 
 thread_local! {
     static STORE: RefCell<Store> = RefCell::new(Store::default());
+    static REPLAY: RefCell<Option<Replay>> = const { RefCell::new(None) };
+    static PENDING: RefCell<Option<Pending>> = const { RefCell::new(None) };
+}
+
+pub const SUSPEND: &str = "\u{0}formvfx: waiting for a modal dialog";
+
+#[derive(Clone, Default)]
+pub struct Answer {
+    result: f64,
+    ctls: Vec<(u64, String, f64, Option<usize>)>,
+}
+
+struct Replay {
+    answers: Vec<Answer>,
+    cursor: usize,
+    first_window: u64,
+    suspended: Option<u64>,
+}
+
+pub struct Pending {
+    pub code: String,
+    pub file: String,
+    pub window: u64,
+    pub answers: Vec<Answer>,
+    pub closed: Option<Answer>,
+}
+
+pub fn begin_run(answers: Vec<Answer>) {
+    let first = STORE.with(|s| s.borrow().next + 1);
+    REPLAY.with(|r| *r.borrow_mut() = Some(Replay { answers, cursor: 0, first_window: first, suspended: None }));
+}
+
+pub fn end_run() -> Option<(u64, u64, Vec<Answer>)> {
+    let r = REPLAY.with(|r| r.borrow_mut().take())?;
+    let w = r.suspended?;
+    Some((w, r.first_window, r.answers))
+}
+
+pub fn suspend(code: String, file: String, window: u64, first_window: u64, answers: Vec<Answer>) {
+    STORE.with(|s| {
+        let mut s = s.borrow_mut();
+        s.wins.retain(|id, _| *id < first_window || *id == window);
+        if let Some(win) = s.wins.get_mut(&window) {
+            win.modal = true;
+            win.shown = true;
+            win.dirty = true;
+        }
+    });
+    PENDING.with(|p| *p.borrow_mut() = Some(Pending { code, file, window, answers, closed: None }));
+}
+
+pub fn pending_window() -> Option<u64> {
+    PENDING.with(|p| p.borrow().as_ref().map(|x| x.window))
+}
+
+pub fn take_resumable() -> Option<Pending> {
+    PENDING.with(|p| {
+        let ready = p.borrow().as_ref().is_some_and(|x| x.closed.is_some());
+        if ready { p.borrow_mut().take() } else { None }
+    })
+}
+
+pub fn answer_of(p: &Pending) -> Vec<Answer> {
+    let mut a = p.answers.clone();
+    if let Some(x) = &p.closed {
+        a.push(x.clone());
+    }
+    a
+}
+
+fn capture(win: &Win, result: f64) -> Answer {
+    Answer { result, ctls: win.ctls.iter().filter(|c| c.id != 0).map(|c| (c.id, c.text.clone(), c.value, c.selection)).collect() }
+}
+
+fn closed_modal(w: u64, result: f64) {
+    if pending_window() != Some(w) {
+        return;
+    }
+    let ans = STORE.with(|s| s.borrow().wins.get(&w).map(|win| capture(win, result)));
+    PENDING.with(|p| {
+        if let Some(x) = p.borrow_mut().as_mut() {
+            x.closed = Some(ans.unwrap_or_default());
+        }
+    });
+}
+
+pub fn default_button(w: u64, c: u64) -> Option<f64> {
+    STORE.with(|s| {
+        let s = s.borrow();
+        let win = s.wins.get(&w).filter(|x| x.kind == "dialog")?;
+        let ctl = win.ctls.iter().find(|x| x.id == c && x.kind == "button" && !x.handlers.contains_key("onClick"))?;
+        let (n, t) = (ctl.name.to_ascii_lowercase(), ctl.text.to_ascii_lowercase());
+        if n == "ok" || t == "ok" {
+            Some(1.0)
+        } else if n == "cancel" || t == "cancel" {
+            Some(2.0)
+        } else {
+            None
+        }
+    })
+}
+
+pub fn close_with(w: u64, result: f64) -> Option<V> {
+    let h = STORE.with(|s| {
+        let mut s = s.borrow_mut();
+        let win = s.wins.get_mut(&w)?;
+        win.result = Some(result);
+        win.ctls.first().and_then(|r| r.handlers.get("onClose").cloned())
+    });
+    closed_modal(w, result);
+    STORE.with(|s| {
+        if let Some(win) = s.borrow_mut().wins.get_mut(&w) {
+            win.closed = true;
+            win.dirty = true;
+        }
+    });
+    h
 }
 
 const CONTAINERS: [&str; 5] = ["window", "group", "panel", "tabbedpanel", "tab"];
@@ -110,7 +229,7 @@ fn new_window(kind: &str, title: &str, panel: &str) -> u64 {
         let mut root = Ctl::new(0, 0, "window");
         root.text = title.to_string();
         root.extra.insert("orientation".into(), V::Str(Rc::from("column")));
-        s.wins.insert(id, Win { kind: kind.to_string(), title: title.to_string(), panel: panel.to_string(), ctls: vec![root], next: 1, shown: false, dirty: true, closed: false });
+        s.wins.insert(id, Win { kind: kind.to_string(), title: title.to_string(), panel: panel.to_string(), ctls: vec![root], next: 1, shown: false, dirty: true, closed: false, modal: false, result: None });
         id
     })
 }
@@ -132,6 +251,47 @@ pub fn construct(it: &mut Interp, name: &str, a: Vec<V>) -> R {
     Ok(hv(H::Window(id)))
 }
 
+pub fn modal_active() -> bool {
+    REPLAY.with(|r| r.borrow().is_some())
+}
+
+pub fn ask(it: &mut Interp, prompt: bool, title: &str, message: &str, default: &str) -> R {
+    let w = new_window("dialog", title, "");
+    STORE.with(|s| {
+        if let Some(win) = s.borrow_mut().wins.get_mut(&w) {
+            let mut text = Ctl::new(1, 0, "statictext");
+            text.text = message.to_string();
+            win.ctls.push(text);
+            let mut field = Ctl::new(2, 0, if prompt { "edittext" } else { "group" });
+            field.text = default.to_string();
+            field.name = "value".into();
+            win.ctls.push(field);
+            let mut row = Ctl::new(3, 0, "group");
+            row.extra.insert("orientation".into(), V::Str(Rc::from("row")));
+            win.ctls.push(row);
+            let mut ok = Ctl::new(4, 3, "button");
+            ok.text = if prompt { "OK".into() } else { "Yes".into() };
+            ok.name = "ok".into();
+            win.ctls.push(ok);
+            let mut cancel = Ctl::new(5, 3, "button");
+            cancel.text = if prompt { "Cancel".into() } else { "No".into() };
+            cancel.name = "cancel".into();
+            win.ctls.push(cancel);
+            win.next = 6;
+        }
+    });
+    let r = w_show(it, &ctl_v(w, 0), vec![])?;
+    let ok = matches!(r, V::Num(n) if n == 1.0);
+    if !prompt {
+        return Ok(V::Bool(ok));
+    }
+    if !ok {
+        return Ok(V::Null);
+    }
+    let text = STORE.with(|s| s.borrow().wins.get(&w).and_then(|x| x.ctls.iter().find(|c| c.id == 2).map(|c| c.text.clone()))).unwrap_or_default();
+    Ok(s(&text))
+}
+
 pub fn panel_window(name: &str) -> u64 {
     new_window("panel", name, name)
 }
@@ -143,6 +303,10 @@ fn with_ctl<T>(w: u64, c: u64, f: impl FnOnce(&mut Ctl) -> T) -> Result<T, Flow>
         let ctl = win.ctls.iter_mut().find(|x| x.id == c).ok_or_else(|| throw("Error", "this control has been removed"))?;
         Ok(f(ctl))
     })
+}
+
+pub fn touch_window(w: u64) {
+    touch(w);
 }
 
 fn touch(w: u64) {
@@ -328,6 +492,54 @@ fn this_ids(this: &V) -> Result<(u64, u64), Flow> {
 
 fn w_show(_: &mut Interp, this: &V, _: Vec<V>) -> R {
     let (w, _) = this_ids(this)?;
+    let dialog = STORE.with(|s| s.borrow().wins.get(&w).is_some_and(|x| x.kind == "dialog"));
+    if dialog && REPLAY.with(|r| r.borrow().is_some()) {
+        let next = REPLAY.with(|r| {
+            let mut r = r.borrow_mut();
+            let rp = r.as_mut()?;
+            let a = rp.answers.get(rp.cursor).cloned();
+            match a {
+                Some(a) => {
+                    rp.cursor += 1;
+                    Some(Ok(a))
+                }
+                None => {
+                    rp.suspended = Some(w);
+                    Some(Err(()))
+                }
+            }
+        });
+        match next {
+            Some(Ok(a)) => {
+                STORE.with(|s| {
+                    if let Some(win) = s.borrow_mut().wins.get_mut(&w) {
+                        for (id, text, value, sel) in &a.ctls {
+                            if let Some(c) = win.ctls.iter_mut().find(|c| c.id == *id) {
+                                c.text = text.clone();
+                                c.value = *value;
+                                c.selection = *sel;
+                            }
+                        }
+                        win.closed = true;
+                        win.shown = false;
+                        win.result = Some(a.result);
+                    }
+                });
+                return Ok(V::Num(a.result));
+            }
+            Some(Err(())) => {
+                STORE.with(|s| {
+                    if let Some(win) = s.borrow_mut().wins.get_mut(&w) {
+                        win.shown = true;
+                        win.modal = true;
+                        win.dirty = true;
+                    }
+                });
+                return Err(Flow::Fatal(SUSPEND.to_string()));
+            }
+            None => {}
+        }
+    }
     STORE.with(|s| {
         if let Some(win) = s.borrow_mut().wins.get_mut(&w) {
             win.shown = true;
@@ -337,8 +549,18 @@ fn w_show(_: &mut Interp, this: &V, _: Vec<V>) -> R {
     Ok(V::Num(1.0))
 }
 
-fn w_close(it: &mut Interp, this: &V, _: Vec<V>) -> R {
+fn w_close(it: &mut Interp, this: &V, a: Vec<V>) -> R {
     let (w, _) = this_ids(this)?;
+    let result = match arg(&a, 0) {
+        V::Undef | V::Null => 1.0,
+        v => it.to_number(&v)?,
+    };
+    closed_modal(w, result);
+    STORE.with(|s| {
+        if let Some(win) = s.borrow_mut().wins.get_mut(&w) {
+            win.result = Some(result);
+        }
+    });
     let handler = STORE.with(|s| {
         let mut s = s.borrow_mut();
         let win = s.wins.get_mut(&w)?;
@@ -560,6 +782,7 @@ fn tree(w: u64, win: &Win) -> Json {
     json!({
         "window": w,
         "kind": win.kind,
+        "modal": win.modal,
         "title": win.title,
         "panel": win.panel,
         "orientation": root.and_then(|r| r.extra.get("orientation")).map(plain_string).unwrap_or_else(|| "column".into()),
@@ -645,12 +868,29 @@ pub fn control(w: u64, c: u64) -> V {
 }
 
 pub fn close(w: u64) -> Option<V> {
+    closed_modal(w, 2.0);
     STORE.with(|s| {
         let mut s = s.borrow_mut();
         let win = s.wins.get_mut(&w)?;
         win.closed = true;
         win.ctls.first().and_then(|r| r.handlers.get("onClose").cloned())
     })
+}
+
+pub fn find_control(w: u64, key: &Json) -> Option<u64> {
+    STORE.with(|s| {
+        let s = s.borrow();
+        let win = s.wins.get(&w)?;
+        match key {
+            Json::Number(n) => n.as_u64().filter(|id| win.ctls.iter().any(|c| c.id == *id)),
+            Json::String(t) => win.ctls.iter().find(|c| c.id != 0 && (c.name == *t || c.text == *t)).map(|c| c.id),
+            _ => None,
+        }
+    })
+}
+
+pub fn windows() -> Vec<(u64, String, String)> {
+    STORE.with(|s| s.borrow().wins.iter().filter(|(_, w)| !w.closed && w.shown).map(|(id, w)| (*id, w.title.clone(), w.panel.clone())).collect())
 }
 
 pub fn show(w: u64) {
