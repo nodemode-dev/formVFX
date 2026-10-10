@@ -31,6 +31,8 @@ Tools report what they did; only pixels show what it looks like. Every claim abo
 
 ## Reading a frame
 
+For numbers rather than looks, `scopes.analyze {comp, time, scope: histogram|waveform|parade|vectorscope}` gives the frame's Rec. 709 luma range and mean, clipped blacks and whites, per-channel histograms and the vectorscope: a grade that clips shows `clippedWhite` above a few percent, a colour cast shows the channel means apart.
+
 Look for: text cut by the frame edge or overlapping other text; elements at the wrong layer order; a layer missing because it is outside its in and out points, invisible (`video` switch off), behind the camera, or used as a track matte; colours that are flat because a glow or grade is too strong; motion that pops because a key is `hold` or linear where an ease was intended.
 
 ## When a frame is wrong

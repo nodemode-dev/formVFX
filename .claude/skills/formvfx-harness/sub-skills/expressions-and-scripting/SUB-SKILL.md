@@ -59,7 +59,11 @@ comp.numLayers;
 
 ## ScriptUI
 
-`new Window("palette", "Title")` with `add("button" | "statictext" | "edittext" | "checkbox" | "radiobutton" | "slider" | "progressbar" | "dropdownlist" | "listbox" | "group" | "panel", ...)` and `onClick`, `onChange` or `onChanging` handlers, then `show()`, opens a tool window in the formvfx interface; each handler runs later, when the person uses the control, as its own undo step. `show()` returns at once (dialogs are not modal), so read the controls inside the handlers. Scripts installed with `file.installScript` appear in File > Scripts; panels installed with `file.installScriptUIPanel` appear in the Window menu, where `this` is the Panel.
+`new Window("palette", "Title")` with `add("button" | "statictext" | "edittext" | "checkbox" | "radiobutton" | "slider" | "progressbar" | "dropdownlist" | "listbox" | "group" | "panel", ...)` and `onClick`, `onChange` or `onChanging` handlers, then `show()`, opens a tool window in the formvfx interface; each handler runs later, when the person uses the control, as its own undo step, and a palette's `show()` returns at once.
+
+`new Window("dialog", ...)` is modal, as in After Effects: `show()` waits until the dialog is answered and returns 1 (OK), 2 (Cancel or the close box) or the number passed to `close(n)`, with the edited values in the controls; `confirm()` and `prompt()` wait the same way. While a script waits, `script.run` answers `{suspended: true, dialog}` and nothing it did yet is kept. To answer it yourself: `scriptui.get` lists the controls, `scriptui.set {control: name|text|id, text|value|selection}` fills them, `scriptui.click {control: "OK"}` presses a button, and the script then finishes as one undo step (its result is in `resumed`). Code before `show()` runs twice (once before the wait, again after), so keep file writes after it.
+
+CEP extensions (a folder with `CSXS/manifest.xml`, or a `.zxp`) install with `extensions.install {path}` and open with `extensions.open {id}` as panels; `extensions.evalScript {script}` runs ExtendScript the way the panel's `CSInterface.evalScript` does and returns the result as a string. Scripts installed with `file.installScript` appear in File > Scripts; panels installed with `file.installScriptUIPanel` appear in the Window menu, where `this` is the Panel.
 
 ## Check
 

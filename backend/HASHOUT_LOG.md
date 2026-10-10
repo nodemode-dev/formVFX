@@ -51,6 +51,10 @@ Living context for the engine service. Code carries almost no comments; the reas
 - Engine commands that cannot do something yet raise a sentence ("... is not in formvfx yet"); the RPC layer passes it through like any command error.
 - `.ecproj` and `.ecprojx` projects from earlier formvfx releases open as imports; saving always writes `.fvxproj`.
 
+## Extensions (0.28.0)
+
+- `routers/extensions.py` serves an installed CEP extension's files at `/api/extensions/[folder]/[path]`. The folder must be one `extensions.list` reports, and the resolved path must stay inside it. HTML pages get the `__adobe_cep__` and `CSInterface` shim injected after `head`, so a panel that ships its own `CSInterface.js` still finds the bridge it calls; `/api/extensions/_csinterface.js` serves the fallback alone for panels that load it by path.
+
 ## Known gaps
 
 - None recorded at 0.3.0; the desktop sidecar freeze and the Tauri shell shipped in 0.2.0.

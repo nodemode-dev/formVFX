@@ -137,6 +137,12 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - The Media Browser keys rows on the path with `patchList`; selecting a row toggles a class on the existing rows only. Folder changes repaint through the same list.
 - The tutorial coach is one card built on first use in the overlay root at `--z-companion` (above the home screen, below dialogs) and updated in place from the engine's `learn.update` event; the step's target is outlined by adding a class to an element found by automation id (`panel.<id>` for panels), removed when the step moves on.
 
+## Modal dialogs, extension panels and the Extended Viewer (0.28.0)
+
+- A modal ScriptUI window is the palette's window element with `is-modal`, plus a scrim node appended to the overlay root just before it; closing removes both, so nothing else in the shell repaints.
+- Extension panels are floating windows from `ExtensionHost`, one per extension id; opening an id already open focuses it, and closing removes the window and its iframe. Messages from a frame are trusted only when `event.source` is that frame's window; `csi-eval` goes to the engine and the string result goes back with the request id.
+- The Extended Viewer is `?extended=1` in a named popup: `main.ts` branches before the shell mounts, so the popup never builds the editor. It draws into one canvas sized to the window and letterboxes the frame; the frame stays until the next arrives, so scrubbing never shows black. On `view.extendedViewer {open: false}` both the opener and the popup itself close it, since a browser may not schedule a background opener promptly while the popup has focus. In a headless test, wait for the popup's close event; `is_closed()` read right after the command reports late.
+
 ## Boot ground
 
 - The critical style paints only `html` (`#0a0a0a`, then the boot script's profile ground); `body` is transparent until `tokens.css` gives it `--bg-primary`. Painting `body` too showed `#0a0a0a` for the first frames before the Studio ground `#111111`.
