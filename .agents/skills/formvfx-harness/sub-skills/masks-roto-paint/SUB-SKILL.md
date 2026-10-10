@@ -16,6 +16,9 @@ description: Isolating and drawing on layers in formvfx. Use for masks (rectangl
 | Invert, lock, remove | `layer.mask.invert`, `layer.mask.lock`, `layer.mask.remove`, `layer.mask.removeAll` |
 | Edit vertices | `mask.setVertex`, `mask.addVertex`, `mask.moveVertices {vertices, delta}`, `mask.convertVertex`, `path.freeTransform {layer, mask, scale, rotation, offset}` |
 | Variable feather | `mask.featherPoint.add {layer, mask, segment, t, radius}` |
+| Masks from the picture | `layer.autoTrace {layer, channel: alpha|luminance|red|green|blue, threshold, tolerance, timeSpan: currentFrame|workArea}` |
+| Smooth curves, first vertex | `path.rotoBezier {layer, mask, value}`, `path.setFirstVertex {layer, mask, index}`; `path.convertToBezier {layer, prop}` turns a shape layer's rectangle, ellipse or star into an editable path |
+| Nulls on a path | `paths.pointsFollowNulls`, `paths.nullsFollowPoints`, `paths.tracePath {layer, mask, loop}` |
 
 Coordinates are the layer's own pixels: for a full-frame solid that equals composition pixels; for text the origin is the text's anchor point; for a shape layer, its anchor.
 

@@ -31,6 +31,8 @@ Values to know:
 | Order (the stack renders top to bottom) | `effect.reorder {layer, effect, index}` (1-based) |
 | Reset, remove | `effect.reset`, `effect.remove {layer, effect}`; `effect.removeAll {layers}` |
 | Same effect on many layers | `effect.apply {effect, layers: [...]}` |
+| Move effects between layers | `effect.copy {layer, effects}`, then `effect.paste {layers}`; `effect.duplicate {layer, effect}`; `effect.applyLast {layers}` repeats the last applied effect |
+| A colour from the picture | `effect.pickColor {layer, effect, param, x, y, average}` |
 
 ## Curl Noise
 

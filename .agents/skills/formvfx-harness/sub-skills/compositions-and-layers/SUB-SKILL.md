@@ -52,7 +52,12 @@ Trimming before editing in: `footage.open {item}`, `footage.setIn {time}` and `f
 | Speed | `layer.timeStretch {layers, percent}` (200 is half speed), `layer.timeReverse {layers}` |
 | Rename | `layer.rename {layer, name}` |
 | Align or distribute in the frame | `layer.align {edge: left|hcenter|right|top|vcenter|bottom, to: composition|selection, layers}`, `layer.distribute {mode, layers}` |
-| Centre, fit, flip | `set_property` on `transform/position` (the composition centre), `transform/scale` (fit is the composition size over the layer size; a negative x or y flips) and `transform/anchor` |
+| Centre, fit, flip | `layer.transform {layers, op: reset|center|fit|fitWidth|fitHeight|flipH|flipV}`; `layer.centerAnchor {layers}` puts the anchor at the content's centre without moving it |
+| Slip footage or a precomp under fixed in and out points | `layer.slip {layers, delta}` (seconds) or `{frames}` |
+| Cut the work area out | `comp.workArea {start, end}`, then `edit.liftWorkArea {layers}` (leaves a gap) or `edit.extractWorkArea {layers}` (closes it) |
+| Cuts in a clip | `layer.sceneEditDetection {layer, mode: markers|split|splitPrecompose, wait: true}` |
+| Line a clip up with a data file's clock | `layer.alignVideoToData {layer, data (CSV or JSON), videoStart}` |
+| Linked copies | `edit.copyWithPropertyLinks` (or `edit.copyWithRelativePropertyLinks`) then `edit.paste`: the copy's properties follow the original by expression |
 
 ## Selection-based edits
 
