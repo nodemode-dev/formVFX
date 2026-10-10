@@ -40,7 +40,50 @@ pub fn specs() -> Vec<EffectSpec> {
         ],
         render,
         pad: super::no_pad,
+    },
+    EffectSpec {
+        id: "fx.noise.curlDisplace",
+        name: "Curl Noise",
+        category: "Noise & Grain",
+        params: vec![
+            num("amount", "Displacement", 40.0, 0.0, 2000.0, 0.0, 300.0),
+            num("size", "Size", 200.0, 2.0, 10000.0, 10.0, 1000.0),
+            point("offset", "Offset", 0.5, 0.5),
+            num("complexity", "Complexity", 3.0, 1.0, 10.0, 1.0, 8.0),
+            angle("evolution", "Evolution", 0.0),
+            num("speed", "Evolution Speed", 0.0, -3600.0, 3600.0, -360.0, 360.0),
+            num("seed", "Random Seed", 0.0, 0.0, 100_000.0, 0.0, 1000.0),
+            popup("edges", "Edge Pixels", 0, &["Repeat", "Transparent"]),
+        ],
+        render: curl_displace,
+        pad: |c| c.f("amount").abs(),
     }]
+}
+
+fn curl_displace(c: &FxCtx, img: &mut Img) {
+    let amt = c.px(c.f("amount"));
+    let size = c.px(c.f("size")).max(1.0);
+    let off = c.pt("offset");
+    let oct = c.f("complexity").round().clamp(1.0, 10.0) as usize;
+    let evo = ((c.f("evolution") + c.f("speed") * c.comp_time()) / 360.0) as f32;
+    let seed = c.f("seed").max(0.0) as u32;
+    let clamp = c.e("edges") == 0;
+    let field = |u: f32, v: f32| {
+        let (mut s, mut a, mut f) = (0.0f32, 1.0f32, 1.0f32);
+        for o in 0..oct {
+            s += super::util::perlin3(u * f, v * f, evo + o as f32 * 3.7, seed.wrapping_add(o as u32 * 131)) * a;
+            a *= 0.5;
+            f *= 2.0;
+        }
+        s
+    };
+    let h = 0.01f32;
+    super::util::remap(img, clamp, |px, py| {
+        let (u, v) = (((px - off[0]) / size) as f32, ((py - off[1]) / size) as f32);
+        let dy = (field(u, v + h) - field(u, v - h)) / (2.0 * h);
+        let dx = (field(u + h, v) - field(u - h, v)) / (2.0 * h);
+        Some([px - amt * dy as f64, py + amt * dx as f64])
+    });
 }
 
 fn grad(h: u32, x: f64, y: f64, z: f64) -> f64 {

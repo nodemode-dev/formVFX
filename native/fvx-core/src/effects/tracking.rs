@@ -2,7 +2,7 @@ use super::{EffectSpec, FxCtx, ParamSpec, check, grp, hidden, no_pad, num, point
 use crate::render::{camsolve, face, stabilize};
 use crate::render::image::Img;
 
-pub const CAT: &str = "Face Tracking";
+pub const CAT: &str = "Utility";
 
 fn pass(_: &FxCtx, _: &mut Img) {}
 

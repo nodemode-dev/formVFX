@@ -2476,7 +2476,7 @@ fn this_group(this: &V) -> Result<(u64, u64, u64), Flow> {
     }
 }
 
-fn shape_kind(name: &str) -> Option<&'static str> {
+pub fn shape_kind(name: &str) -> Option<&'static str> {
     Some(match name {
         "ADBE Vector Group" => "group",
         "ADBE Vector Shape - Rect" => "rect",
@@ -2501,7 +2501,7 @@ fn shape_kind(name: &str) -> Option<&'static str> {
     })
 }
 
-fn new_uid(r: &Json) -> Option<u64> {
+pub fn new_uid(r: &Json) -> Option<u64> {
     ["uid", "mask", "animator", "selector", "effect", "prop", "property", "group"].iter().find_map(|k| r.get(*k).and_then(Json::as_u64)).or_else(|| r.get("applied").and_then(Json::as_array).and_then(|a| a.first()).and_then(|x| x.get("uid")).and_then(Json::as_u64))
 }
 
@@ -2556,7 +2556,7 @@ fn group_add_property(it: &mut Interp, this: &V, a: Vec<V>) -> R {
     })
 }
 
-fn text_prop_alias(name: &str) -> String {
+pub fn text_prop_alias(name: &str) -> String {
     let n = name.strip_prefix("ADBE Text ").unwrap_or(name);
     let k = match n {
         "Position 3D" | "Position" => "position",
@@ -2568,7 +2568,7 @@ fn text_prop_alias(name: &str) -> String {
         "Fill Color" => "fillColor",
         "Stroke Color" => "strokeColor",
         "Stroke Width" => "strokeWidth",
-        "Tracking Amount" | "Tracking" => "tracking",
+        "Tracking Amount" | "Tracking" | "Track Type" | "Tracking Type" => "tracking",
         "Line Spacing" => "lineSpacing",
         "Character Offset" => "characterOffset",
         "Blur" => "blur",

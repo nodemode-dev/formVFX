@@ -3,7 +3,7 @@ use crate::render::image::Img;
 use crate::render::roto;
 
 pub const ID: &str = "fx.matte.rotoBrush";
-pub const MODELS: [&str; 2] = ["Classic", "MobileSAM"];
+pub const MODELS: [&str; 4] = ["Classic", "MobileSAM", "SAM 2", "SAM 2 Full Resolution"];
 
 pub fn specs() -> Vec<EffectSpec> {
     vec![EffectSpec {

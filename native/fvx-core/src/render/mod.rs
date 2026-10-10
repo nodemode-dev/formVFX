@@ -1,4 +1,5 @@
 pub mod aces;
+pub mod aep;
 pub mod analysis;
 pub mod audio;
 pub mod blend;
@@ -25,8 +26,10 @@ pub mod pdf;
 pub mod psd;
 pub mod ptload;
 pub mod puppet;
+pub mod rifx;
 pub mod roto;
 pub mod sam;
+pub mod sam2;
 pub mod model3d;
 pub mod shapeops;
 pub mod shapes;

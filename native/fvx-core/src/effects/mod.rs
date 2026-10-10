@@ -281,7 +281,7 @@ pub fn passive(id: &str) -> bool {
 }
 
 pub fn listed(e: &EffectSpec) -> bool {
-    e.category != tracking::CAT && e.id != paint::ID && e.id != roto::ID
+    !e.id.is_empty()
 }
 
 fn flat(s: &str) -> String {

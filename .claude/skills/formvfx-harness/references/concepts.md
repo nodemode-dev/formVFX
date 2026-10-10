@@ -28,7 +28,7 @@ The facts below were checked against the running engine. They are the things tha
 | path | vertices with tangents | set through `mask.*` and `shape.newPath`, not with plain numbers |
 
 - **Positions** are composition pixels for transforms, from the top-left corner. A text layer's position is its baseline at the anchor (left, centre or right by its justification), so the glyphs sit above the point.
-- **Effect point parameters** (centres, gradient start and end) are fractions of the layer: `[0, 0]` is the top-left, `[1, 1]` the bottom-right, `[0.5, 0.5]` the centre. Check the default in the effects catalogue.
+- **Effect point parameters** (centres, gradient start and end) are layer pixels, as in After Effects: a newly applied effect's centre is half the layer's width and height (`[960, 540]` on a 1920 by 1080 layer), and `get_property` shows the current value. The effects catalogue lists defaults as fractions of the layer (`[0.5, 0.5]` is the centre), which are converted to pixels when the effect is applied.
 - **Shape sizes** are pixels; a shape layer's contents are positioned relative to the layer's anchor.
 
 ## Results

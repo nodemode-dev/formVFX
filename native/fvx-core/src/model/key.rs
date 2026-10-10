@@ -171,6 +171,11 @@ impl Arc {
 
 #[allow(clippy::too_many_arguments)]
 pub fn ease_curve(t: f64, t0: f64, t1: f64, y0: f64, y1: f64, out: Option<Ease>, inn: Option<Ease>) -> f64 {
+    ease_between(t, t0, t1, y0, y1, out, inn, false)
+}
+
+#[allow(clippy::too_many_arguments)]
+fn ease_between(t: f64, t0: f64, t1: f64, y0: f64, y1: f64, out: Option<Ease>, inn: Option<Ease>, monotone: bool) -> f64 {
     let dt = t1 - t0;
     if dt <= 0.0 {
         return y1;
@@ -191,8 +196,10 @@ pub fn ease_curve(t: f64, t0: f64, t1: f64, y0: f64, y1: f64, out: Option<Ease>,
     let x1 = i0;
     let x2 = 1.0 - i1;
     let yy0 = y0;
-    let yy1 = y0 + s0 * i0 * dt;
-    let yy2 = y1 - s1 * i1 * dt;
+    let (lo, hi) = (y0.min(y1), y0.max(y1));
+    let keep = |v: f64| if monotone { v.clamp(lo, hi) } else { v };
+    let yy1 = keep(y0 + s0 * i0 * dt);
+    let yy2 = keep(y1 - s1 * i1 * dt);
     let yy3 = y1;
     let bx = |u: f64| {
         let v = 1.0 - u;
@@ -359,7 +366,7 @@ fn value_at_plain(keys: &[Key], t: f64, spatial: bool) -> Option<Value> {
         let d = if both_linear {
             arc.length * (t - a.time) / (b.time - a.time)
         } else {
-            ease_curve(t, a.time, b.time, 0.0, arc.length, side_ease(keys, i, 0, true, true), side_ease(keys, i + 1, 0, true, false))
+            ease_between(t, a.time, b.time, 0.0, arc.length, side_ease(keys, i, 0, true, true), side_ease(keys, i + 1, 0, true, false), true)
         };
         let p = arc.at_length(d);
         return Some(match a.value {

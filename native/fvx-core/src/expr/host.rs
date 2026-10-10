@@ -812,6 +812,12 @@ fn group_member(it: &mut Interp, c: u64, l: u64, u: u64, key: &str, h: &Rc<H>) -
         "active" | "enabled" => V::Bool(g.enabled),
         "propertyIndex" => V::Num(index_in_parent(layer, u) as f64),
         "propertyGroup" => native("propertyGroup", V::Host(h.clone()), prop_group),
+        "animator" if g.sub("animators").is_some() => native("animator", V::Host(h.clone()), sub_call_animators),
+        "selector" if g.sub("selectors").is_some() => native("selector", V::Host(h.clone()), sub_call_selectors),
+        "property" if g.sub("properties").is_some() => match g.sub("properties") {
+            Some(pg) => hv(H::Group(c, l, pg.uid)),
+            None => V::Undef,
+        },
         "param" | "property" | "content" => native("param", V::Host(h.clone()), group_call),
         "mask" if g.id == "masks" => native("mask", V::Host(h.clone()), group_call),
         "effect" if g.id == "effects" => native("effect", V::Host(h.clone()), group_call),
@@ -824,6 +830,28 @@ fn group_member(it: &mut Interp, c: u64, l: u64, u: u64, key: &str, h: &Rc<H>) -
 
 fn index_in_parent(layer: &Layer, uid: u64) -> usize {
     layer.props.parent_of(uid).and_then(|p| p.children.iter().position(|n| n.uid() == uid)).map(|i| i + 1).unwrap_or(0)
+}
+
+fn sub_call(it: &mut Interp, this: &V, a: Vec<V>, id: &str) -> R {
+    let V::Host(h) = this else { return Ok(V::Undef) };
+    let H::Group(c, l, u) = &**h else { return Ok(V::Undef) };
+    let (c, l, u) = (*c, *l, *u);
+    let sub = {
+        let (_, _, g) = it.cx.group_of(c, l, u).ok_or_else(missing)?;
+        g.sub(id).map(|s| s.uid)
+    };
+    let Some(su) = sub else { return Ok(V::Undef) };
+    let (_, _, sg) = it.cx.group_of(c, l, su).ok_or_else(missing)?;
+    let sg = sg.clone();
+    child_of(it, c, l, &sg, &arg(&a, 0))
+}
+
+fn sub_call_animators(it: &mut Interp, this: &V, a: Vec<V>) -> R {
+    sub_call(it, this, a, "animators")
+}
+
+fn sub_call_selectors(it: &mut Interp, this: &V, a: Vec<V>) -> R {
+    sub_call(it, this, a, "selectors")
 }
 
 fn group_call(it: &mut Interp, this: &V, a: Vec<V>) -> R {

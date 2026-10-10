@@ -39,7 +39,7 @@ Look for: text cut by the frame edge or overlapping other text; elements at the 
 
 - Nothing visible: `get_comp` (is the layer in range and on?), then `get_layer` (opacity 0, scale 0, z scale 0 on a newly 3D layer, a mask in Subtract).
 - Wrong place: positions are composition pixels from the top-left; text sits on its baseline; parented layers use the parent's space.
-- Effect does nothing: `get_layer` to check the effect is enabled and its parameters; point parameters are fractions of the layer, not pixels.
+- Effect does nothing: `get_layer` to check the effect is enabled and its parameters; point parameters are layer pixels (a centre is half the layer's width and height), not fractions.
 - An edit reverted: an expression on the property overrides its keys and value; read `expression` in `get_property`.
 - Suspect the GPU: `status` shows whether frames can go to the GPU (`gpu.enabled`, `gpu.adapter`). Render the same moment with `render_frame {backend: "cpu"}` and `{backend: "gpu"}`; the CPU compositor is the reference. If only the GPU frame is wrong, say so to the person (Settings > Memory & CPU turns the GPU off).
 

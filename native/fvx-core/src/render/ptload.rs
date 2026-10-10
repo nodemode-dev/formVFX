@@ -322,7 +322,12 @@ pub fn read(bytes: &[u8]) -> Result<HashMap<String, Tensor>, String> {
     }
     let index = bytes.get(pkl.1.offset..pkl.1.offset + pkl.1.size).ok_or("the checkpoint index is truncated")?;
     let root = unpickle(index)?;
-    let V::Dict(items) = root else { return Err("the checkpoint is not a state dict".into()) };
+    let V::Dict(mut items) = root else { return Err("the checkpoint is not a state dict".into()) };
+    if let Some(pos) = items.iter().position(|(k, v)| matches!((k, v), (V::Str(n), V::Dict(_)) if n == "model")) {
+        if let (_, V::Dict(inner)) = items.swap_remove(pos) {
+            items = inner;
+        }
+    }
     let mut out = HashMap::new();
     for (k, v) in items {
         let (V::Str(name), V::Tensor { key, offset, size, stride }) = (k, v) else { continue };

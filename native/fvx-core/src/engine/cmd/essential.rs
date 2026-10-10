@@ -510,6 +510,13 @@ fn digest(path: &str) -> String {
 
 pub fn import_template(e: &mut Engine, p: &Json) -> Res {
     let path = ps(p, "path").ok_or("pass `path` (a .fvxtemplate file)")?.to_string();
+    if is_mogrt(&path)
+        && let Some((comp, folder, name, warnings)) = super::aep::adobe_mogrt(e, &path)?
+    {
+        let mut r = finish_import(e, p, comp, folder, &name)?;
+        r["warnings"] = json!(warnings);
+        return Ok(r);
+    }
     let (doc, files) = read_template(&path)?;
     let name = doc.get("name").and_then(Json::as_str).unwrap_or("Template").to_string();
     let dir = templates_dir().join(".imported").join(format!("{}-{}", safe(&name), digest(&path)));
@@ -556,6 +563,10 @@ pub fn import_template(e: &mut Engine, p: &Json) -> Res {
         .find(|(_, n, c)| !c.essential.is_empty() && (comp_name.is_empty() || *n == comp_name))
         .map(|x| x.0)
         .ok_or("the template's primary composition was not found")?;
+    finish_import(e, p, comp, folder, &name)
+}
+
+fn finish_import(e: &mut Engine, p: &Json, comp: u64, folder: u64, name: &str) -> Res {
     let mut layer = None;
     if pb(p, "addToComp").unwrap_or(false)
         && let Ok(cid) = e.comp_id(p.get("comp"))
@@ -673,7 +684,7 @@ fn mogrt_definition(doc: &Json) -> Json {
     })
 }
 
-fn localized(v: &Json) -> Option<String> {
+pub fn localized(v: &Json) -> Option<String> {
     match v {
         Json::String(s) => Some(s.clone()),
         Json::Object(o) => o
@@ -733,7 +744,8 @@ fn mogrt_info(path: &str) -> Result<Json, String> {
     };
     let poster = files.get("thumb.png").map(|b| format!("data:image/png;base64,{}", crate::engine::lottie::b64(b)));
     let inner: Vec<String> = files.iter().filter(|(k, _)| k.ends_with(".aegraphic") || k.ends_with(".prgraphic")).filter_map(|(_, b)| crate::engine::lottie::unzip(b).ok()).flat_map(|f| f.into_keys()).collect();
-    Ok(json!({"path": path, "format": "mogrt", "name": name, "madeIn": app, "opens": app == "formvfx", "width": size.0, "height": size.1, "duration": duration, "frameRate": fps, "platforms": def.get("platformSupport"), "fonts": fonts, "effects": effects, "controls": controls, "poster": poster, "files": files.keys().collect::<Vec<_>>(), "inner": inner}))
+    let opens = app == "formvfx" || (app == "After Effects" && inner.iter().any(|k| k.to_ascii_lowercase().ends_with(".aep")));
+    Ok(json!({"path": path, "format": "mogrt", "name": name, "madeIn": app, "opens": opens, "width": size.0, "height": size.1, "duration": duration, "frameRate": fps, "platforms": def.get("platformSupport"), "fonts": fonts, "effects": effects, "controls": controls, "poster": poster, "files": files.keys().collect::<Vec<_>>(), "inner": inner}))
 }
 
 pub fn template_info(_: &mut Engine, p: &Json) -> Res {

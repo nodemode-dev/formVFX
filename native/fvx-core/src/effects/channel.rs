@@ -330,7 +330,7 @@ fn arithmetic(c: &FxCtx, img: &mut Img) {
 
 fn blend_fx(c: &FxCtx, img: &mut Img) {
     let (w, h) = (img.w, img.h);
-    let Some(o) = c.other_fit("layer", true, w, h, c.e("ifSizesDiffer")) else { return };
+    let o = c.other_fit("layer", true, w, h, c.e("ifSizesDiffer")).unwrap_or_else(|| Img::new(w, h));
     let mode = c.e("mode");
     let k = 1.0 - c.f("blend") as f32 / 100.0;
     img.px.par_chunks_mut(4).zip(o.px.par_chunks(4)).for_each(|(p, q)| {

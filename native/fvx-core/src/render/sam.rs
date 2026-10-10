@@ -9,9 +9,9 @@ pub const EMB: usize = 64;
 const MEAN: [f32; 3] = [123.675, 116.28, 103.53];
 const STD: [f32; 3] = [58.395, 57.12, 57.375];
 
-type W = HashMap<String, Tensor>;
+pub(crate) type W = HashMap<String, Tensor>;
 
-fn get<'a>(w: &'a W, k: &str) -> Result<&'a Tensor, String> {
+pub(crate) fn get<'a>(w: &'a W, k: &str) -> Result<&'a Tensor, String> {
     w.get(k).ok_or_else(|| format!("the MobileSAM weights lack {k}"))
 }
 
@@ -70,6 +70,171 @@ unsafe fn block_avx2(k: usize, n: usize, a: &[f32], b: &[f32], c: &mut [f32], ro
     }
 }
 
+#[cfg(target_arch = "x86_64")]
+#[target_feature(enable = "avx512f")]
+unsafe fn block_avx512(k: usize, n: usize, a: &[f32], b: &[f32], c: &mut [f32], rows: usize) {
+    use std::arch::x86_64::*;
+    let full = n / 32 * 32;
+    let mut i = 0;
+    while i + 8 <= rows {
+        let mut j = 0;
+        while j < full {
+            unsafe {
+                let cp = c.as_mut_ptr();
+                let mut acc = [_mm512_setzero_ps(); 16];
+                for r in 0..8 {
+                    acc[r * 2] = _mm512_loadu_ps(cp.add((i + r) * n + j));
+                    acc[r * 2 + 1] = _mm512_loadu_ps(cp.add((i + r) * n + j + 16));
+                }
+                let bp = b.as_ptr();
+                let ap = a.as_ptr();
+                for kk in 0..k {
+                    let b0 = _mm512_loadu_ps(bp.add(kk * n + j));
+                    let b1 = _mm512_loadu_ps(bp.add(kk * n + j + 16));
+                    for r in 0..8 {
+                        let av = _mm512_set1_ps(*ap.add((i + r) * k + kk));
+                        acc[r * 2] = _mm512_fmadd_ps(av, b0, acc[r * 2]);
+                        acc[r * 2 + 1] = _mm512_fmadd_ps(av, b1, acc[r * 2 + 1]);
+                    }
+                }
+                for r in 0..8 {
+                    _mm512_storeu_ps(cp.add((i + r) * n + j), acc[r * 2]);
+                    _mm512_storeu_ps(cp.add((i + r) * n + j + 16), acc[r * 2 + 1]);
+                }
+            }
+            j += 32;
+        }
+        for r in i..i + 8 {
+            for jj in full..n {
+                let mut s = c[r * n + jj];
+                for kk in 0..k {
+                    s += a[r * k + kk] * b[kk * n + jj];
+                }
+                c[r * n + jj] = s;
+            }
+        }
+        i += 8;
+    }
+    if i < rows {
+        unsafe { block_avx2(k, n, &a[i * k..], b, &mut c[i * n..], rows - i) };
+    }
+}
+
+pub(crate) struct Packed {
+    k: usize,
+    n: usize,
+    panels: Vec<f32>,
+    tail: Vec<f32>,
+}
+
+pub(crate) fn pack_b(k: usize, n: usize, b: &[f32]) -> Packed {
+    let np = n / 32;
+    let mut panels = vec![0.0f32; np * k * 32];
+    panels.par_chunks_mut(k * 32).enumerate().for_each(|(p, pan)| {
+        for kk in 0..k {
+            pan[kk * 32..kk * 32 + 32].copy_from_slice(&b[kk * n + p * 32..kk * n + p * 32 + 32]);
+        }
+    });
+    let rem = n - np * 32;
+    let mut tail = vec![0.0f32; k * rem];
+    for kk in 0..k {
+        tail[kk * rem..(kk + 1) * rem].copy_from_slice(&b[kk * n + np * 32..(kk + 1) * n]);
+    }
+    Packed { k, n, panels, tail }
+}
+
+#[cfg(target_arch = "x86_64")]
+#[target_feature(enable = "avx512f")]
+unsafe fn panel_avx512(k: usize, n: usize, a: &[f32], pan: &[f32], c: &mut [f32], j: usize, rows: usize) {
+    use std::arch::x86_64::*;
+    let mut i = 0;
+    while i + 8 <= rows {
+        unsafe {
+            let cp = c.as_mut_ptr();
+            let mut acc = [_mm512_setzero_ps(); 16];
+            for r in 0..8 {
+                acc[r * 2] = _mm512_loadu_ps(cp.add((i + r) * n + j));
+                acc[r * 2 + 1] = _mm512_loadu_ps(cp.add((i + r) * n + j + 16));
+            }
+            let bp = pan.as_ptr();
+            let ap = a.as_ptr();
+            for kk in 0..k {
+                let b0 = _mm512_loadu_ps(bp.add(kk * 32));
+                let b1 = _mm512_loadu_ps(bp.add(kk * 32 + 16));
+                for r in 0..8 {
+                    let av = _mm512_set1_ps(*ap.add((i + r) * k + kk));
+                    acc[r * 2] = _mm512_fmadd_ps(av, b0, acc[r * 2]);
+                    acc[r * 2 + 1] = _mm512_fmadd_ps(av, b1, acc[r * 2 + 1]);
+                }
+            }
+            for r in 0..8 {
+                _mm512_storeu_ps(cp.add((i + r) * n + j), acc[r * 2]);
+                _mm512_storeu_ps(cp.add((i + r) * n + j + 16), acc[r * 2 + 1]);
+            }
+        }
+        i += 8;
+    }
+    for r in i..rows {
+        for kk in 0..k {
+            let av = a[r * k + kk];
+            for jj in 0..32 {
+                c[r * n + j + jj] += av * pan[kk * 32 + jj];
+            }
+        }
+    }
+}
+
+pub(crate) fn gemm_packed(m: usize, a: &[f32], b: &Packed, c: &mut [f32]) {
+    let (k, n) = (b.k, b.n);
+    let np = n / 32;
+    let rem = n - np * 32;
+    let wide = has_avx512() && has_avx2();
+    c.par_chunks_mut(n * 16).enumerate().for_each(|(ci, cblk)| {
+        let i0 = ci * 16;
+        let rows = cblk.len() / n;
+        let ab = &a[i0 * k..(i0 + rows) * k];
+        for p in 0..np {
+            let pan = &b.panels[p * k * 32..(p + 1) * k * 32];
+            #[cfg(target_arch = "x86_64")]
+            if wide {
+                unsafe { panel_avx512(k, n, ab, pan, cblk, p * 32, rows) };
+                continue;
+            }
+            for r in 0..rows {
+                for kk in 0..k {
+                    let av = ab[r * k + kk];
+                    for jj in 0..32 {
+                        cblk[r * n + p * 32 + jj] += av * pan[kk * 32 + jj];
+                    }
+                }
+            }
+        }
+        if rem > 0 {
+            for r in 0..rows {
+                for kk in 0..k {
+                    let av = ab[r * k + kk];
+                    for jj in 0..rem {
+                        cblk[r * n + np * 32 + jj] += av * b.tail[kk * rem + jj];
+                    }
+                }
+            }
+        }
+    });
+    let _ = m;
+}
+
+fn has_avx512() -> bool {
+    #[cfg(target_arch = "x86_64")]
+    {
+        static F: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+        *F.get_or_init(|| is_x86_feature_detected!("avx512f"))
+    }
+    #[cfg(not(target_arch = "x86_64"))]
+    {
+        false
+    }
+}
+
 fn has_avx2() -> bool {
     #[cfg(target_arch = "x86_64")]
     {
@@ -82,15 +247,49 @@ fn has_avx2() -> bool {
     }
 }
 
+pub(crate) fn gemm_serial(m: usize, k: usize, n: usize, a: &[f32], b: &[f32], c: &mut [f32]) {
+    #[cfg(target_arch = "x86_64")]
+    if has_avx512() && has_avx2() {
+        unsafe { block_avx512(k, n, &a[..m * k], b, &mut c[..m * n], m) };
+        return;
+    }
+    #[cfg(target_arch = "x86_64")]
+    if has_avx2() {
+        unsafe { block_avx2(k, n, &a[..m * k], b, &mut c[..m * n], m) };
+        return;
+    }
+    for r in 0..m {
+        for kk in 0..k {
+            let av = a[r * k + kk];
+            if av == 0.0 {
+                continue;
+            }
+            for (cv, bv) in c[r * n..(r + 1) * n].iter_mut().zip(&b[kk * n..(kk + 1) * n]) {
+                *cv += av * bv;
+            }
+        }
+    }
+}
+
 pub fn gemm(m: usize, k: usize, n: usize, a: &[f32], b: &[f32], c: &mut [f32]) {
     const RB: usize = 8;
     const NB: usize = 256;
     #[cfg(target_arch = "x86_64")]
+    if has_avx2() && has_avx512() && m >= 64 && n >= 128 {
+        gemm_packed(m, a, &pack_b(k, n, b), c);
+        return;
+    }
+    #[cfg(target_arch = "x86_64")]
     if has_avx2() {
+        let wide = has_avx512();
         c.par_chunks_mut(n * 16).enumerate().for_each(|(ci, cblk)| {
             let i0 = ci * 16;
             let rows = cblk.len() / n;
-            unsafe { block_avx2(k, n, &a[i0 * k..(i0 + rows) * k], b, cblk, rows) };
+            if wide {
+                unsafe { block_avx512(k, n, &a[i0 * k..(i0 + rows) * k], b, cblk, rows) };
+            } else {
+                unsafe { block_avx2(k, n, &a[i0 * k..(i0 + rows) * k], b, cblk, rows) };
+            }
         });
         debug_assert_eq!(c.len(), m * n);
         return;
@@ -126,24 +325,24 @@ fn erf(x: f32) -> f32 {
     if x >= 0.0 { y } else { -y }
 }
 
-fn gelu(v: &mut [f32]) {
+pub(crate) fn gelu(v: &mut [f32]) {
     v.par_iter_mut().for_each(|x| *x = 0.5 * *x * (1.0 + erf(*x * std::f32::consts::FRAC_1_SQRT_2)));
 }
 
-fn relu(v: &mut [f32]) {
+pub(crate) fn relu(v: &mut [f32]) {
     v.iter_mut().for_each(|x| *x = x.max(0.0));
 }
 
 #[derive(Clone)]
-struct Lin {
-    wt: Vec<f32>,
-    b: Vec<f32>,
-    inp: usize,
-    out: usize,
+pub(crate) struct Lin {
+    pub(crate) wt: Vec<f32>,
+    pub(crate) b: Vec<f32>,
+    pub(crate) inp: usize,
+    pub(crate) out: usize,
 }
 
 impl Lin {
-    fn new(w: &W, name: &str, bias: bool) -> Result<Lin, String> {
+    pub(crate) fn new(w: &W, name: &str, bias: bool) -> Result<Lin, String> {
         let t = get(w, &format!("{name}.weight"))?;
         let (out, inp) = (t.shape[0], t.data.len() / t.shape[0]);
         let mut wt = vec![0.0f32; inp * out];
@@ -176,7 +375,7 @@ impl Lin {
         Ok(Lin { wt, b, inp, out })
     }
 
-    fn apply(&self, x: &[f32], rows: usize) -> Vec<f32> {
+    pub(crate) fn apply(&self, x: &[f32], rows: usize) -> Vec<f32> {
         let mut y = vec![0.0f32; rows * self.out];
         y.par_chunks_mut(self.out).for_each(|r| r.copy_from_slice(&self.b));
         gemm(rows, self.inp, self.out, x, &self.wt, &mut y);
@@ -299,7 +498,7 @@ impl Conv3 {
     }
 }
 
-fn layer_norm(x: &mut [f32], c: usize, g: &[f32], b: &[f32], eps: f32) {
+pub(crate) fn layer_norm(x: &mut [f32], c: usize, g: &[f32], b: &[f32], eps: f32) {
     x.par_chunks_mut(c).for_each(|r| {
         let m = r.iter().sum::<f32>() / c as f32;
         let v = r.iter().map(|x| (x - m) * (x - m)).sum::<f32>() / c as f32;
@@ -310,18 +509,18 @@ fn layer_norm(x: &mut [f32], c: usize, g: &[f32], b: &[f32], eps: f32) {
     });
 }
 
-struct Norm {
+pub(crate) struct Norm {
     g: Vec<f32>,
     b: Vec<f32>,
     eps: f32,
 }
 
 impl Norm {
-    fn new(w: &W, name: &str, eps: f32) -> Result<Norm, String> {
+    pub(crate) fn new(w: &W, name: &str, eps: f32) -> Result<Norm, String> {
         Ok(Norm { g: get(w, &format!("{name}.weight"))?.data.clone(), b: get(w, &format!("{name}.bias"))?.data.clone(), eps })
     }
 
-    fn apply(&self, x: &mut [f32]) {
+    pub(crate) fn apply(&self, x: &mut [f32]) {
         layer_norm(x, self.g.len(), &self.g, &self.b, self.eps);
     }
 }
@@ -553,7 +752,7 @@ fn convt(w: &W, name: &str) -> Result<(Vec<f32>, Vec<f32>), String> {
     Ok((get(w, &format!("{name}.weight"))?.data.clone(), get(w, &format!("{name}.bias"))?.data.clone()))
 }
 
-fn conv_transpose(x: &[f32], h: usize, w: usize, cin: usize, wt: &(Vec<f32>, Vec<f32>), cout: usize) -> Vec<f32> {
+pub(crate) fn conv_transpose(x: &[f32], h: usize, w: usize, cin: usize, wt: &(Vec<f32>, Vec<f32>), cout: usize) -> Vec<f32> {
     let (oh, ow) = (h * 2, w * 2);
     let mut y = vec![0.0f32; oh * ow * cout];
     let mut wr = vec![0.0f32; 4 * cin * cout];

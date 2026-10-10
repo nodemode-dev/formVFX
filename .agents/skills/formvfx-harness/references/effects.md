@@ -2,11 +2,11 @@
 
 Generated from the formvfx engine by `./formvfx agents sync`; do not edit by hand.
 
-301 effects in 20 categories. Apply with `apply_effect {layer, effect, params}` (the id or the name) or `execute effect.apply {effect, layers}`. Each parameter is listed as `id` = default (control). After applying, the parameter's property path is `effects/#N/[id]` where N is the effect's position on the layer (1 = top); `get_layer` shows the exact paths. GPU marks effects that render on the GPU when it is available; every effect also renders on the CPU.
+306 effects in 21 categories. Apply with `apply_effect {layer, effect, params}` (the id or the name) or `execute effect.apply {effect, layers}`. Each parameter is listed as `id` = default (control). After applying, the parameter's property path is `effects/#N/[id]` where N is the effect's position on the layer (1 = top); `get_layer` shows the exact paths. GPU marks effects that render on the GPU when it is available; every effect also renders on the CPU.
 
 ## Contents
 
-`3D Channel` (8) `Audio` (13) `Blur & Sharpen` (16) `Channel` (14) `Color Correction` (39) `Distort` (38) `Expression Controls` (9) `Generate` (26) `Immersive Video` (12) `Keying` (11) `Matte` (4) `Noise & Grain` (13) `Obsolete` (10) `Perspective` (10) `Simulation` (18) `Stylize` (26) `Text` (2) `Time` (8) `Transition` (17) `Utility` (7)
+`3D Channel` (8) `Audio` (13) `Blur & Sharpen` (16) `Channel` (14) `Color Correction` (39) `Distort` (38) `Expression Controls` (9) `Generate` (26) `Immersive Video` (12) `Keying` (11) `Matte` (5) `Noise & Grain` (14) `Obsolete` (10) `Paint` (1) `Perspective` (10) `Simulation` (18) `Stylize` (26) `Text` (2) `Time` (8) `Transition` (17) `Utility` (9)
 
 ## 3D Channel
 
@@ -417,6 +417,8 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `edgeRadius` = 2 (slider 0..30); `viewEdgeRegion` = false (checkbox); `smooth` = 0 (slider 0..100); `feather` = 50 (slider 0..100); `contrast` = 50 (slider 0..100); `shiftEdge` = 0 (slider -100..100); `reduceChatter` = 0 (slider 0..100); `decontaminate` = true (checkbox); `decontaminationAmount` = 100 (slider 0..100)
 - **Refine Soft Matte** `fx.matte.refineSoftMatte`
   `edgeRadius` = 10 (slider 0..30); `viewEdgeRegion` = false (checkbox); `smooth` = 0 (slider 0..100); `feather` = 0 (slider 0..100); `contrast` = 0 (slider 0..100); `shiftEdge` = 0 (slider -100..100); `reduceChatter` = 0 (slider 0..100); `decontaminate` = true (checkbox); `decontaminationAmount` = 100 (slider 0..100)
+- **Roto Brush & Refine Edge** `fx.matte.rotoBrush`
+  `model` = 0 (menu Classic|MobileSAM|SAM 2|SAM 2 Full Resolution); `renderRefineEdge` = false (checkbox); `baseRefineRadius` = 2 (slider 0..30); `rotoMatte/feather` = 0 (slider 0..100); `rotoMatte/contrast` = 0 (slider 0..100); `rotoMatte/shiftEdge` = 0 (slider -100..100); `rotoMatte/reduceChatter` = 0 (slider 0..100); `refineMatte/smooth` = 0 (slider 0..100); `refineMatte/feather` = 0 (slider 0..100); `refineMatte/contrast` = 50 (slider 0..100); `refineMatte/shiftEdge` = 0 (slider -100..100); `refineMatte/decontaminate` = true (checkbox); `refineMatte/decontaminationAmount` = 50 (slider 0..100); `strokes` = "[]" (hidden); `span` = "" (hidden); `mattes` = "" (hidden); `frozen` = "" (hidden)
 - **Simple Choker** `fx.matte.simpleChoker`
   `view` = 0 (menu Final Output|Matte); `choke` = 0 (slider -100..100)
 
@@ -424,6 +426,8 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 
 - **Add Grain** `fx.noise.addGrain`
   `viewMode` = 2 (menu Preview|Blending Matte|Final Output); `preset` = 0 (menu None|Eastman EXR 50D|Kodak 5248|Kodak Vision 250D|Fuji Eterna 250|Kodak 5279); `intensity` = 1 (slider 0..10); `size` = 1 (slider 0.1..5); `softness` = 0 (slider 0..3); `aspect` = 1 (slider 0.5..2); `redIntensity` = 1 (slider 0..2); `greenIntensity` = 1 (slider 0..2); `blueIntensity` = 1 (slider 0..2); `monochromatic` = false (checkbox); `saturation` = 1 (slider 0..2); `shadows` = 100 (slider 0..100); `midtones` = 100 (slider 0..100); `highlights` = 100 (slider 0..100); `seed` = 0 (slider 0..10000); `animate` = true (checkbox); `animationSpeed` = 1 (slider 0..10)
+- **Curl Noise** `fx.noise.curlDisplace`
+  `amount` = 40 (slider 0..300); `size` = 200 (slider 10..1000); `offset` = {"relative": [0.5, 0.5]} (point); `complexity` = 3 (slider 1..8); `evolution` = 0 (angle); `speed` = 0 (slider -360..360); `seed` = 0 (slider 0..1000); `edges` = 0 (menu Repeat|Transparent)
 - **Curl Noise Generator** `fx.noise.curlNoise`
   `inputNoise` = 0 (menu Internal|This Layer); `speed` = 10 (slider 0..100); `direction` = 0 (angle); `mirrorAtEdge` = false (checkbox); `scale` = 100 (slider 1..1000); `uniformScaling` = true (checkbox); `scaleWidth` = 100 (slider 1..1000); `scaleHeight` = 100 (slider 1..1000); `offset` = {"relative": [0.5, 0.5]} (point); `rotation` = 0 (angle); `evolution` = 0 (angle); `turbulenceSpeed` = 10 (slider 0..500); `noiseSpeed` = 10 (slider 0..100); `swirl` = 90 (slider -360..360); `density` = 0 (slider -100..100); `smoothness` = 50 (slider 0..100); `verticalBias` = 50 (slider 0..100); `sampleCount` = 12 (slider 3..24); `sampleRadius` = 40 (slider 0..200); `flowSoftness` = 50 (slider 0..100); `edgeDefinition` = 50 (slider 0..100); `flowFalloff` = 0 (slider 0..100); `view` = 2 (menu Input Noise|Curl Generation|Final Render); `contrast` = 100 (slider 0..400); `brightness` = 0 (slider -100..100); `clipHdr` = true (checkbox); `channel` = 0 (menu RGB|Red|Green|Blue|Alpha)
 - **Dust & Scratches** `fx.noise.dustScratches`
@@ -471,6 +475,11 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `colorToSuppress` = [0, 0, 1, 1] (color); `accuracy` = 0 (menu Faster|Better); `suppression` = 100 (slider 0..100)
 - **Twirl (Legacy)** `fx.distort.twirlLegacy`
   `angle` = 0 (angle); `radius` = 30 (slider 0..100); `center` = {"relative": [0.5, 0.5]} (point)
+
+## Paint
+
+- **Paint** `fx.paint.paint`
+  `paintOnTransparent` = false (checkbox)
 
 ## Perspective
 
@@ -662,6 +671,10 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `conversion` = 1 (menu Linear to Log|Log to Linear|Log to Log); `blackPoint` = 95 (slider 0..1023); `internalBlack` = 0 (slider 0..1); `whitePoint` = 685 (slider 0..1023); `internalWhite` = 1 (slider 0..1); `gamma` = 1.7 (slider 0.1..5); `rolloff` = 20 (slider 0..100)
 - **Color Profile Converter** `fx.utility.colorProfileConverter`
   `input` = 0 (menu sRGB|Linear sRGB|Rec. 709|Display P3|Rec. 2020|Adobe RGB (1998)); `output` = 1 (menu sRGB|Linear sRGB|Rec. 709|Display P3|Rec. 2020|Adobe RGB (1998)); `intent` = 1 (menu Perceptual|Relative Colorimetric|Saturation|Absolute Colorimetric)
+- **Face Measurements** `fx.face.measurements`
+  `headPositionX` = 0 (slider -100000..100000); `headPositionY` = 0 (slider -100000..100000); `headScale` = 0 (slider -100000..100000); `headTilt` = 0 (slider -100000..100000); `leftEyeOpenness` = 0 (slider -100000..100000); `rightEyeOpenness` = 0 (slider -100000..100000); `leftEyebrowRaise` = 0 (slider -100000..100000); `rightEyebrowRaise` = 0 (slider -100000..100000); `mouthOpenness` = 0 (slider -100000..100000); `mouthWidth` = 0 (slider -100000..100000)
+- **Face Track Points** `fx.face.trackPoints`
+  `leftEyebrowInner` = {"relative": [0.5, 0.5]} (point); `leftEyebrowMiddle` = {"relative": [0.5, 0.5]} (point); `leftEyebrowOuter` = {"relative": [0.5, 0.5]} (point); `rightEyebrowInner` = {"relative": [0.5, 0.5]} (point); `rightEyebrowMiddle` = {"relative": [0.5, 0.5]} (point); `rightEyebrowOuter` = {"relative": [0.5, 0.5]} (point); `leftEyeInner` = {"relative": [0.5, 0.5]} (point); `leftEyeOuter` = {"relative": [0.5, 0.5]} (point); `leftEyeTop` = {"relative": [0.5, 0.5]} (point); `leftEyeBottom` = {"relative": [0.5, 0.5]} (point); `leftPupil` = {"relative": [0.5, 0.5]} (point); `rightEyeInner` = {"relative": [0.5, 0.5]} (point); `rightEyeOuter` = {"relative": [0.5, 0.5]} (point); `rightEyeTop` = {"relative": [0.5, 0.5]} (point); `rightEyeBottom` = {"relative": [0.5, 0.5]} (point); `rightPupil` = {"relative": [0.5, 0.5]} (point); `noseTip` = {"relative": [0.5, 0.5]} (point); `leftNostril` = {"relative": [0.5, 0.5]} (point); `rightNostril` = {"relative": [0.5, 0.5]} (point); `mouthLeft` = {"relative": [0.5, 0.5]} (point); `mouthRight` = {"relative": [0.5, 0.5]} (point); `mouthTop` = {"relative": [0.5, 0.5]} (point); `mouthBottom` = {"relative": [0.5, 0.5]} (point)
 - **Grow Bounds** `fx.utility.growBounds`
   `pixels` = 0 (slider 0..500)
 - **HDR Compander** `fx.utility.hdrCompander`

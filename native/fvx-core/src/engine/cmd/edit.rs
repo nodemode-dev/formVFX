@@ -410,19 +410,35 @@ pub fn batch(e: &mut Engine, p: &Json) -> Res {
 pub fn prefs_pages(e: &mut Engine, _: &Json) -> Res {
     use crate::render::roto;
     let installed = roto::installed();
+    let has2 = roto::installed_of(&roto::SAM2);
     let active = e.prefs.get("rotoModel").and_then(Json::as_str).unwrap_or("classical").to_string();
-    let status = if installed {
-        format!("MobileSAM is installed in {}. Roto Brush uses the {} model; Object Matte always uses MobileSAM.", roto::models_dir().display(), if active == "mobilesam" { "MobileSAM" } else { "Classic" })
-    } else {
-        format!("Roto Brush uses the Classic model. Object Matte needs MobileSAM ({} MB, {} licence), downloaded once into {}.", roto::MOBILESAM.size / 1_000_000, roto::MOBILESAM.licence, roto::models_dir().display())
+    let using = match active.as_str() {
+        "mobilesam" => "MobileSAM",
+        "sam2" => "SAM 2",
+        "sam2full" => "SAM 2 at full resolution",
+        _ => "Classic",
     };
+    let status = format!(
+        "Roto Brush uses the {using} model. MobileSAM ({} MB) also drives Object Matte; SAM 2.1 tiny ({} MB) follows the object from frame to frame with a memory of earlier frames. Both are {} licensed and downloaded once into {}.",
+        roto::MOBILESAM.size / 1_000_000,
+        roto::SAM2.size / 1_000_000,
+        roto::MOBILESAM.licence,
+        roto::models_dir().display()
+    );
     let mut roto_items = vec![json!({"section": "Roto Brush and Object Matte"}), json!({"note": status})];
+    roto_items.push(json!({"button": "Use Classic for Roto Brush", "command": "roto.model.select", "params": {"id": "classical"}}));
     if installed {
         roto_items.push(json!({"button": "Use MobileSAM for Roto Brush", "command": "roto.model.select", "params": {"id": "mobilesam", "wait": true}}));
-        roto_items.push(json!({"button": "Use Classic for Roto Brush", "command": "roto.model.select", "params": {"id": "classical"}}));
         roto_items.push(json!({"button": "Remove MobileSAM", "command": "roto.model.remove", "params": {"id": "mobilesam"}}));
     } else {
         roto_items.push(json!({"button": "Download MobileSAM", "command": "roto.model.download", "params": {"id": "mobilesam"}}));
+    }
+    if has2 {
+        roto_items.push(json!({"button": "Use SAM 2 for Roto Brush", "command": "roto.model.select", "params": {"id": "sam2", "wait": true}}));
+        roto_items.push(json!({"button": "Use SAM 2 at Full Resolution", "command": "roto.model.select", "params": {"id": "sam2full", "wait": true}}));
+        roto_items.push(json!({"button": "Remove SAM 2", "command": "roto.model.remove", "params": {"id": "sam2"}}));
+    } else {
+        roto_items.push(json!({"button": "Download SAM 2", "command": "roto.model.download", "params": {"id": "sam2"}}));
     }
     let st = crate::render::diskcache::stats();
     let used = st.get("bytes").and_then(Json::as_u64).unwrap_or(0) as f64 / 1e9;

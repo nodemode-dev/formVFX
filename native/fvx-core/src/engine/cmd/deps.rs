@@ -386,6 +386,11 @@ pub fn apply_preset(e: &mut Engine, p: &Json) -> Res {
         return apply_doc(e, &doc.clone(), p);
     }
     let path = ps(p, "path").or_else(|| ps(p, "preset")).ok_or("pass `path`")?.to_string();
+    if path.to_ascii_lowercase().ends_with(".ffx") {
+        let r = super::aep::apply_ffx(e, &path, p)?;
+        remember(e, &path);
+        return Ok(r);
+    }
     let text = std::fs::read_to_string(&path).map_err(|err| format!("{path}: {err}"))?;
     let doc: Json = serde_json::from_str(&text).map_err(|err| format!("{path}: {err}"))?;
     let r = apply_doc(e, &doc, p)?;

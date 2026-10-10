@@ -30,6 +30,51 @@ pub const MOBILESAM: ModelInfo = ModelInfo {
     licence: "Apache-2.0",
 };
 
+pub const SAM2: ModelInfo = ModelInfo {
+    id: "sam2",
+    name: "SAM 2.1 tiny",
+    file: "sam2.1_hiera_tiny.pt",
+    url: "https://dl.fbaipublicfiles.com/segment_anything_2/092824/sam2.1_hiera_tiny.pt",
+    size: 156_008_466,
+    sha256: "7402e0d864fa82708a20fbd15bc84245c2f26dff0eb43a4b5b93452deb34be69",
+    licence: "Apache-2.0",
+};
+
+pub const MODELS: [&ModelInfo; 2] = [&MOBILESAM, &SAM2];
+
+pub fn model_info(id: &str) -> Option<&'static ModelInfo> {
+    MODELS.iter().copied().find(|m| m.id == id)
+}
+
+pub fn path_of(m: &ModelInfo) -> PathBuf {
+    models_dir().join(m.file)
+}
+
+pub fn installed_of(m: &ModelInfo) -> bool {
+    std::fs::metadata(path_of(m)).map(|x| x.len() == m.size).unwrap_or(false)
+}
+
+pub const NEEDS_SAM2: &str = "the SAM 2 Roto Brush uses the SAM 2.1 tiny model: install it in Settings > Roto Brush (Download), or run roto.model.download {id: sam2}";
+
+type Sam2Slot = Mutex<Option<Arc<super::sam2::Sam2>>>;
+
+pub fn load_sam2() -> Result<Arc<super::sam2::Sam2>, String> {
+    static S: OnceLock<Sam2Slot> = OnceLock::new();
+    let slot = S.get_or_init(Default::default);
+    let mut g = slot.lock();
+    if let Some(m) = g.as_ref() {
+        return Ok(m.clone());
+    }
+    let bytes = std::fs::read(path_of(&SAM2)).map_err(|_| NEEDS_SAM2.to_string())?;
+    if sha256_hex(&bytes) != SAM2.sha256 {
+        return Err("the installed SAM 2 file does not match its checksum: download it again in Settings > Roto Brush".into());
+    }
+    let w = super::ptload::read(&bytes)?;
+    let m = Arc::new(super::sam2::Sam2::load(&w)?);
+    *g = Some(m.clone());
+    Ok(m)
+}
+
 pub const NEEDS: &str = "Object Matte and the MobileSAM Roto Brush use the MobileSAM model: install it in Settings > Roto Brush (Download), or run roto.model.download {id: mobilesam}";
 
 pub fn models_dir() -> PathBuf {
@@ -644,7 +689,7 @@ pub fn clean(soft: &[f32], lab: &[u8], w: usize, h: usize) -> Vec<bool> {
     out
 }
 
-fn sample_points(lab: &[u8], w: usize, which: u8, max: usize) -> Vec<[f32; 2]> {
+pub fn sample_points(lab: &[u8], w: usize, which: u8, max: usize) -> Vec<[f32; 2]> {
     let idx: Vec<[f32; 2]> = (0..lab.len()).filter(|i| lab[*i] == which).map(|i| [(i % w) as f32 + 0.5, (i / w) as f32 + 0.5]).collect();
     if idx.is_empty() {
         return vec![];

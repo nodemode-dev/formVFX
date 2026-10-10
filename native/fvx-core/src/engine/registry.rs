@@ -3,7 +3,7 @@ use std::sync::OnceLock;
 
 use serde_json::{Value as Json, json};
 
-use super::cmd::{browser, camtrack, color, comp, deps, edit, editing, effect, essential, expression, file, fill, footage, formats, help, keys, keytools, layer, layermisc, markers, mask, maskshape, paint, project, ptemplates, puppet, replace, roto, prop, script, session, shapes, styles, text, textanim, three, time, timeline, track, view3d, viewer, viewing, vr, warp, watch, extensions};
+use super::cmd::{aep, browser, camtrack, color, comp, deps, edit, editing, effect, essential, expression, file, fill, footage, formats, help, keys, keytools, layer, layermisc, markers, mask, maskshape, paint, project, ptemplates, puppet, replace, roto, prop, script, session, shapes, styles, text, textanim, three, time, timeline, track, view3d, viewer, viewing, vr, warp, watch, extensions};
 use super::{Engine, Res, export, rq};
 
 pub type Handler = fn(&mut Engine, &Json) -> Res;
@@ -59,6 +59,7 @@ pub static COMMANDS: &[Cmd] = &[
     c("file.newCompFromSelection", "New Comp from Selection", "File", "", "{items?: [id]}", U, file::new_comp_from_selection),
     c("file.importSolid", "Solid...", "File/Import", "", "{name?, color?, width?, height?}", U, layer::new_solid_item),
     c("file.importLottie", "Lottie...", "File/Import", "", "{path (.json or .lottie)} -> a composition with shape, solid, image, text, null and precomp layers, keyframes and easing", U, super::lottie::import_cmd),
+    c("file.importAep", "After Effects Project...", "File/Import", "", "{path (.aep), open?: bool} -> {folder, comps, warnings} · folders, compositions, solids and footage; text, shape, solid, null, adjustment, camera and light layers with their timing, switches, parents, transforms, keyframes, expressions, effects, text animators and Essential Graphics controls; warnings name what was not read", U, aep::import),
     c("file.exportLottie", "Lottie JSON...", "File/Export", "", "{comp?, path (.json or .lottie), includeExpressions?: bool (otherwise expressions are baked to keyframes), textAsShapes?: bool}", N, super::lottie::export),
     c("file.setProxy", "File...", "File/Set Proxy", "", "{path (a still, sequence or movie), items?|item? (default: the selected footage or compositions)}", U, formats::set_proxy),
     c("file.setProxyNone", "None", "File/Set Proxy", "", "{items?|item?}", U, formats::set_proxy_none),

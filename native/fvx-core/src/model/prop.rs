@@ -427,7 +427,13 @@ impl Group {
         }
         let flat = |s: &str| s.chars().filter(|c| c.is_alphanumeric()).collect::<String>().to_ascii_lowercase();
         let want = flat(seg);
-        self.children.iter().find(|c| flat(c.id()) == want || flat(c.name()) == want)
+        self.children.iter().find(|c| flat(c.id()) == want || flat(c.name()) == want).or_else(|| {
+            let (_, n) = seg.strip_prefix("ADBE ")?.rsplit_once('-')?;
+            if !matches!(self.kind, GroupKind::Effect { .. }) || n.len() != 4 {
+                return None;
+            }
+            self.children.get(n.parse::<usize>().ok()?.checked_sub(1)?)
+        })
     }
 
     pub fn any_animated(&self) -> bool {

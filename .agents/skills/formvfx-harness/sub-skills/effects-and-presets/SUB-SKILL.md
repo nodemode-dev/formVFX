@@ -18,7 +18,7 @@ Afterwards each parameter is a property: `effects/#2/radius`, or `effects/Glow/r
 
 Values to know:
 
-- Point parameters are fractions of the layer: `[0.5, 0.5]` is the centre.
+- Point parameters are layer pixels: a new effect's centre is half the layer's width and height (`[960, 540]` on a 1920 by 1080 layer); read the current value with `get_property` before moving it.
 - Menus take the 0-based option index (the catalogue lists the options in order).
 - Colours take `"#rrggbb"`.
 - Levels and similar input and output values run from 0 to 1, not 0 to 255.

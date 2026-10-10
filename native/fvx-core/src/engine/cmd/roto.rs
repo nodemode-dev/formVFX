@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::sync::Arc;
@@ -11,7 +12,8 @@ use crate::model::prop::{Group, GroupKind};
 use crate::model::{Project, Value};
 use crate::render::analysis::Source;
 use crate::render::media::Media;
-use crate::render::roto::{self, MOBILESAM, Mattes, NEEDS, Stroke};
+use crate::render::roto::{self, MOBILESAM, Mattes, ModelInfo, NEEDS, Stroke};
+use crate::render::sam2;
 use crate::render::vision::Gray;
 
 const SIDE: f64 = 1024.0;
@@ -23,7 +25,17 @@ fn is_roto(g: &Group) -> bool {
 fn active_model(e: &Engine) -> u32 {
     match e.prefs.get("rotoModel").and_then(Json::as_str) {
         Some("mobilesam") => 1,
+        Some("sam2") => 2,
+        Some("sam2full") => 3,
         _ => 0,
+    }
+}
+
+fn need_model(model: u32) -> Result<(), String> {
+    match model {
+        1 if !roto::installed() => Err(NEEDS.into()),
+        2 | 3 if !roto::installed_of(&roto::SAM2) => Err(roto::NEEDS_SAM2.into()),
+        _ => Ok(()),
     }
 }
 
@@ -132,8 +144,65 @@ impl Seg {
         let img = src.image(self.comp_time(f)).ok_or("cannot read the layer's frames")?;
         let on: Vec<&Stroke> = strokes.iter().filter(|s| s.f == f).collect();
         let lab = roto::labels(&on, img.w, img.h, src.scale, [src.frame[0], src.frame[1]]);
+        if self.model >= 2 {
+            let m = roto::load_sam2()?;
+            let s = self.side();
+            let feats = m.encode(&sam2::prepare(&img.px, img.w, img.h, s), s);
+            let (low, _) = m.segment(&feats, &sam2_points(&lab, img.w, img.h, s), s);
+            return Ok((sam2_matte(&low, s, img.w, img.h, &lab), Gray::from_img(&img, 1)));
+        }
         let soft = if self.model == 1 { roto::with_sam(roto::load_sam()?.as_ref(), &img, &lab, prior) } else { roto::classic(&img, &lab, prior, fixed) };
         Ok((roto::clean(&soft, &lab, img.w, img.h), Gray::from_img(&img, 1)))
+    }
+
+    fn side(&self) -> usize {
+        if self.model == 3 { 1024 } else { 512 }
+    }
+
+    fn propagate_sam2(&self, ctx: Option<&Ctx>, st: &State, from: i64, to: i64) -> Result<Vec<(i64, Vec<bool>)>, String> {
+        let src = self.source()?;
+        let m = roto::load_sam2()?;
+        let s = self.side();
+        let base = self.mattes_for(&src, st.mattes.as_ref());
+        let feats_of = |f: i64| -> Result<(sam2::Feats, usize, usize, Vec<u8>), String> {
+            let img = src.image(self.comp_time(f)).ok_or("cannot read the layer's frames")?;
+            let on: Vec<&Stroke> = st.strokes.iter().filter(|x| x.f == f).collect();
+            let lab = roto::labels(&on, img.w, img.h, src.scale, [src.frame[0], src.frame[1]]);
+            Ok((m.encode(&sam2::prepare(&img.px, img.w, img.h, s), s), img.w, img.h, lab))
+        };
+        let mut out = vec![];
+        let (f0, w, h, lab0) = feats_of(from)?;
+        let anchor = match base.get(from) {
+            Some(a) => a,
+            None => {
+                let (low, _) = m.segment(&f0, &sam2_points(&lab0, w, h, s), s);
+                let a = sam2_matte(&low, s, w, h, &lab0);
+                out.push((from, a.clone()));
+                a
+            }
+        };
+        let mask: Vec<f32> = anchor.iter().map(|b| if *b { 1.0 } else { 0.0 }).collect();
+        let mask: Vec<f32> = sam2::resample_aa(&mask, 1, h, w, s, s, false).into_iter().map(|v| if v >= 0.5 { 1.0 } else { 0.0 }).collect();
+        let (_, mem) = m.condition(&f0, &mask, s);
+        let mut mems: BTreeMap<i64, sam2::Memory> = BTreeMap::new();
+        mems.insert(0, mem);
+        let total = (to - from).abs();
+        let step = if to >= from { 1 } else { -1 };
+        for k in 1..=total {
+            if let Some(c) = ctx {
+                if c.stopped() {
+                    return Err("stopped".into());
+                }
+                c.step(k as usize, total as usize, "Propagating");
+            }
+            let f = from + step * k;
+            let (fe, w, h, lab) = feats_of(f)?;
+            let (low, mem) = if lab.iter().any(|l| *l != 0) { m.segment(&fe, &sam2_points(&lab, w, h, s), s) } else { m.track(&fe, k, &mems, total + 1, false, s) };
+            mems.insert(k, mem);
+            mems.retain(|t, x| x.cond || *t + 16 > k);
+            out.push((f, sam2_matte(&low, s, w, h, &lab)));
+        }
+        Ok(out)
     }
 
     fn anchor_models(&self, src: &Source, f: i64, strokes: &[Stroke], matte: &[bool]) -> Option<roto::Models> {
@@ -152,6 +221,9 @@ impl Seg {
     }
 
     fn propagate(&self, ctx: Option<&Ctx>, st: &State, from: i64, to: i64) -> Result<Vec<(i64, Vec<bool>)>, String> {
+        if self.model >= 2 {
+            return self.propagate_sam2(ctx, st, from, to);
+        }
         let src = self.source()?;
         let mut out = vec![];
         let base = self.mattes_for(&src, st.mattes.as_ref());
@@ -194,6 +266,25 @@ impl Seg {
     }
 }
 
+fn sam2_points(lab: &[u8], w: usize, h: usize, s: usize) -> Vec<([f32; 2], i32)> {
+    let (kx, ky) = (s as f32 / w.max(1) as f32, s as f32 / h.max(1) as f32);
+    let mut pts = vec![];
+    for p in roto::sample_points(lab, w, 1, 6) {
+        pts.push(([p[0] * kx, p[1] * ky], 1));
+    }
+    for p in roto::sample_points(lab, w, 2, 6) {
+        pts.push(([p[0] * kx, p[1] * ky], 0));
+    }
+    pts
+}
+
+fn sam2_matte(low: &[f32], s: usize, w: usize, h: usize, lab: &[u8]) -> Vec<bool> {
+    let ms = s / 4;
+    let up = sam2::bilinear(low, ms, ms, h, w);
+    let soft: Vec<f32> = up.iter().map(|v| 1.0 / (1.0 + (-v).exp())).collect();
+    roto::clean(&soft, lab, w, h)
+}
+
 fn seg_for(e: &Engine, cid: u64, lid: u64, model: u32) -> Result<Seg, String> {
     Ok(Seg { project: e.project.clone(), media: e.media.clone(), cid, lid, fps: fps_of(e, cid)?, model })
 }
@@ -230,9 +321,7 @@ fn start_propagate(e: &mut Engine, cid: u64, lid: u64, uid: u64, dir: &str, wait
     if anchors.is_empty() {
         return Err("draw a Roto Brush stroke inside the span first".into());
     }
-    if st.model == 1 && !roto::installed() {
-        return Err(NEEDS.into());
-    }
+    need_model(st.model)?;
     let seg = seg_for(e, cid, lid, st.model)?;
     let fwd = dir != "backward";
     let back = dir != "forward";
@@ -308,9 +397,7 @@ pub fn stroke(e: &mut Engine, p: &Json) -> Res {
     let f = current_frame(e, cid, lid, p)?;
     let uid = ensure(e, cid, lid, p)?;
     let mut st = read(e, cid, lid, uid)?;
-    if st.model == 1 && !roto::installed() {
-        return Err(NEEDS.into());
-    }
+    need_model(st.model)?;
     let (lo, hi) = frame_range(e, cid, lid)?;
     st.span = Some(match st.span {
         Some((a, b)) => (a.min(f), b.max(f)),
@@ -428,7 +515,7 @@ pub fn status(e: &mut Engine, p: &Json) -> Res {
     };
     let st = read(e, cid, lid, uid)?;
     let mut out = json!({
-        "layer": lid, "effect": uid, "model": fx::MODELS[st.model.min(1) as usize], "span": st.span.map(|(a, b)| [a, b]),
+        "layer": lid, "effect": uid, "model": fx::MODELS[st.model.min(3) as usize], "span": st.span.map(|(a, b)| [a, b]),
         "strokes": st.strokes.len(), "frames": st.mattes.as_ref().map(|m| m.frames.len()).unwrap_or(0),
         "frozen": st.frozen, "running": running, "progress": progress,
     });
@@ -463,11 +550,13 @@ pub fn status(e: &mut Engine, p: &Json) -> Res {
 
 pub fn models(e: &mut Engine, _: &Json) -> Res {
     let active = active_model(e);
-    let installed = roto::installed();
+    let entry = |m: &ModelInfo, on: bool| json!({"id": m.id, "name": m.name, "installed": roto::installed_of(m), "active": on, "size": m.size, "licence": m.licence, "url": m.url, "sha256": m.sha256, "path": roto::path_of(m).to_string_lossy()});
+    let name = ["classical", "mobilesam", "sam2", "sam2full"][active as usize];
     Ok(json!({"models": [
         {"id": "classical", "name": "Classic (built in)", "installed": true, "active": active == 0, "size": 0},
-        {"id": MOBILESAM.id, "name": MOBILESAM.name, "installed": installed, "active": active == 1, "size": MOBILESAM.size, "licence": MOBILESAM.licence, "url": MOBILESAM.url, "sha256": MOBILESAM.sha256, "path": roto::model_path().to_string_lossy()},
-    ], "active": if active == 1 { "mobilesam" } else { "classical" }, "dir": roto::models_dir().to_string_lossy()}))
+        entry(&MOBILESAM, active == 1),
+        entry(&roto::SAM2, active >= 2),
+    ], "active": name, "fullResolution": active == 3, "dir": roto::models_dir().to_string_lossy()}))
 }
 
 pub fn model_select(e: &mut Engine, p: &Json) -> Res {
@@ -486,59 +575,67 @@ pub fn model_select(e: &mut Engine, p: &Json) -> Res {
             e.prefs.insert("rotoModel".into(), json!("mobilesam"));
             Ok(json!({"active": "mobilesam"}))
         }
-        other => Err(format!("no Roto Brush model {other} (classical or mobilesam)")),
+        id @ ("sam2" | "sam2full") => {
+            need_model(2)?;
+            if pb(p, "wait").unwrap_or(false) {
+                roto::load_sam2()?;
+            }
+            e.prefs.insert("rotoModel".into(), json!(id));
+            Ok(json!({"active": id}))
+        }
+        other => Err(format!("no Roto Brush model {other} (classical, mobilesam, sam2 or sam2full)")),
     }
 }
 
-fn place(bytes: &[u8]) -> Result<PathBuf, String> {
-    if roto::sha256_hex(bytes) != MOBILESAM.sha256 {
-        return Err("that file is not the official MobileSAM weights (checksum mismatch)".into());
+fn which(p: &Json) -> Result<&'static ModelInfo, String> {
+    let id = ps(p, "id").unwrap_or(MOBILESAM.id);
+    roto::model_info(if id == "sam2full" { "sam2" } else { id }).ok_or_else(|| format!("no downloadable Roto Brush model {id} (mobilesam or sam2)"))
+}
+
+fn place(m: &ModelInfo, bytes: &[u8]) -> Result<PathBuf, String> {
+    if roto::sha256_hex(bytes) != m.sha256 {
+        return Err(format!("that file is not the official {} weights (checksum mismatch)", m.name));
     }
     let dir = roto::models_dir();
     std::fs::create_dir_all(&dir).map_err(|e| format!("cannot write {}: {e}", dir.display()))?;
-    let path = roto::model_path();
+    let path = roto::path_of(m);
     std::fs::write(&path, bytes).map_err(|e| format!("cannot write {}: {e}", path.display()))?;
     Ok(path)
 }
 
 pub fn model_install(_: &mut Engine, p: &Json) -> Res {
-    let path = ps(p, "path").ok_or("pass `path`: the mobile_sam.pt file")?;
-    if ps(p, "id").is_some_and(|i| i != MOBILESAM.id) {
-        return Err("only mobilesam can be installed".into());
-    }
+    let m = which(p)?;
+    let path = ps(p, "path").ok_or_else(|| format!("pass `path`: the {} file", m.file))?;
     let bytes = std::fs::read(path).map_err(|e| format!("cannot read {path}: {e}"))?;
-    let out = place(&bytes)?;
-    Ok(json!({"installed": MOBILESAM.id, "path": out.to_string_lossy()}))
+    let out = place(m, &bytes)?;
+    Ok(json!({"installed": m.id, "path": out.to_string_lossy()}))
 }
 
 pub fn model_download(_: &mut Engine, p: &Json) -> Res {
-    if ps(p, "id").unwrap_or(MOBILESAM.id) != MOBILESAM.id {
-        return Err("only mobilesam can be downloaded".into());
-    }
-    let tmp = std::env::temp_dir().join(format!("formvfx-mobilesam-{}.pt", std::process::id()));
-    let ok = Command::new("curl").args(["-fsSL", "-o"]).arg(&tmp).arg(MOBILESAM.url).stdout(Stdio::null()).stderr(Stdio::null()).status().map(|s| s.success()).unwrap_or(false);
+    let m = which(p)?;
+    let tmp = std::env::temp_dir().join(format!("formvfx-{}-{}.pt", m.id, std::process::id()));
+    let ok = Command::new("curl").args(["-fsSL", "-o"]).arg(&tmp).arg(m.url).stdout(Stdio::null()).stderr(Stdio::null()).status().map(|s| s.success()).unwrap_or(false);
     if !ok {
         let _ = std::fs::remove_file(&tmp);
-        return Err(format!("the download failed; fetch {} yourself and use roto.model.install {{path}}", MOBILESAM.url));
+        return Err(format!("the download failed; fetch {} yourself and use roto.model.install {{id: {}, path}}", m.url, m.id));
     }
     let bytes = std::fs::read(&tmp).map_err(|e| e.to_string())?;
     let _ = std::fs::remove_file(&tmp);
-    let out = place(&bytes)?;
-    Ok(json!({"installed": MOBILESAM.id, "path": out.to_string_lossy()}))
+    let out = place(m, &bytes)?;
+    Ok(json!({"installed": m.id, "path": out.to_string_lossy()}))
 }
 
 pub fn model_remove(e: &mut Engine, p: &Json) -> Res {
-    if ps(p, "id").unwrap_or(MOBILESAM.id) != MOBILESAM.id {
-        return Err("only mobilesam can be removed".into());
-    }
-    let path = roto::model_path();
+    let m = which(p)?;
+    let path = roto::path_of(m);
     if path.exists() {
         std::fs::remove_file(&path).map_err(|e| e.to_string())?;
     }
-    if active_model(e) == 1 {
+    let a = active_model(e);
+    if (m.id == MOBILESAM.id && a == 1) || (m.id == roto::SAM2.id && a >= 2) {
         e.prefs.insert("rotoModel".into(), json!("classical"));
     }
-    Ok(json!({"removed": MOBILESAM.id}))
+    Ok(json!({"removed": m.id}))
 }
 
 pub struct ObjectJob {

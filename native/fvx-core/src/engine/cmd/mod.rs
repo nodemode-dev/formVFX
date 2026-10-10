@@ -3,6 +3,7 @@ use serde_json::Value as Json;
 use super::Engine;
 use crate::model::{Item, ItemKind, Layer, LayerInit, LayerKind, Solid, Value, build_layer};
 
+pub mod aep;
 pub mod browser;
 pub mod camtrack;
 pub mod color;
