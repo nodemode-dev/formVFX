@@ -69,7 +69,7 @@ fn tree(recent_paths: &[String], projects: &[String], footage: &[String]) -> Vec
     if !panels.is_empty() {
         panels.insert(0, S);
     }
-    let mut effect_menu = vec![I("effect.manage"), I("effect.removeAll"), I("effect.plugins.load"), S];
+    let mut effect_menu = vec![I("effect.manage"), I("effect.applyLast"), I("effect.removeAll"), I("effect.plugins.load"), S];
     let mut cats: Vec<&str> = effects::every().into_iter().filter(|e| effects::listed(e)).map(|e| e.category).collect();
     cats.sort();
     cats.dedup();
@@ -123,20 +123,38 @@ fn tree(recent_paths: &[String], projects: &[String], footage: &[String]) -> Vec
             vec![
                 I("edit.undo"),
                 I("edit.redo"),
+                I("edit.history"),
                 S,
                 I("edit.cut"),
                 I("edit.copy"),
+                I("edit.copyWithPropertyLinks"),
+                I("edit.copyWithRelativePropertyLinks"),
                 I("edit.paste"),
+                Sub("Paste Text", vec![I("edit.pasteTextFormattingOnly"), I("edit.pasteTextMatchFormatting")]),
                 I("edit.clear"),
                 S,
                 I("edit.duplicate"),
                 I("layer.split"),
+                I("edit.liftWorkArea"),
+                I("edit.extractWorkArea"),
                 S,
                 I("edit.selectAll"),
                 I("edit.deselectAll"),
                 S,
-                Sub("Label", LABELS.iter().enumerate().map(|(i, l)| P("edit.label", l.0, json!({"label": i}))).collect()),
-                Sub("Purge", vec![I("cache.cleanDisk")]),
+                Sub("Label", LABELS.iter().enumerate().map(|(i, l)| P("edit.label", l.0, json!({"label": i}))).chain([S, I("edit.selectLabelGroup")]).collect()),
+                Sub(
+                    "Purge",
+                    vec![
+                        P("edit.purge", "All Memory", json!({"what": "memory"})),
+                        I("edit.purgeUndo"),
+                        P("edit.purge", "Image Cache Memory", json!({"what": "image"})),
+                        P("edit.purge", "Snapshot", json!({"what": "snapshot"})),
+                        P("edit.purge", "All Memory and Disk Cache", json!({"what": "memoryAndDisk"})),
+                        I("cache.cleanDisk"),
+                    ],
+                ),
+                S,
+                I("edit.editOriginal"),
                 S,
                 I("app.keyboardShortcuts"),
                 I("app.settings"),
@@ -214,9 +232,14 @@ fn tree(recent_paths: &[String], projects: &[String], footage: &[String]) -> Vec
                         I("layer.mask.lock"),
                         I("layer.mask.unlockAll"),
                         I("layer.mask.lockOthers"),
+                        I("layer.mask.hideLocked"),
                     ],
                 ),
-                Sub("Mask and Shape Path", vec![I("path.freeTransform")]),
+                Sub("Mask and Shape Path", vec![I("path.rotoBezier"), I("path.setFirstVertex"), I("path.convertToBezier"), S, I("path.freeTransform")]),
+                Sub("Track Matte", ["None", "Alpha", "Alpha Inverted", "Luma", "Luma Inverted", "Layer Above", "Layer Below"].iter().zip(["none", "alpha", "alphaInverted", "luma", "lumaInverted", "above", "below"]).map(|(l, op)| P("layer.trackMatte", l, json!({"op": op}))).collect()),
+                Sub("Switches", vec![I("layer.hideOtherVideo"), I("layer.showAllVideo"), I("layer.unlockAll")]),
+                Sub("Markers", vec![I("layer.markersLock"), I("layer.deleteAllMarkers"), I("layer.updateMarkersFromSource")]),
+                I("layer.geometryOptions"),
                 S,
                 Sub(
                     "Layer Styles",
@@ -238,7 +261,7 @@ fn tree(recent_paths: &[String], projects: &[String], footage: &[String]) -> Vec
                 ),
                 Sub(
                     "Time",
-                    vec![I("layer.enableTimeRemap"), I("layer.timeReverse"), I("layer.timeStretch"), I("layer.freezeFrame"), I("layer.freezeOnLastFrame")],
+                    vec![I("layer.enableTimeRemap"), I("layer.timeReverse"), I("layer.timeStretch"), I("layer.freezeFrame"), I("layer.freezeOnLastFrame"), S, I("layer.alignVideoToData")],
                 ),
                 Sub(
                     "Frame Blending",
@@ -246,7 +269,14 @@ fn tree(recent_paths: &[String], projects: &[String], footage: &[String]) -> Vec
                 ),
                 Sub(
                     "Quality",
-                    vec![P("layer.quality", "Best", json!({"quality": "best"})), P("layer.quality", "Draft", json!({"quality": "draft"})), P("layer.quality", "Wireframe", json!({"quality": "wireframe"}))],
+                    vec![
+                        P("layer.quality", "Best", json!({"quality": "best"})),
+                        P("layer.quality", "Draft", json!({"quality": "draft"})),
+                        P("layer.quality", "Wireframe", json!({"quality": "wireframe"})),
+                        S,
+                        P("layer.sampling", "Bilinear", json!({"sampling": "bilinear"})),
+                        P("layer.sampling", "Bicubic", json!({"sampling": "bicubic"})),
+                    ],
                 ),
                 Sub(
                     "Create",
@@ -273,11 +303,32 @@ fn tree(recent_paths: &[String], projects: &[String], footage: &[String]) -> Vec
                 Sub("Material", vec![I("material.revealSource"), I("material.reset"), I("material.duplicateAssign")]),
                 I("layer.environment"),
                 S,
-                Sub("Transform", vec![I("layer.autoOrient")]),
+                Sub(
+                    "Transform",
+                    vec![
+                        P("layer.transform", "Reset", json!({"op": "reset"})),
+                        I("layer.centerAnchor"),
+                        S,
+                        P("layer.transform", "Flip Horizontal", json!({"op": "flipH"})),
+                        P("layer.transform", "Flip Vertical", json!({"op": "flipV"})),
+                        P("layer.transform", "Center in View", json!({"op": "center"})),
+                        P("layer.transform", "Fit to Comp", json!({"op": "fit"})),
+                        P("layer.transform", "Fit to Comp Width", json!({"op": "fitWidth"})),
+                        P("layer.transform", "Fit to Comp Height", json!({"op": "fitHeight"})),
+                        S,
+                        I("layer.autoOrient"),
+                    ],
+                ),
                 Sub("Arrange", vec![I("layer.bringToFront"), I("layer.bringForward"), I("layer.sendBackward"), I("layer.sendToBack")]),
                 S,
                 I("layer.openSource"),
                 Sub("Reveal", vec![I("layer.revealSource"), I("layer.revealInFinder"), I("comp.revealInProject")]),
+                S,
+                I("path.groupShapes"),
+                I("path.ungroupShapes"),
+                S,
+                I("layer.autoTrace"),
+                I("layer.sceneEditDetection"),
                 I("layer.precompose"),
             ],
         ),
@@ -304,6 +355,7 @@ fn tree(recent_paths: &[String], projects: &[String], footage: &[String]) -> Vec
                         I("keys.exponentialScale"),
                         I("layer.sequence"),
                         I("mask.interpolate"),
+                        I("keys.rpfCameraImport"),
                         I("keys.timeReverse"),
                     ],
                 ),
@@ -416,6 +468,7 @@ fn tree(recent_paths: &[String], projects: &[String], footage: &[String]) -> Vec
                 ),
                 S,
                 Sub("Panels", PANELS.iter().map(|(id, l)| P("window.panel", l, json!({"panel": id}))).collect()),
+                Sub("Create Nulls from Paths", vec![I("paths.pointsFollowNulls"), I("paths.nullsFollowPoints"), I("paths.tracePath")]),
                 I("app.commandPalette"),
             ]
             .into_iter()
@@ -441,6 +494,8 @@ fn item(e: &Engine, id: &str, label: Option<&str>, params: Json) -> Json {
         "view.simulateOutput" => Json::Bool(params.get("profile").and_then(Json::as_str) == Some(e.state.viewer.simulate.as_str())),
         "help.enableLogging" => Json::Bool(e.prefs.get("logging.enabled").and_then(Json::as_bool).unwrap_or(false)),
         "file.useProxy" => Json::Bool(e.state.project_selection.iter().any(|i| e.project.item(*i).and_then(|it| it.proxy.as_ref()).is_some_and(|p| p.enabled))),
+        "layer.mask.hideLocked" => Json::Bool(e.state.hide_locked_masks),
+        "layer.markersLock" => Json::Bool(e.state.active_comp.and_then(|c| e.project.comp(c)).is_some_and(|c| !e.state.selected_layers.is_empty() && e.state.selected_layers.iter().all(|l| c.layer(*l).is_some_and(|l| l.switches.markers_locked)))),
         _ if id.starts_with("view.3d.") && id != "view.3d.last" => Json::Bool(e.state.active_comp.is_some_and(|c| super::cmd::view3d::current(e, c) == &id[8..])),
         _ => Json::Null,
     };
@@ -472,6 +527,12 @@ fn item(e: &Engine, id: &str, label: Option<&str>, params: Json) -> Json {
         _ if id.starts_with("layer.style.") || id.starts_with("layer.mask.") || matches!(id, "layer.timeStretch" | "layer.timeReverse" | "layer.enableTimeRemap" | "layer.freezeFrame" | "layer.freezeOnLastFrame" | "layer.sequence" | "layer.settings" | "layer.revealSource" | "layer.quality" | "path.freeTransform" | "prop.separateDimensions" | "anim.applyPreset" | "anim.applyRecentPreset") => has_layers,
         "comp.trimToWorkArea" | "comp.responsiveTime" | "keys.audioToKeyframes" | "view.takeSnapshot" | "view.newViewer" | "view.splitLockedViewer" | "view.importGuides" | "view.exportGuides" | "comp.saveFrameAsPsd" | "comp.saveFrameAsExr" | "render.preRender" | "render.saveCurrentPreview" | "file.exportLottie" => has_comp,
         "render.addOutputModule" => !e.project.render_queue.is_empty(),
+        "edit.copyWithPropertyLinks" | "edit.copyWithRelativePropertyLinks" | "edit.liftWorkArea" | "edit.extractWorkArea" | "edit.selectLabelGroup" | "layer.hideOtherVideo" | "layer.markersLock" | "layer.deleteAllMarkers" | "layer.updateMarkersFromSource" | "layer.trackMatte" | "layer.transform" | "layer.centerAnchor" | "layer.sampling" | "layer.alignVideoToData" | "layer.autoTrace" | "layer.sceneEditDetection" | "layer.geometryOptions" | "path.rotoBezier" | "path.setFirstVertex" | "path.convertToBezier" | "path.groupShapes" | "path.ungroupShapes" | "paths.pointsFollowNulls" | "paths.nullsFollowPoints" | "paths.tracePath" => has_layers,
+        "effect.applyLast" => has_layers && e.session.last_effect.is_some(),
+        "edit.pasteTextFormattingOnly" | "edit.pasteTextMatchFormatting" => has_layers && e.clipboard.is_some(),
+        "edit.purgeUndo" => !e.history.undo.is_empty() || !e.history.redo.is_empty(),
+        "layer.showAllVideo" | "layer.unlockAll" | "keys.rpfCameraImport" => has_comp,
+        "edit.editOriginal" => has_layers || footage_selected(e, |f| !f.path.is_empty()),
         "file.setProxy" | "file.createProxy" => e.state.project_selection.iter().any(|i| e.project.item(*i).is_some_and(|it| matches!(it.kind, crate::model::ItemKind::Footage(_) | crate::model::ItemKind::Comp(_)))),
         "file.setProxyNone" | "file.useProxy" | "file.interpretProxy" => e.state.project_selection.iter().any(|i| e.project.item(*i).is_some_and(|it| it.proxy.is_some())),
         _ => true,

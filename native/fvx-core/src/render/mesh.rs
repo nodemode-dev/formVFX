@@ -145,6 +145,10 @@ pub fn primitive_of(ev: &Eval, l: &Layer) -> Option<Vec<Tri>> {
     Some(primitive(kind, f("width", 200.0), f("height", 200.0), f("depth", 200.0), f("radius", 100.0), f("tubeRadius", 30.0), f("segments", 48.0) as usize, f("rings", 24.0) as usize))
 }
 
+pub fn as_mesh(ev: &Eval, l: &Layer) -> bool {
+    l.is_model() || super::extrude::active(ev, l)
+}
+
 pub fn model_item<'p>(ev: &Eval<'p>, l: &Layer) -> Option<&'p crate::model::Footage> {
     match &ev.project.item(l.source?)?.kind {
         ItemKind::Footage(f) if f.kind == crate::model::FootageKind::Model => Some(f),
@@ -219,7 +223,11 @@ pub fn layer_mesh(ev: &Eval, l: &Layer, media: &Media) -> Option<LayerMesh> {
         }
         return Some(LayerMesh { tris, mats });
     }
-    let local = primitive_of(ev, l)?;
+    let (local, mats) = if super::extrude::active(ev, l) {
+        super::extrude::tris(ev, l)?
+    } else {
+        (primitive_of(ev, l)?, vec![mat_override(ev, l, &Material { base: [1.0; 4], metallic: 0.0, roughness: 0.5, ..Material::default() }, true)])
+    };
     let nm = world.inverse().map(|i| i.transpose()).unwrap_or(world);
     let tris = local
         .into_iter()
@@ -229,10 +237,9 @@ pub fn layer_mesh(ev: &Eval, l: &Layer, media: &Media) -> Option<LayerMesh> {
                 let k = (o[0] * o[0] + o[1] * o[1] + o[2] * o[2]).sqrt().max(1e-12);
                 [(o[0] / k) as f32, (o[1] / k) as f32, (o[2] / k) as f32]
             });
-            Tri { v: t.v.map(|v| world.apply(v)), n, uv: t.uv, mat: 0 }
+            Tri { v: t.v.map(|v| world.apply(v)), n, uv: t.uv, mat: t.mat }
         })
         .collect();
-    let mats = vec![mat_override(ev, l, &Material { base: [1.0; 4], metallic: 0.0, roughness: 0.5, ..Material::default() }, true)];
     Some(LayerMesh { tris, mats })
 }
 

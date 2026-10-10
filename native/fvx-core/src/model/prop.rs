@@ -578,7 +578,21 @@ pub fn material_options(ids: &mut Ids, model: bool) -> Group {
     ids.group("materialOptions", "Material Options", GroupKind::Plain, children)
 }
 
-pub const PRIMITIVES: [&str; 6] = ["Cube", "Sphere", "Plane", "Torus", "Cone", "Cylinder"];
+pub const BEVEL_STYLES: [&str; 4] = ["None", "Angular", "Concave", "Convex"];
+
+pub fn geometry_options(ids: &mut Ids) -> Group {
+    let children = vec![
+        p(ids.prop("bevelStyle", "Bevel Style", Value::Enum(0), Ui::popup(&BEVEL_STYLES))),
+        p(ids.prop("bevelDepth", "Bevel Depth", Value::Num(2.0), Ui::slider(0.0, 1000.0, 0.0, 50.0, 1))),
+        p(ids.prop("holeBevelDepth", "Hole Bevel Depth", Value::Num(100.0), Ui::slider(0.0, 100.0, 0.0, 100.0, 0))),
+        p(ids.prop("extrusionDepth", "Extrusion Depth", Value::Num(0.0), Ui::slider(0.0, 10_000.0, 0.0, 500.0, 1))),
+        p(ids.prop("sideColor", "Side Color", Value::Color([0.5, 0.5, 0.5, 1.0]), Ui::Color)),
+        p(ids.prop("sidesUseFill", "Sides Use Fill Color", Value::Bool(true), Ui::Checkbox)),
+    ];
+    ids.group("geometryOptions", "Geometry Options", GroupKind::Plain, children)
+}
+
+pub const PRIMITIVES: [&str; 6] =["Cube", "Sphere", "Plane", "Torus", "Cone", "Cylinder"];
 
 pub fn primitive_group(ids: &mut Ids, kind: u32, size: f64) -> Group {
     let children = vec![

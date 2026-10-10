@@ -606,3 +606,60 @@ pub fn environment_background(e: &mut Engine, p: &Json) -> Res {
     e.set_label("Create Environment Light Background Layer");
     Ok(json!({"layer": id, "light": light}))
 }
+
+pub fn geometry_options(e: &mut Engine, p: &Json) -> Res {
+    let (cid, ids) = e.layers_param(p)?;
+    let style = match p.get("bevelStyle") {
+        Some(Json::String(s)) => Some(prop::BEVEL_STYLES.iter().position(|b| b.eq_ignore_ascii_case(s)).ok_or("bevelStyle is none, angular, concave or convex")? as u32),
+        Some(v) => v.as_u64().map(|n| n.min(3) as u32),
+        None => None,
+    };
+    let side = p.get("sideColor").and_then(parse_color);
+    let mut done = vec![];
+    for lid in ids {
+        let kind = e.layer_ref(cid, lid)?.kind;
+        if !matches!(kind, LayerKind::Text | LayerKind::Shape) {
+            continue;
+        }
+        let pj = e.proj();
+        let g = {
+            let mut ids = pj.ids();
+            prop::geometry_options(&mut ids)
+        };
+        let l = pj.comp_mut(cid).and_then(|c| c.layer_mut(lid)).ok_or("no such layer")?;
+        l.switches.three_d = true;
+        if l.props.sub("geometryOptions").is_none() {
+            l.props.children.push(Node::Group(g));
+        }
+        let go = l.props.sub_mut("geometryOptions").ok_or("no Geometry Options")?;
+        let mut set = |id: &str, v: Value| {
+            if let Some(pr) = go.get_mut(id) {
+                pr.value = v;
+            }
+        };
+        if let Some(s) = style {
+            set("bevelStyle", Value::Enum(s));
+        }
+        for (k, id) in [("bevelDepth", "bevelDepth"), ("holeBevelDepth", "holeBevelDepth"), ("extrusionDepth", "extrusionDepth"), ("depth", "extrusionDepth")] {
+            if let Some(x) = pf(p, k) {
+                set(id, Value::Num(x.max(0.0)));
+            }
+        }
+        if let Some(c) = side {
+            set("sideColor", Value::Color(c));
+            set("sidesUseFill", Value::Bool(false));
+        }
+        if let Some(b) = pb(p, "sidesUseFill") {
+            set("sidesUseFill", Value::Bool(b));
+        }
+        done.push(lid);
+    }
+    if done.is_empty() {
+        return Err("Geometry Options apply to text and shape layers".into());
+    }
+    let c = e.proj().comp_mut(cid).ok_or("no composition")?;
+    let switched = c.renderer != "advanced3d";
+    c.renderer = "advanced3d".into();
+    e.set_label("Geometry Options");
+    Ok(json!({"layers": done, "renderer": "advanced3d", "rendererChanged": switched}))
+}

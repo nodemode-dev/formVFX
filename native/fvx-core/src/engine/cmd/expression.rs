@@ -70,7 +70,7 @@ fn quoted(s: &str) -> String {
     serde_json::to_string(s).unwrap_or_else(|_| "\"\"".into())
 }
 
-fn reference(l: &crate::model::Layer, uid: u64, same_layer: bool) -> Option<String> {
+pub fn reference(l: &crate::model::Layer, uid: u64, same_layer: bool) -> Option<String> {
     let path = l.props.path_of(uid)?;
     let parts: Vec<&str> = path.split('/').collect();
     let head = if same_layer { String::new() } else { format!("thisComp.layer({}).", quoted(&l.name)) };

@@ -165,6 +165,26 @@ pub fn paste(e: &mut Engine, p: &Json) -> Res {
             e.set_label("Paste Keyframes");
             Ok(json!({"keys": n}))
         }
+        Some(Clip::Links(links)) => {
+            let (cid, ids) = e.layers_param(p)?;
+            if ids.is_empty() {
+                return Err("select the layers to paste the property links onto".into());
+            }
+            let mut n = 0;
+            for lid in ids {
+                for (path, text) in &links {
+                    let l = e.layer_mut(cid, lid)?;
+                    if let Some(uid) = l.props.resolve_uid(path)
+                        && let Some(pr) = l.props.find_mut(uid)
+                    {
+                        pr.expr = Some(crate::model::prop::Expr { text: text.clone(), enabled: true });
+                        n += 1;
+                    }
+                }
+            }
+            e.set_label("Paste Property Links");
+            Ok(json!({"linked": n}))
+        }
         None => Err("the clipboard is empty".into()),
     }
 }
@@ -507,6 +527,9 @@ pub fn layer_marker(e: &mut Engine, p: &Json) -> Res {
     let t = pf(p, "time").unwrap_or_else(|| e.time_of(cid));
     let comment = ps(p, "comment").unwrap_or("").to_string();
     let l = e.layer_mut(cid, lid)?;
+    if l.switches.markers_locked {
+        return Err("this layer's markers are locked (Layer > Markers > Lock Markers)".into());
+    }
     l.markers.push(crate::model::Marker { time: t, comment, ..crate::model::Marker::default() });
     Ok(json!({"time": t}))
 }

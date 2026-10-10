@@ -513,4 +513,16 @@ impl Media {
         fr.order.retain(|k| k.0 != path);
         self.audio.lock().retain(|k, _| k.0 != path);
     }
+
+    pub fn purge(&self) {
+        self.stills.lock().clear();
+        self.psd.lock().clear();
+        let mut fr = self.frames.lock();
+        fr.map.clear();
+        fr.order.clear();
+        fr.bytes = 0;
+        drop(fr);
+        self.audio.lock().clear();
+        self.aux.lock().clear();
+    }
 }

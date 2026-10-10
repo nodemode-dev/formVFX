@@ -38,7 +38,7 @@ impl Renderer<'_> {
 
     pub(super) fn build_scene(&self, ev: &Eval, comp: &Comp, cam: &Camera, depth: u32) -> Option<Scene> {
         let lights = light::lights_of(ev);
-        let models = comp.layers.iter().any(|l| l.is_model() && l.switches.video && l.is_active_at(ev.t));
+        let models = comp.layers.iter().any(|l| mesh::as_mesh(ev, l) && l.switches.video && l.is_active_at(ev.t));
         let env_layer = comp.layers.iter().find(|l| l.environment);
         if lights.is_empty() && !models && env_layer.is_none() {
             return None;
@@ -60,7 +60,7 @@ impl Renderer<'_> {
                 if c == 0 {
                     continue;
                 }
-                if l.is_model() {
+                if mesh::as_mesh(ev, l) {
                     if let Some(m) = mesh::layer_mesh(ev, l, self.media) {
                         caster_tris.extend(m.tris);
                     }

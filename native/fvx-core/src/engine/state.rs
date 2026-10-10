@@ -324,6 +324,9 @@ impl Engine {
             if let Some(masks) = l.masks() {
                 for g in masks.groups() {
                     let GroupKind::Mask { color, locked, mode, inverted } = &g.kind else { continue };
+                    if *locked && self.state.hide_locked_masks {
+                        continue;
+                    }
                     let Some(bp) = g.get("path").map(|pr| ev.value(l, pr)).and_then(|v| v.as_path().cloned()) else { continue };
                     paths.push(path_json(&bp, &m, l.id, g.uid, &g.name, true, *color, &self.state.selected_vertices, json!({"mode": mode.label(), "inverted": inverted, "locked": locked})));
                 }

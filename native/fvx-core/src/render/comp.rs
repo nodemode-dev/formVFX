@@ -503,7 +503,7 @@ impl<'a> Renderer<'a> {
 
     fn depth_fragment(&self, ev: &Eval, l: &Layer, s: f64, cam: &Camera, scene: Option<&super::light::Scene>, depth: u32) -> Option<(Tile, Vec<f32>, f32)> {
         let op = ev.opacity(l) as f32;
-        if l.is_model() {
+        if super::mesh::as_mesh(ev, l) {
             let (mut tile, d) = self.model_tile(ev, l, s, cam, scene)?;
             if cam.dof.is_some() {
                 let before = (tile.x0, tile.y0, tile.img.w);
@@ -695,7 +695,7 @@ impl<'a> Renderer<'a> {
             let c = cam.copied().unwrap_or_else(|| ev.camera());
             return self.sky_tile(ev, s, &c, scene, light);
         }
-        if l.is_model() {
+        if super::mesh::as_mesh(ev, l) {
             let c = cam.copied().unwrap_or_else(|| ev.camera());
             let (mut tile, d) = self.model_tile(ev, l, s, &c, scene)?;
             if c.dof.is_some() {

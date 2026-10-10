@@ -27,6 +27,8 @@ pub struct Session {
     pub footage: super::footage::View,
     pub browser: super::browser::Browser,
     pub learn: super::help::Learn,
+    pub last_effect: Option<String>,
+    pub effect_clip: Vec<crate::model::Group>,
 }
 
 fn store() -> PathBuf {

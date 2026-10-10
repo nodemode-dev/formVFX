@@ -89,6 +89,7 @@ pub struct State {
     pub selected_vertices: Vec<VertexRef>,
     pub project_selection: Vec<u64>,
     pub snapping: bool,
+    pub hide_locked_masks: bool,
     pub roi: Option<[f64; 4]>,
     pub view_layout: u32,
     pub viewer: ViewerState,
@@ -117,6 +118,7 @@ pub struct History {
 pub enum Clip {
     Layers(Vec<Layer>, u64),
     Keys(Vec<(String, f64, crate::model::Key)>),
+    Links(Vec<(String, String)>),
 }
 
 pub struct Engine {

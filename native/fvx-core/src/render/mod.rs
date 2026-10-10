@@ -9,6 +9,7 @@ pub mod diskcache;
 pub mod essential;
 pub mod exr;
 pub mod face;
+pub mod extrude;
 pub mod facemesh;
 pub mod fill;
 pub mod gpu;

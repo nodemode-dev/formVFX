@@ -423,6 +423,7 @@ pub struct Switches {
     pub adjustment: bool,
     pub three_d: bool,
     pub guide: bool,
+    pub markers_locked: bool,
 }
 
 impl Default for Switches {
@@ -442,6 +443,7 @@ impl Default for Switches {
             adjustment: false,
             three_d: false,
             guide: false,
+            markers_locked: false,
         }
     }
 }

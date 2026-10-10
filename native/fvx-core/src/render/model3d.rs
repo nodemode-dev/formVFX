@@ -697,4 +697,8 @@ impl ModelCache {
         self.map.lock().insert(path.to_string(), (mtime, m.clone()));
         Some(m)
     }
+
+    pub fn clear(&self) {
+        self.map.lock().clear();
+    }
 }

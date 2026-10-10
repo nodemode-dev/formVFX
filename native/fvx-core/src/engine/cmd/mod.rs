@@ -9,6 +9,7 @@ pub mod color;
 pub mod comp;
 pub mod deps;
 pub mod edit;
+pub mod editing;
 pub mod effect;
 pub mod essential;
 pub mod expression;

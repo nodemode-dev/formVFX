@@ -28,7 +28,12 @@ fn list_of(e: &Engine, o: Owner) -> Result<Vec<Marker>, String> {
 fn list_mut(e: &mut Engine, o: Owner) -> Result<&mut Vec<Marker>, String> {
     match o {
         Owner::Comp(c) => Ok(&mut e.proj().comp_mut(c).ok_or("no composition")?.markers),
-        Owner::Layer(c, l) => Ok(&mut e.layer_mut(c, l)?.markers),
+        Owner::Layer(c, l) => {
+            if e.layer_ref(c, l)?.switches.markers_locked {
+                return Err("this layer's markers are locked (Layer > Markers > Lock Markers)".into());
+            }
+            Ok(&mut e.layer_mut(c, l)?.markers)
+        }
     }
 }
 

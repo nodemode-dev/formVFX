@@ -2,11 +2,11 @@
 
 Generated from the formvfx engine by `./formvfx agents sync`; do not edit by hand.
 
-580 commands in 53 namespaces. Every menu item, button and drag in formvfx is one of these. Run one with `execute {command, params}` over MCP, inside `batch` for several as one undo step, or `formvfx exec ID 'JSON'` from a shell. `describe_command ID` returns the JSON Schema. In the parameter summaries `?` marks an optional parameter, `a|b` lists the accepted values, and `layers?`/`layer?` default to the selected layers. Times are composition seconds unless the summary says layer seconds.
+636 commands in 54 namespaces. Every menu item, button and drag in formvfx is one of these. Run one with `execute {command, params}` over MCP, inside `batch` for several as one undo step, or `formvfx exec ID 'JSON'` from a shell. `describe_command ID` returns the JSON Schema. In the parameter summaries `?` marks an optional parameter, `a|b` lists the accepted values, and `layers?`/`layer?` default to the selected layers. Times are composition seconds unless the summary says layer seconds.
 
 ## Contents
 
-`file` (58) `edit` (14) `project` (11) `item` (1) `footage` (9) `comp` (19) `layer` (93) `prop` (15) `keys` (33) `anim` (7) `time` (8) `markers` (5) `effect` (12) `mask` (15) `path` (1) `shape` (6) `text` (15) `camera` (18) `light` (3) `material` (4) `track` (22) `warp` (3) `roto` (14) `paint` (6) `puppet` (10) `liquify` (2) `contentFill` (2) `face` (5) `essential` (14) `expr` (1) `script` (1) `scriptui` (4) `render` (3) `renderQueue` (22) `playback` (3) `view` (52) `window` (6) `editor` (1) `cache` (2) `jobs` (3) `mediaBrowser` (7) `templates` (5) `prefs` (5) `shortcuts` (7) `storage` (3) `app` (12) `engine` (1) `command` (2) `motion` (1) `learn` (5) `help` (6) `clipboard` (1) `color` (2)
+`file` (58) `edit` (26) `project` (11) `item` (1) `footage` (9) `comp` (19) `layer` (113) `prop` (17) `keys` (34) `anim` (8) `time` (13) `markers` (5) `effect` (17) `mask` (17) `path` (6) `paths` (3) `shape` (6) `text` (15) `camera` (18) `light` (3) `material` (4) `track` (22) `warp` (3) `roto` (14) `paint` (6) `puppet` (10) `liquify` (2) `contentFill` (2) `face` (5) `essential` (14) `expr` (1) `script` (1) `scriptui` (4) `render` (3) `renderQueue` (22) `playback` (3) `view` (52) `window` (6) `editor` (1) `cache` (2) `jobs` (3) `mediaBrowser` (7) `templates` (5) `prefs` (5) `shortcuts` (7) `storage` (3) `app` (12) `engine` (1) `command` (2) `motion` (1) `learn` (5) `help` (6) `clipboard` (1) `color` (2)
 
 ## file
 
@@ -139,6 +139,29 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `{layers?|items?, label: None|Red|Yellow|... or 0-16}`
 - `edit.splitLayer` Split Layer
   `{layers?, time?}`
+- `edit.copyWithPropertyLinks` Copy with Property Links · Edit · Cmd+Alt+C
+  `{layers? | props from the selection} · pasted layers or properties follow the originals by expression`
+- `edit.copyWithRelativePropertyLinks` Copy with Relative Property Links · Edit
+  `{layers?} · links use thisComp, so they follow the composition they are pasted into`
+- `edit.pasteReversedKeyframes` Paste Reversed Keyframes
+  `{} · pastes copied keyframes in reverse time order`
+- `edit.pasteTextFormattingOnly` Paste Text Formatting Only · Edit > Paste Text
+  `{layers?} · the copied text layer's character and paragraph style, keeping each layer's words`
+- `edit.pasteTextMatchFormatting` Paste Text Matching Formatting · Edit > Paste Text
+  `{layers?, text? (default the copied layer's text)} · inserted at the caret while editing (replacing the selection), otherwise appended, in the layer's own style`
+- `edit.history` History · Edit
+  `{steps?: undo n, redo?: redo n} · with neither, lists the history`
+- `edit.purge` Purge · Edit > Purge
+  `{what?: all|memory|memoryAndDisk|disk|image|snapshot|3d}`
+- `edit.purgeUndo` Purge Undo · Edit > Purge
+- `edit.selectLabelGroup` Select Label Group · Edit > Label
+  `{comp?} · selects every layer sharing the selected layers' labels`
+- `edit.editOriginal` Edit Original · Edit · Cmd+E
+  `{dryRun?: bool} · opens the selected footage (or footage layer's) file in the application the system uses for it`
+- `edit.liftWorkArea` Lift Work Area · Edit
+  `{layers?} · removes the work area from the layers and leaves a gap`
+- `edit.extractWorkArea` Extract Work Area · Edit
+  `{layers?} · removes the work area from the layers and closes the gap`
 
 ## project
 
@@ -416,6 +439,46 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `{layer?, mask?}`
 - `layer.openLayer` Open Layer · Layer
   `{layer?}`
+- `layer.selectNext` Select Next Layer · Cmd+ArrowDown
+  `{comp?, add?: bool}`
+- `layer.selectPrevious` Select Previous Layer · Cmd+ArrowUp
+  `{comp?, add?: bool}`
+- `layer.hideOtherVideo` Hide Other Video · Layer > Switches · Cmd+Alt+Shift+V
+  `{layers?} · turns the video switch off on every other layer`
+- `layer.showAllVideo` Show All Video · Layer > Switches
+  `{comp?}`
+- `layer.unlockAll` Unlock All Layers · Layer > Switches · Cmd+Shift+L
+  `{comp?}`
+- `layer.sampling` Sampling · Layer > Quality
+  `{layers?, sampling: bilinear|bicubic}`
+- `layer.deleteAllMarkers` Delete All Markers · Layer > Markers
+  `{layers?}`
+- `layer.markersLock` Lock Markers · Layer > Markers
+  `{layers?, value?: bool (default toggle)}`
+- `layer.updateMarkersFromSource` Update Markers From Source · Layer > Markers
+  `{layers?} · copies the source composition's markers onto its layers`
+- `layer.mask.hideLocked` Hide Locked Masks · Layer > Mask
+  `{value?: bool (default toggle)}`
+- `layer.slip` Slip Edit
+  `{layers?, delta? (s) | frames?} · moves the source under fixed in and out points`
+- `layer.slipBack` Slip Back One Frame · Alt+PageUp
+  `{layers?}`
+- `layer.slipForward` Slip Forward One Frame · Alt+PageDown
+  `{layers?}`
+- `layer.trackMatte` Track Matte · Layer > Track Matte
+  `{layers?, op: none|alpha|alphaInverted|luma|lumaInverted|above|below}`
+- `layer.transform` Transform · Layer > Transform
+  `{layers?, op: reset|center|fit|fitWidth|fitHeight|flipH|flipV}`
+- `layer.centerAnchor` Center Anchor Point in Layer Content · Layer > Transform · Cmd+Alt+Home
+  `{layers?} · keeps the layer in place`
+- `layer.alignVideoToData` Align Video to Data · Layer > Time
+  `{layer?, data (a CSV or JSON file with timestamps), key? (the timestamp column), videoStart? (clock time of the video's first frame, or the footage's creation time), dataStart? (s)}`
+- `layer.autoTrace` Auto-trace · Layer
+  `{layer?, timeSpan?: currentFrame|workArea, channel?: alpha|red|green|blue|luminance, invert?, blur? (px), tolerance? (px), threshold? (%), minimumArea? (px), cornerRoundness? (%), applyToNewLayer?: bool}`
+- `layer.sceneEditDetection` Scene Edit Detection · Layer
+  `{layer?, mode?: markers|split|splitPrecompose, threshold?: 0..1 (default 0.25), wait?: bool} · finds the cuts in a footage layer (a background job)`
+- `layer.geometryOptions` Geometry Options · Layer
+  `{layers? (text or shape), bevelStyle?: none|angular|concave|convex, bevelDepth? (px), holeBevelDepth? (%), extrusionDepth? (px), sideColor?, sidesUseFill?: bool} · extrudes in the Advanced 3D renderer (turns it on)`
 
 ## prop
 
@@ -449,6 +512,10 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `{layer?, prop, name}`
 - `prop.separateDimensions` Separate Dimensions · Animation
   `{layer?, value?}`
+- `prop.moveGroup` Move Group
+  `{layer?, prop (group uid), index (1-based)} · reorders an effect, mask, shape or animator`
+- `prop.setGroupEnabled` Enable Group
+  `{layer?, prop (group uid), value: bool}`
 
 ## keys
 
@@ -504,6 +571,8 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `{comp?}`
 - `keys.toggleTransform` Add or Remove Transform Keyframe
   `{layers?, prop: anchor|position|scale|rotation|opacity}`
+- `keys.rpfCameraImport` RPF Camera Import · Animation > Keyframe Assistant
+  `{comp?, path (JSON frames or CSV of time,x,y,z,rx,ry,rz,fov)} · a keyed camera`
 
 ## anim
 
@@ -518,6 +587,8 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 - `anim.clearRecentPresets` Clear Recent Presets
 - `anim.recentPresets` Recent Animation Preset List
 - `anim.browsePresets` Browse Presets · Animation
+- `anim.reveal` Reveal Properties
+  `{comp?, layers?, kind?: keyframes|animation|expressions|modified} · opens those properties in the Timeline (U and UU)`
 
 ## time
 
@@ -533,6 +604,16 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 - `time.back10` Back 10 Frames · Shift+PageUp
 - `time.start` Go to Start · Home
 - `time.end` Go to End · End
+- `time.layerIn` Go to Layer In Point · I
+  `{comp?} · the selected (or top) layer's in point`
+- `time.layerOut` Go to Layer Out Point · O
+  `{comp?} · the selected (or top) layer's out point`
+- `time.step` Step Frames
+  `{comp?, frames: number (negative steps back)}`
+- `time.nextKey` Go to Next Keyframe · K
+  `{comp?} · next visible keyframe, marker or layer edge`
+- `time.previousKey` Go to Previous Keyframe · J
+  `{comp?}`
 
 ## markers
 
@@ -561,7 +642,7 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `{} · loads the Plug-ins folder again`
 - `effect.remove` Remove Effect
   `{layer?, effect: uid|index|name}`
-- `effect.removeAll` Remove All · Effect · Cmd+Alt+Shift+E
+- `effect.removeAll` Remove All · Effect · Cmd+Shift+E
   `{layers?}`
 - `effect.reset` Reset Effect
   `{layer?, effect}`
@@ -572,6 +653,16 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 - `effect.list` Effects
   `{filter?}`
 - `effect.manage` Manage Effects · Effect
+- `effect.copy` Copy Effects
+  `{layer?, effect? | effects?: [uid|name] (default selected effects)}`
+- `effect.paste` Paste Effects
+  `{layers?} · the copied effects, with fresh ids`
+- `effect.duplicate` Duplicate Effect
+  `{layer?, effect? | effects?} · the copy lands right below`
+- `effect.applyLast` Apply Last Effect · Effect · Cmd+Alt+Shift+E
+  `{layers?}`
+- `effect.pickColor` Pick Color
+  `{layer?, effect?, param? | prop?, x, y (layer px), time?, average?: px radius} · sets an effect colour from the layer's pixels`
 
 ## mask
 
@@ -605,11 +696,34 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `{layer?, vertices: [[x,y]...] (layer px), in?, out?, closed?, mode?, name?} → {mask}`
 - `mask.addVertex` Add Vertex
   `{layer?, mask (mask or shape path uid), point [x,y], index?, in?, out?} → {index}`
+- `mask.remove` Remove Mask
+  `{layer?, mask?: uid|name|index (default selected or first)}`
+- `mask.removeAll` Remove All Masks
+  `{layer?}`
 
 ## path
 
 - `path.freeTransform` Free Transform Points · Layer > Mask and Shape Path
   `{layer?, mask? (a mask or shape path group uid), scale?: % | [x%, y%], rotation?: deg, offset?: [dx, dy], anchor?: [x, y]}`
+- `path.rotoBezier` RotoBezier · Layer > Mask and Shape Path
+  `{layer?, mask?, value?: bool (default toggle)} · automatic tangents on every vertex`
+- `path.setFirstVertex` Set First Vertex · Layer > Mask and Shape Path
+  `{layer?, mask?, index (0-based)}`
+- `path.convertToBezier` Convert to Bezier Path · Layer > Mask and Shape Path
+  `{layer?, prop? (a rectangle, ellipse or star group; default selected or all), mask? (a mask: turns RotoBezier off)} · replaces a parametric shape with a Path`
+- `path.groupShapes` Group Shapes · Layer · Cmd+G
+  `{layer?, items?: [uid] (default selected shape groups)}`
+- `path.ungroupShapes` Ungroup Shapes · Layer · Cmd+Shift+G
+  `{layer?, items?: [uid]}`
+
+## paths
+
+- `paths.nullsFollowPoints` Create Nulls from Path: Nulls Follow Points · Window > Create Nulls from Paths
+  `{layer?, mask? | path?}`
+- `paths.pointsFollowNulls` Create Nulls from Path: Points Follow Nulls · Window > Create Nulls from Paths
+  `{layer?, mask? | path?} · each vertex follows a null by expression`
+- `paths.tracePath` Create Nulls from Path: Trace Path · Window > Create Nulls from Paths
+  `{layer?, mask? | path?, loop?: bool} · a null that travels the path, with a Progress slider`
 
 ## shape
 

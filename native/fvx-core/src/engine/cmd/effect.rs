@@ -70,6 +70,7 @@ pub fn apply(e: &mut Engine, p: &Json) -> Res {
         let index = fx.children.len();
         out.push(json!({"layer": lid, "uid": uid, "index": index}));
     }
+    e.session.last_effect = Some(spec.id.to_string());
     e.set_label(format!("Apply {}", spec.name));
     Ok(json!({"effect": spec.id, "name": spec.name, "applied": out}))
 }
