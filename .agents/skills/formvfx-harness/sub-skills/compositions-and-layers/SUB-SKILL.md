@@ -16,6 +16,7 @@ description: Compositions and layers in formvfx. Use to create or change a compo
 | Composition switches | `comp.setSwitch {switch: hideShy|motionBlur|frameBlending|draft3d, value}` |
 | Read it | `get_comp {comp}` (layers top to bottom with ids, timing, switches, parent, matte) |
 | Trim to the work area | `comp.trimToWorkArea` |
+| Crop the frame | `comp.cropToRegionOfInterest {comp, rect: [x, y, w, h]}` or `comp.cropToLayerBounds {comp, layers}`; layers keep their place on screen |
 
 A composition background colour is not rendered into transparent formats; use a solid as the bottom layer when the background must be in the file.
 
@@ -83,9 +84,9 @@ Trimming before editing in: `footage.open {item}`, `footage.setIn {time}` and `f
 
 A template is a composition with some of its properties exposed, so each use of it can be changed without opening it (a lower third whose name, colour and bar width differ per shot).
 
-1. In the template composition: `essential.addProperty {comp, layer, path, name}` for each property to expose (`text/sourceText`, `effects/#1/color`, `transform/opacity`...). `essential.addComment` and `essential.addGroup` organise the panel; `essential.rename`, `essential.move`, `essential.remove`; `essential.list {comp}` shows the controllers.
-2. Use it: add the composition to other compositions (`layer.addItem {item}`). Each of those layers gets an Essential Properties group (`essentialProperties/c1`, `c2`...). `set_property` on one of them overrides that instance only; unchanged ones follow the template's own values. `essential.revertToMaster {layers}` drops the overrides.
-3. Share it: `essential.exportTemplate {comp, path}` writes a `.fvxtemplate` (the composition, everything it uses, its media and a poster frame); `essential.importTemplate {path, addToComp: true}` brings one into another project; `essential.installTemplate` puts it in the Essential Graphics panel's Browse tab.
+1. In the template composition: `essential.canAdd {comp, layer, path}` says whether a property can be exposed; `essential.addProperty {comp, layer, path, name}` for each one (`text/sourceText`, `effects/#1/color`, `transform/opacity`...). `essential.addMedia {comp, layer}` lets each use swap a footage or precomp layer's source (a photo or logo slot). `essential.addMirror {comp, controller}` shows a control twice; `essential.linkProperty {comp, controller, layer, path}` makes another property follow a control. `essential.addComment` and `essential.addGroup` organise the panel; `essential.rename`, `essential.move`, `essential.remove`; `essential.list {comp}` shows the controllers.
+2. Use it: add the composition to other compositions (`layer.addItem {item}`). Each of those layers gets an Essential Properties group. `essential.set {comp, layer, controller, value}` overrides one instance (a media slot takes an item name or id); `essential.instance {comp, layer}` lists what is overridden; `essential.revert {layers}` drops the overrides; `essential.pushToComp {comp, layer}` makes one instance's overrides the template's own values.
+3. Share it: `essential.exportTemplate {comp, path}` writes a `.fvxtemplate`, or a `.mogrt` when the path ends in `.mogrt` (the composition, everything it uses, its media and a poster frame); `essential.importTemplate {path, addToComp: true}` brings one into another project; `essential.installTemplate` puts it in the Essential Graphics panel's Browse tab. `essential.templateInfo {path}` reads any `.mogrt`: one made in After Effects or Premiere Pro lists its controls but does not open, because its project is Adobe's closed format.
 
 ## Check
 

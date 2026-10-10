@@ -1,6 +1,6 @@
 ---
 name: camera-lights-3d
-description: 3D in formvfx. Use to make layers 3D, build scenes with cameras (one-node or two-node, presets, depth of field), lights (spot, point, parallel, ambient, environment) and shadows, set material options, add 3D primitives or imported glTF and OBJ models, extrude and bevel text and shape layers, animate camera moves such as push-ins, orbits and fly-throughs, switch 3D views, and use per-character 3D text.
+description: 3D in formvfx. Use to make layers 3D, build scenes with cameras (one-node or two-node, presets, depth of field), lights (spot, point, parallel, ambient, environment) and shadows, set material options, add 3D primitives or imported glTF and OBJ models, extrude and bevel text and shape layers, render 360 VR environments and cubemaps, build stereo 3D rigs, animate camera moves such as push-ins, orbits and fly-throughs, switch 3D views, and use per-character 3D text.
 ---
 
 # camera-lights-3d
@@ -46,6 +46,11 @@ Ease every camera key; linear camera moves read as mechanical.
 
 - `layer.new3dPrimitive {kind: cube|sphere|plane|torus|cone|cylinder, width, height, depth, radius, position: [x, y, z], baseColor, metallic, roughness, emissive}`.
 - `layer.newModel {path}` imports a `.gltf`, `.glb` or `.obj` and adds it as a layer; `camera.fromModel` and `light.fromModel` bring in the model's own cameras and lights.
+
+## VR and stereo
+
+- `comp.vr.createEnvironment {comp, width, faceSize}` makes a 2:1 composition that renders the 3D scene all around the active camera as an equirectangular frame (export it like any composition for 360 video). `comp.vr.setView {comp, yaw, pitch, roll}` turns it; `comp.vr.extractCubemap {comp, folder, layout: faces|strip}` writes the six cube faces.
+- `camera.stereoRig {comp, view: anaglyph|sideBySide|left|right, sceneDepth}` makes Left Eye, Right Eye and Stereo 3D compositions; the Stereo 3D Controls effect on the output's controls layer sets the view, the scene depth (eye separation as a percentage of the width) and convergence (objects at the camera's zoom distance sit on the screen plane).
 
 ## Extruded text and shapes
 
