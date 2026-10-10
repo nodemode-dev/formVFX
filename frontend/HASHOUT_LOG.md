@@ -130,6 +130,13 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - `comp.revealInProject` sends `uiAction` `revealItem` with the folders to open; the Project panel adds them to its open set, patches its rows and scrolls the item into view on the next frame. The item context menu gained Duplicate, Label, Remember and Apply Interpretation, the Replace Footage submenu and Reveal in Finder; all of them are engine commands.
 - The status bar's revision text briefly shows the auto-save file name when the engine reports one; the next state change writes the revision again.
 
+## Footage panel, Media Browser and the tutorial coach (0.25.0)
+
+- The Footage panel and Media Browser replace the generated command panels of the same ids, so their registration rows were removed from `COMMAND_PANELS` (the dock keeps the last registration). The dock opens the Media Browser beside the Project panel and the Footage panel beside the Composition viewer, where their content has room.
+- Footage frames come from `/api/thumb/<item>?time=` into one `img` swapped with `swapMedia` on the next animation frame while scrubbing, inside a stage whose size never depends on the image; the in and out band is positioned by style, and the panel changes only text and those two styles as marks move (verified under throttling: the stage box unchanged, no layout shift).
+- The Media Browser keys rows on the path with `patchList`; selecting a row toggles a class on the existing rows only. Folder changes repaint through the same list.
+- The tutorial coach is one card built on first use in the overlay root at `--z-companion` (above the home screen, below dialogs) and updated in place from the engine's `learn.update` event; the step's target is outlined by adding a class to an element found by automation id (`panel.<id>` for panels), removed when the step moves on.
+
 ## Boot ground
 
 - The critical style paints only `html` (`#0a0a0a`, then the boot script's profile ground); `body` is transparent until `tokens.css` gives it `--bg-primary`. Painting `body` too showed `#0a0a0a` for the first frames before the Studio ground `#111111`.
