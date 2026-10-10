@@ -3,7 +3,7 @@ use std::sync::OnceLock;
 
 use serde_json::{Value as Json, json};
 
-use super::cmd::{camtrack, color, comp, deps, edit, effect, essential, expression, file, fill, formats, keys, keytools, layer, layermisc, markers, mask, maskshape, paint, project, ptemplates, puppet, replace, roto, prop, script, session, shapes, styles, text, textanim, three, time, timeline, track, view3d, viewer, warp, watch};
+use super::cmd::{browser, camtrack, color, comp, deps, edit, effect, essential, expression, file, fill, footage, formats, help, keys, keytools, layer, layermisc, markers, mask, maskshape, paint, project, ptemplates, puppet, replace, roto, prop, script, session, shapes, styles, text, textanim, three, time, timeline, track, view3d, viewer, warp, watch};
 use super::{Engine, Res, export, rq};
 
 pub type Handler = fn(&mut Engine, &Json) -> Res;
@@ -104,6 +104,44 @@ pub static COMMANDS: &[Cmd] = &[
     c("project.setProjectComment", "Project Comment", "", "", "{comment}", U, project::set_project_comment),
     c("comp.setPosterTime", "Set Poster Time", "Composition", "", "{comp?, time? (s; default the current time)}", U, comp::set_poster_time),
     c("comp.revealInProject", "Reveal Composition in Project", "Layer/Reveal", "", "{comp?}", N, comp::reveal_in_project),
+    c("footage.open", "Open in Footage Panel", "", "", "{item: id|name (footage)}", N, footage::open),
+    c("footage.info", "Footage Panel State", "", "", "{} -> {item, name, time, frameRate, duration, still, in, out, range} | null", Q, footage::info),
+    c("footage.setTime", "Footage Panel Time", "", "", "{time? (s, source) | frame?}", N, footage::set_time),
+    c("footage.setIn", "Set In Point", "", "", "{time? | frame? (default: the panel's time)}", N, footage::set_in),
+    c("footage.setOut", "Set Out Point", "", "", "{time? | frame? (default: the panel's time)}", N, footage::set_out),
+    c("footage.clearInOut", "Clear In and Out", "", "", "{}", N, footage::clear_in_out),
+    c("footage.overlayEdit", "Overlay Edit", "", "", "{item?, comp?, in? (s), out? (s), at? (comp s; default the current time)} · the trimmed footage as a new top layer at the time", U, footage::overlay_edit),
+    c("footage.rippleInsertEdit", "Ripple Insert Edit", "", "", "{item?, comp?, in? (s), out? (s), at? (comp s; default the current time)} · layers crossing the time are split and everything after it moves later by the clip's length", U, footage::ripple_insert_edit),
+    c("footage.check", "Check Footage", "", "", "{items?: [id], wait?: bool} · looks for every footage file (in the background unless wait) and marks missing items", U, footage::check),
+    c("mediaBrowser.list", "List Folder", "", "", "{path?, importableOnly?: bool} -> {path, parent, entries: [{name, path, kind: folder|file|sequence, frames?, size, modified, importable}], favorites, actions}", Q, browser::list),
+    c("mediaBrowser.go", "Go to Folder", "", "", "{path?: folder | \"..\" (default: home), importableOnly?}", N, browser::go),
+    c("mediaBrowser.addFavorite", "Add to Favorites", "", "", "{path? (default: the current folder)}", N, browser::add_favorite),
+    c("mediaBrowser.removeFavorite", "Remove from Favorites", "", "", "{path? (default: the current folder)}", N, browser::remove_favorite),
+    c("mediaBrowser.fileInfo", "File Info", "", "", "{path} -> {name, size, modified, width, height, duration, frameRate, codec, hasVideo, hasAudio, sequenceFrames?}", Q, browser::file_info),
+    c("mediaBrowser.import", "Import", "", "", "{paths (files, a sequence's first frame, or folders: a folder of numbered stills comes in as one sequence), addToComp?, comp?, time?, position?}", U, browser::import),
+    c("mediaBrowser.action", "Media Browser Action", "", "", "{action: refresh|home|reveal|importAll}", U, browser::action),
+    c("layer.openSource", "Open Layer Source", "Layer", "", "{layer?} · a precomp opens its composition, footage opens in the Footage panel", N, help::open_source),
+    c("layer.revealInFinder", "Reveal in Finder", "Layer", "", "{layer?}", N, help::layer_reveal_in_finder),
+    c("jobs.list", "Background Jobs", "", "", "{} -> [{id (render | task:<n> | watch), kind, label, done, total, cancellable}]", Q, help::jobs_list),
+    c("jobs.wait", "Wait for Background Jobs", "", "", "{timeout? (s, default 600)} -> {waited, timedOut?, running}", N, help::jobs_wait),
+    c("jobs.cancel", "Cancel Job", "", "", "{job?: render|track|maskTrack|warp|camera|roto|fill|footageCheck|watch|task:<n>|all (default all)}", N, help::jobs_cancel),
+    c("storage.info", "Browser Storage", "", "", "{} -> {available, backend, usage, quota, persisted, folders, files: {count, bytes, media, projects, autoSaves}, diskCache}", Q, help::storage_info),
+    c("storage.persist", "Request Persistent Storage", "", "", "{} -> {requested, persisted} (disk storage is always persistent)", N, help::storage_persist),
+    c("storage.clear", "Clear Browser Storage", "", "", "{what: diskCache|media|autoSaves|all} -> {cleared, entries, bytes, keptInUse} (imported media the open project uses is kept; saved projects are never deleted)", N, help::storage_clear),
+    c("help.docs", "formvfx Help", "Help", "F1", "{page?: help|start|scripting|expressions|effects|commands|agents|parity|plugins} -> {url}", N, help::docs),
+    c("help.systemInfo", "System Information", "", "", "{} -> {formvfx, os, arch, cpus, gpu, ffmpeg, engineData, userData, diskCache, ...}", Q, help::system_info),
+    c("help.systemReport", "System Compatibility Report", "Help", "", "{quiet?: bool} -> {path, checks, ok} · also written to System Report.txt in the data folder", N, help::system_report),
+    c("help.enableLogging", "Enable Logging", "Help", "", "{on?: bool (toggles)} · every command, its result and its time are appended to logs/formvfx.log", N, help::enable_logging),
+    c("help.revealLogFile", "Reveal Logging File", "Help", "", "{}", N, help::reveal_log_file),
+    c("help.inAppTutorials", "In-App Tutorials", "Help", "", "{} · opens the tutorials; learn.* drives them", N, help::in_app_tutorials),
+    c("learn.list", "Learn Tutorials", "", "", "{} -> [{id, title, summary, minutes, steps}]", Q, help::learn_list),
+    c("learn.start", "Start Tutorial", "", "", "{id}", N, help::learn_start),
+    c("learn.state", "Tutorial State", "", "", "{} -> {tutorial, step, steps, done, current: {title, text, target, accepts}} | null", Q, help::learn_state),
+    c("learn.step", "Tutorial Step", "", "", "{action?: next|back|showMe|goto, index?} · a step also completes when one of its `accepts` commands runs", N, help::learn_step),
+    c("learn.stop", "Close Tutorial", "", "", "{}", N, help::learn_stop),
+    c("prefs.open", "Open Settings", "", "", "{page?: general|previews|disk|memory|roto|face|interface}", N, help::prefs_open),
+    c("prefs.reset", "Reset Settings", "", "", "{page? (default: every page)} -> {reset: [keys]}", N, help::prefs_reset),
+    c("editor.state", "Editor State", "", "", "{} -> {project, activeComp, openComps, time, selection, viewer, footagePanel, mediaBrowser, learn, jobs, undo, redo}", Q, help::editor_state),
     c("scriptui.list", "ScriptUI Windows", "", "", "{}", Q, script::ui_list),
     c("scriptui.event", "ScriptUI Event", "", "", "{window, control, event: click|change|changing|doubleclick, text?, value?, selection?} · runs the control's handler", U, script::ui_event),
     c("scriptui.close", "Close ScriptUI Window", "", "", "{window}", U, script::ui_close),

@@ -267,6 +267,13 @@ impl Engine {
     }
 
     pub fn execute(&mut self, id: &str, params: Json) -> Res {
+        let started = std::time::Instant::now();
+        let r = self.run_command(id, params);
+        cmd::help::after(self, id, &r, started.elapsed().as_secs_f64());
+        r
+    }
+
+    fn run_command(&mut self, id: &str, params: Json) -> Res {
         let Some(cmd) = registry::find(id) else {
             return Err(format!("unknown command `{id}` (command.list shows them)"));
         };
@@ -546,7 +553,7 @@ impl Engine {
             "export": export::FORMATS.iter().map(|f| f.0).collect::<Vec<_>>(),
             "projectExtension": crate::model::EXTENSION,
             "presetExtension": "fvxpreset",
-            "importProjects": ["fvxproj", "ecproj", "ecprojx"],
+            "importProjects": ["fvxproj", "fvxprojx", "ecproj", "ecprojx"],
             "ffmpeg": crate::render::media::has_ffmpeg(),
         })
     }

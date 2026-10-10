@@ -518,13 +518,18 @@ pub fn reveal_in_finder(e: &mut Engine, p: &Json) -> Res {
         Some(Item { kind: ItemKind::Footage(_), name, .. }) => return Err(format!("{name} is a placeholder with no file")),
         _ => e.path.clone().ok_or("select footage, or save the project first")?,
     };
+    reveal_path(&path)
+}
+
+pub fn reveal_path(path: &str) -> Res {
+    let path = path.to_string();
     if !Path::new(&path).exists() {
         return Err(format!("{path} is missing"));
     }
     if std::env::var_os("FORMVFX_NO_REVEAL").is_some() {
         return Ok(json!({"path": path, "revealed": false}));
     }
-    let dir = Path::new(&path).parent().map(|d| d.to_string_lossy().to_string()).unwrap_or_default();
+    let dir = if Path::new(&path).is_dir() { path.clone() } else { Path::new(&path).parent().map(|d| d.to_string_lossy().to_string()).unwrap_or_default() };
     let spawned = if cfg!(target_os = "macos") {
         std::process::Command::new("open").args(["-R", &path]).spawn()
     } else if cfg!(target_os = "windows") {

@@ -3,7 +3,7 @@ use serde_json::{Value as Json, json};
 use crate::engine::{Engine, Res, pb, ps};
 use crate::model::{Item, ItemKind};
 
-fn item_ref(e: &Engine, v: &Json) -> Option<u64> {
+pub fn item_ref(e: &Engine, v: &Json) -> Option<u64> {
     match v {
         Json::Number(n) => n.as_u64().filter(|id| e.project.item(*id).is_some()),
         Json::String(s) => s.parse::<u64>().ok().filter(|id| e.project.item(*id).is_some()).or_else(|| e.project.items.iter().find(|i| i.name == *s).map(|i| i.id)),

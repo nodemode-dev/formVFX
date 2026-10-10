@@ -24,6 +24,9 @@ pub struct Session {
     pub interpretation: Option<(String, Json)>,
     pub autosave: AutoSave,
     pub watch: Option<super::watch::Watch>,
+    pub footage: super::footage::View,
+    pub browser: super::browser::Browser,
+    pub learn: super::help::Learn,
 }
 
 fn store() -> PathBuf {

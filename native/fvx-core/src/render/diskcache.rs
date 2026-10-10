@@ -36,8 +36,15 @@ pub fn save_pref(key: &str, value: &Json) {
     let _ = std::fs::write(prefs_path(), serde_json::to_string_pretty(&Json::Object(m)).unwrap_or_default());
 }
 
+pub fn remove_pref(key: &str) {
+    let mut m = load_prefs();
+    if m.remove(key).is_some() {
+        let _ = std::fs::write(prefs_path(), serde_json::to_string_pretty(&Json::Object(m)).unwrap_or_default());
+    }
+}
+
 pub fn persisted(key: &str) -> bool {
-    key.starts_with("diskCache.") || key.starts_with("previews.") || key.starts_with("autoSave.")
+    key.starts_with("diskCache.") || key.starts_with("previews.") || key.starts_with("autoSave.") || key.starts_with("logging.")
 }
 
 struct State {

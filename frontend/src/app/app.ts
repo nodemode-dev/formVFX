@@ -7,6 +7,8 @@ import { EffectControlsPanel } from '../panels/effect-controls';
 import { EffectsPresetsPanel } from '../panels/effects-presets';
 import { EssentialGraphicsPanel } from '../panels/essential';
 import { FlowchartPanel } from '../panels/flowchart';
+import { FootagePanel } from '../panels/footage';
+import { MediaBrowserPanel } from '../panels/media-browser';
 import { ProjectPanel } from '../panels/project';
 import { AlignPanel, CharacterPanel, CommandPanel, HistoryPanel, InfoPanel, ParagraphPanel, PreviewPanel, RenderQueuePanel } from '../panels/small';
 import { TerminalPanel } from '../panels/terminal';
@@ -26,8 +28,9 @@ import { contextMenu, type PopupEntry } from '../ui/popup';
 import { Preferences } from '../ui/prefs';
 import { ScriptUIHost, type SuiTree } from '../ui/scriptui';
 import { ShortcutEditor } from '../ui/shortcut-editor';
+import { LearnCoach } from '../ui/learn';
 import { TemplateGallery } from '../ui/templates';
-import { applyTheme } from '../ui/themes';
+import { applyTheme, DEFAULT_ACCENT, DEFAULT_INTENSITY, DEFAULT_THEME, saveChoice } from '../ui/themes';
 import { toast } from '../ui/toast';
 import { ctx, type ToolId } from './ctx';
 
@@ -55,8 +58,6 @@ const COMMAND_PANELS: Array<[string, string, string[], string]> = [
   ['audio', 'Audio', ['audio.', 'playback.audio', 'keys.audioToKeyframes'], 'Audio levels, previews and audio-driven keyframes.'],
   ['progress', 'Progress', ['jobs.'], 'Background tasks.'],
   ['metadata', 'Metadata', ['item.metadata', 'project.usage'], 'Item metadata and usage.'],
-  ['mediaBrowser', 'Media Browser', ['mediaBrowser.'], 'Browse and import media from this computer.'],
-  ['footage', 'Footage', ['footage.'], 'The Footage panel: trim footage and set In and Out points.'],
   ['layer', 'Layer', ['layer.openLayer', 'roto.', 'puppet.'], 'The Layer panel: roto, paint and puppet work on one layer.'],
   ['lumetriScopes', 'Lumetri Scopes', ['scopes.', 'view.scopes'], 'Waveform, parade, vectorscope and histogram.'],
   ['createNullsFromPaths', 'Create Nulls From Paths', ['path.'], 'Points follow nulls, nulls follow points, trace a path.'],
@@ -69,6 +70,7 @@ class App {
   private readonly dock = new Dock();
   private readonly prefs = new Preferences(ctx);
   private readonly templates = new TemplateGallery(ctx);
+  private readonly learn = new LearnCoach(ctx);
   private readonly scriptui = new ScriptUIHost(ctx);
   private readonly keys = new Keys(ctx);
   private shortcuts: ShortcutEditor | null = null;
@@ -171,6 +173,8 @@ class App {
     this.terminal = new TerminalPanel(ctx);
     this.effects = new EffectsPresetsPanel(ctx);
     this.dock.register('project', 'Project', () => new ProjectPanel(ctx));
+    this.dock.register('footage', 'Footage', () => new FootagePanel(ctx));
+    this.dock.register('mediaBrowser', 'Media Browser', () => new MediaBrowserPanel(ctx));
     this.dock.register('effectControls', 'Effect Controls', () => new EffectControlsPanel(ctx));
     this.dock.register('composition', 'Composition', () => this.viewer);
     this.dock.register('timeline', 'Timeline', () => this.timeline);
@@ -334,6 +338,7 @@ class App {
         </div>
         <div class="fx-home-more">
           <button class="fx-link" type="button" data-h="template">New from a template</button>
+          <button class="fx-link" type="button" data-h="learn">Learn with a tutorial</button>
           <button class="fx-link" type="button" data-h="import">Import footage</button>
           <button class="fx-link" type="button" data-h="demo">Open the demo project</button>
           <button class="fx-link" type="button" data-h="agent">Build it with an agent</button>
@@ -349,6 +354,7 @@ class App {
         if (h === 'open') void ctx.invoke('file.open');
         if (h === 'import') void ctx.invoke('file.import');
         if (h === 'template') void this.templates.open();
+        if (h === 'learn') void this.learn.openList();
         if (h === 'demo') void ctx.run('file.openDemoProject');
         if (h === 'agent') {
           this.home.hidden = true;
@@ -432,6 +438,18 @@ class App {
       case 'file.newFromTemplate':
         void this.templates.open();
         return;
+      case 'learn.update':
+        this.learn.update(params && Object.keys(params).length ? (params as never) : null);
+        return;
+      case 'help.inAppTutorials':
+        void this.learn.openList();
+        return;
+      case 'prefs.resetInterface': {
+        const choice = { theme: DEFAULT_THEME, accentColor: DEFAULT_ACCENT, intensity: DEFAULT_INTENSITY };
+        saveChoice(choice);
+        applyTheme(choice);
+        return;
+      }
       case 'app.commandPalette':
         void this.palette.open(String(params.query ?? ''));
         return;

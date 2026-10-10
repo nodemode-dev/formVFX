@@ -40,6 +40,8 @@ All return `{"layer": id}` and land above the selected layer (or on top).
 
 Stand-ins and swaps: `file.importPlaceholder {name, width, height, frameRate, duration}` makes footage that shows colour bars until `file.replaceFootage {item, path}` gives it a file; `file.replaceWithPlaceholder`, `file.replaceWithSolid {item, color}` and `file.replaceWithLayeredComp {item}` (Photoshop, PDF, Illustrator) swap an item under every layer that uses it. `file.rememberInterpretation {item}` then `file.applyInterpretation {items}` copies frame rate, alpha, loops and colour profile. `project.duplicate`, `project.setLabel {items, label}`, `project.setProjectComment`, `comp.setPosterTime` (the frame thumbnails and templates show).
 
+Trimming before editing in: `footage.open {item}`, `footage.setIn {time}` and `footage.setOut {time}` (source seconds), then `footage.rippleInsertEdit {at}` (layers crossing `at` are split and everything after moves later by the clip's length; the composition grows if needed) or `footage.overlayEdit {at}` (on top, nothing moves). Both take `in` and `out` directly too. Finding media: `mediaBrowser.go {path}` lists a folder with numbered stills grouped as one `sequence` entry; `mediaBrowser.import {paths}` takes files, a sequence's first frame or a whole folder. `footage.check {wait: true}` marks footage whose files are gone.
+
 ## Arrange and time
 
 | Need | Command |

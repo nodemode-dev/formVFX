@@ -14,8 +14,10 @@ enum M {
     Sub(&'static str, Vec<M>),
 }
 
-const PANELS: [(&str, &str); 17] = [
+const PANELS: [(&str, &str); 19] = [
     ("project", "Project"),
+    ("footage", "Footage"),
+    ("mediaBrowser", "Media Browser"),
     ("composition", "Composition"),
     ("timeline", "Timeline"),
     ("effectControls", "Effect Controls"),
@@ -274,7 +276,8 @@ fn tree(recent_paths: &[String], projects: &[String], footage: &[String]) -> Vec
                 Sub("Transform", vec![I("layer.autoOrient")]),
                 Sub("Arrange", vec![I("layer.bringToFront"), I("layer.bringForward"), I("layer.sendBackward"), I("layer.sendToBack")]),
                 S,
-                Sub("Reveal", vec![I("layer.revealSource"), I("comp.revealInProject")]),
+                I("layer.openSource"),
+                Sub("Reveal", vec![I("layer.revealSource"), I("layer.revealInFinder"), I("comp.revealInProject")]),
                 I("layer.precompose"),
             ],
         ),
@@ -419,7 +422,7 @@ fn tree(recent_paths: &[String], projects: &[String], footage: &[String]) -> Vec
             .chain(panels)
             .collect(),
         ),
-        Sub("Help", vec![I("app.about"), I("file.openDemoProject")]),
+        Sub("Help", vec![I("help.docs"), I("help.inAppTutorials"), I("file.openDemoProject"), S, I("help.systemReport"), I("help.enableLogging"), I("help.revealLogFile"), S, I("app.about")]),
     ]
 }
 
@@ -436,6 +439,7 @@ fn item(e: &Engine, id: &str, label: Option<&str>, params: Json) -> Json {
         "view.showSnapshot" => Json::Bool(e.state.show_snapshot),
         "view.displayColorManagement" => Json::Bool(e.state.viewer.display_cm),
         "view.simulateOutput" => Json::Bool(params.get("profile").and_then(Json::as_str) == Some(e.state.viewer.simulate.as_str())),
+        "help.enableLogging" => Json::Bool(e.prefs.get("logging.enabled").and_then(Json::as_bool).unwrap_or(false)),
         "file.useProxy" => Json::Bool(e.state.project_selection.iter().any(|i| e.project.item(*i).and_then(|it| it.proxy.as_ref()).is_some_and(|p| p.enabled))),
         _ if id.starts_with("view.3d.") && id != "view.3d.last" => Json::Bool(e.state.active_comp.is_some_and(|c| super::cmd::view3d::current(e, c) == &id[8..])),
         _ => Json::Null,
@@ -458,6 +462,7 @@ fn item(e: &Engine, id: &str, label: Option<&str>, params: Json) -> Json {
         "file.clearRecent" => !e.session.recent_projects.is_empty(),
         "file.clearRecentFootage" => !e.session.recent_footage.is_empty(),
         "file.importVanishingPoint" => false,
+        "layer.openSource" | "layer.revealInFinder" => has_layers,
         "file.close" | "comp.setPosterTime" | "comp.revealInProject" | "file.exportTimeline" => has_comp,
         "templates.saveAs" => !e.project.items.is_empty(),
         "file.rememberInterpretation" | "file.replaceWithPlaceholder" | "file.replaceWithSolid" => footage_selected(e, |_| true),

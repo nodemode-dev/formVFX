@@ -3,6 +3,7 @@ use serde_json::Value as Json;
 use super::Engine;
 use crate::model::{Item, ItemKind, Layer, LayerInit, LayerKind, Solid, Value, build_layer};
 
+pub mod browser;
 pub mod camtrack;
 pub mod color;
 pub mod comp;
@@ -13,7 +14,9 @@ pub mod essential;
 pub mod expression;
 pub mod file;
 pub mod fill;
+pub mod footage;
 pub mod formats;
+pub mod help;
 pub mod keys;
 pub mod keytools;
 pub mod layer;

@@ -2,11 +2,11 @@
 
 Generated from the formvfx engine by `./formvfx agents sync`; do not edit by hand.
 
-542 commands in 46 namespaces. Every menu item, button and drag in formvfx is one of these. Run one with `execute {command, params}` over MCP, inside `batch` for several as one undo step, or `formvfx exec ID 'JSON'` from a shell. `describe_command ID` returns the JSON Schema. In the parameter summaries `?` marks an optional parameter, `a|b` lists the accepted values, and `layers?`/`layer?` default to the selected layers. Times are composition seconds unless the summary says layer seconds.
+580 commands in 53 namespaces. Every menu item, button and drag in formvfx is one of these. Run one with `execute {command, params}` over MCP, inside `batch` for several as one undo step, or `formvfx exec ID 'JSON'` from a shell. `describe_command ID` returns the JSON Schema. In the parameter summaries `?` marks an optional parameter, `a|b` lists the accepted values, and `layers?`/`layer?` default to the selected layers. Times are composition seconds unless the summary says layer seconds.
 
 ## Contents
 
-`file` (58) `edit` (14) `project` (11) `item` (1) `comp` (19) `layer` (91) `prop` (15) `keys` (33) `anim` (7) `time` (8) `markers` (5) `effect` (12) `mask` (15) `path` (1) `shape` (6) `text` (15) `camera` (18) `light` (3) `material` (4) `track` (22) `warp` (3) `roto` (14) `paint` (6) `puppet` (10) `liquify` (2) `contentFill` (2) `face` (5) `essential` (14) `expr` (1) `script` (1) `scriptui` (4) `render` (3) `renderQueue` (22) `playback` (3) `view` (52) `window` (6) `cache` (2) `templates` (5) `prefs` (3) `shortcuts` (7) `app` (12) `engine` (1) `command` (2) `motion` (1) `clipboard` (1) `color` (2)
+`file` (58) `edit` (14) `project` (11) `item` (1) `footage` (9) `comp` (19) `layer` (93) `prop` (15) `keys` (33) `anim` (7) `time` (8) `markers` (5) `effect` (12) `mask` (15) `path` (1) `shape` (6) `text` (15) `camera` (18) `light` (3) `material` (4) `track` (22) `warp` (3) `roto` (14) `paint` (6) `puppet` (10) `liquify` (2) `contentFill` (2) `face` (5) `essential` (14) `expr` (1) `script` (1) `scriptui` (4) `render` (3) `renderQueue` (22) `playback` (3) `view` (52) `window` (6) `editor` (1) `cache` (2) `jobs` (3) `mediaBrowser` (7) `templates` (5) `prefs` (5) `shortcuts` (7) `storage` (3) `app` (12) `engine` (1) `command` (2) `motion` (1) `learn` (5) `help` (6) `clipboard` (1) `color` (2)
 
 ## file
 
@@ -169,6 +169,26 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 - `item.metadata` Metadata
   `{item?: id|name}`
 
+## footage
+
+- `footage.open` Open in Footage Panel
+  `{item: id|name (footage)}`
+- `footage.info` Footage Panel State
+  `{} -> {item, name, time, frameRate, duration, still, in, out, range} | null`
+- `footage.setTime` Footage Panel Time
+  `{time? (s, source) | frame?}`
+- `footage.setIn` Set In Point
+  `{time? | frame? (default: the panel's time)}`
+- `footage.setOut` Set Out Point
+  `{time? | frame? (default: the panel's time)}`
+- `footage.clearInOut` Clear In and Out
+- `footage.overlayEdit` Overlay Edit
+  `{item?, comp?, in? (s), out? (s), at? (comp s; default the current time)} · the trimmed footage as a new top layer at the time`
+- `footage.rippleInsertEdit` Ripple Insert Edit
+  `{item?, comp?, in? (s), out? (s), at? (comp s; default the current time)} · layers crossing the time are split and everything after it moves later by the clip's length`
+- `footage.check` Check Footage
+  `{items?: [id], wait?: bool} · looks for every footage file (in the background unless wait) and marks missing items`
+
 ## comp
 
 - `comp.setPosterTime` Set Poster Time · Composition
@@ -210,6 +230,10 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 
 ## layer
 
+- `layer.openSource` Open Layer Source · Layer
+  `{layer?} · a precomp opens its composition, footage opens in the Footage panel`
+- `layer.revealInFinder` Reveal in Finder · Layer
+  `{layer?}`
 - `layer.newSolid` Solid · Layer > New · Cmd+Y
   `{name?, color? #hex|[r,g,b], width?, height?}`
 - `layer.newText` Text · Layer > New · Cmd+Alt+Shift+T
@@ -1055,11 +1079,42 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 - `window.editWorkspaces` Edit Workspaces · Window > Workspace
   `{name, rename?: new name, delete?: bool}`
 
+## editor
+
+- `editor.state` Editor State
+  `{} -> {project, activeComp, openComps, time, selection, viewer, footagePanel, mediaBrowser, learn, jobs, undo, redo}`
+
 ## cache
 
 - `cache.diskStats` Disk Cache Statistics
   `{} · folder, size, frame count, limit, hits`
 - `cache.cleanDisk` Empty Disk Cache · Edit > Purge
+
+## jobs
+
+- `jobs.list` Background Jobs
+  `{} -> [{id (render | task:[n] | watch), kind, label, done, total, cancellable}]`
+- `jobs.wait` Wait for Background Jobs
+  `{timeout? (s, default 600)} -> {waited, timedOut?, running}`
+- `jobs.cancel` Cancel Job
+  `{job?: render|track|maskTrack|warp|camera|roto|fill|footageCheck|watch|task:[n]|all (default all)}`
+
+## mediaBrowser
+
+- `mediaBrowser.list` List Folder
+  `{path?, importableOnly?: bool} -> {path, parent, entries: [{name, path, kind: folder|file|sequence, frames?, size, modified, importable}], favorites, actions}`
+- `mediaBrowser.go` Go to Folder
+  `{path?: folder | ".." (default: home), importableOnly?}`
+- `mediaBrowser.addFavorite` Add to Favorites
+  `{path? (default: the current folder)}`
+- `mediaBrowser.removeFavorite` Remove from Favorites
+  `{path? (default: the current folder)}`
+- `mediaBrowser.fileInfo` File Info
+  `{path} -> {name, size, modified, width, height, duration, frameRate, codec, hasVideo, hasAudio, sequenceFrames?}`
+- `mediaBrowser.import` Import
+  `{paths (files, a sequence's first frame, or folders: a folder of numbered stills comes in as one sequence), addToComp?, comp?, time?, position?}`
+- `mediaBrowser.action` Media Browser Action
+  `{action: refresh|home|reveal|importAll}`
 
 ## templates
 
@@ -1076,6 +1131,10 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 
 ## prefs
 
+- `prefs.open` Open Settings
+  `{page?: general|previews|disk|memory|roto|face|interface}`
+- `prefs.reset` Reset Settings
+  `{page? (default: every page)} -> {reset: [keys]}`
 - `prefs.pages` Settings Pages
 - `prefs.get` Get Setting
   `{key}`
@@ -1096,6 +1155,15 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `{preset?, path?}`
 - `shortcuts.import` Import Keyboard Shortcuts
   `{path? | preset?: exported document, name?}`
+
+## storage
+
+- `storage.info` Browser Storage
+  `{} -> {available, backend, usage, quota, persisted, folders, files: {count, bytes, media, projects, autoSaves}, diskCache}`
+- `storage.persist` Request Persistent Storage
+  `{} -> {requested, persisted} (disk storage is always persistent)`
+- `storage.clear` Clear Browser Storage
+  `{what: diskCache|media|autoSaves|all} -> {cleared, entries, bytes, keptInUse} (imported media the open project uses is kept; saved projects are never deleted)`
 
 ## app
 
@@ -1132,6 +1200,32 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 
 - `motion.sketch` Motion Sketch
   `{layer?, points: [[t, x, y]…] (t = capture seconds) | [[x, y]…] (one per frame), start? (s), captureSpeed? (%, 100), smoothing? (px, 1)}`
+
+## learn
+
+- `learn.list` Learn Tutorials
+  `{} -> [{id, title, summary, minutes, steps}]`
+- `learn.start` Start Tutorial
+  `{id}`
+- `learn.state` Tutorial State
+  `{} -> {tutorial, step, steps, done, current: {title, text, target, accepts}} | null`
+- `learn.step` Tutorial Step
+  `{action?: next|back|showMe|goto, index?} · a step also completes when one of its `accepts` commands runs`
+- `learn.stop` Close Tutorial
+
+## help
+
+- `help.docs` formvfx Help · Help · F1
+  `{page?: help|start|scripting|expressions|effects|commands|agents|parity|plugins} -> {url}`
+- `help.systemInfo` System Information
+  `{} -> {formvfx, os, arch, cpus, gpu, ffmpeg, engineData, userData, diskCache, ...}`
+- `help.systemReport` System Compatibility Report · Help
+  `{quiet?: bool} -> {path, checks, ok} · also written to System Report.txt in the data folder`
+- `help.enableLogging` Enable Logging · Help
+  `{on?: bool (toggles)} · every command, its result and its time are appended to logs/formvfx.log`
+- `help.revealLogFile` Reveal Logging File · Help
+- `help.inAppTutorials` In-App Tutorials · Help
+  `{} · opens the tutorials; learn.* drives them`
 
 ## clipboard
 
