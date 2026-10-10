@@ -39,6 +39,7 @@ pub mod tflite;
 pub mod three;
 pub mod vector;
 pub mod vision;
+pub mod vr;
 pub mod yaml;
 
 pub use comp::{RenderOpts, Renderer, content_bounds};

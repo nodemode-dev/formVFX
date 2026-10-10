@@ -162,6 +162,28 @@ pub struct Comp {
     pub essential: Vec<Controller>,
     #[serde(skip_serializing_if = "String::is_empty")]
     pub template_name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vr: Option<Vr>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stereo: Option<Stereo>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Vr {
+    pub source: u64,
+    pub face: u32,
+    pub yaw: f64,
+    pub pitch: f64,
+    pub roll: f64,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Stereo {
+    pub source: u64,
+    pub eye: String,
+    pub controls: Option<[u64; 2]>,
 }
 
 impl Default for Comp {
@@ -192,6 +214,8 @@ impl Default for Comp {
             renderer: "classic3d".into(),
             essential: vec![],
             template_name: String::new(),
+            vr: None,
+            stereo: None,
         }
     }
 }

@@ -2,11 +2,11 @@
 
 Generated from the formvfx engine by `./formvfx agents sync`; do not edit by hand.
 
-636 commands in 54 namespaces. Every menu item, button and drag in formvfx is one of these. Run one with `execute {command, params}` over MCP, inside `batch` for several as one undo step, or `formvfx exec ID 'JSON'` from a shell. `describe_command ID` returns the JSON Schema. In the parameter summaries `?` marks an optional parameter, `a|b` lists the accepted values, and `layers?`/`layer?` default to the selected layers. Times are composition seconds unless the summary says layer seconds.
+657 commands in 54 namespaces. Every menu item, button and drag in formvfx is one of these. Run one with `execute {command, params}` over MCP, inside `batch` for several as one undo step, or `formvfx exec ID 'JSON'` from a shell. `describe_command ID` returns the JSON Schema. In the parameter summaries `?` marks an optional parameter, `a|b` lists the accepted values, and `layers?`/`layer?` default to the selected layers. Times are composition seconds unless the summary says layer seconds.
 
 ## Contents
 
-`file` (58) `edit` (26) `project` (11) `item` (1) `footage` (9) `comp` (19) `layer` (113) `prop` (17) `keys` (34) `anim` (8) `time` (13) `markers` (5) `effect` (17) `mask` (17) `path` (6) `paths` (3) `shape` (6) `text` (15) `camera` (18) `light` (3) `material` (4) `track` (22) `warp` (3) `roto` (14) `paint` (6) `puppet` (10) `liquify` (2) `contentFill` (2) `face` (5) `essential` (14) `expr` (1) `script` (1) `scriptui` (4) `render` (3) `renderQueue` (22) `playback` (3) `view` (52) `window` (6) `editor` (1) `cache` (2) `jobs` (3) `mediaBrowser` (7) `templates` (5) `prefs` (5) `shortcuts` (7) `storage` (3) `app` (12) `engine` (1) `command` (2) `motion` (1) `learn` (5) `help` (6) `clipboard` (1) `color` (2)
+`file` (58) `edit` (26) `project` (11) `item` (1) `footage` (9) `comp` (26) `layer` (113) `prop` (17) `keys` (34) `anim` (8) `time` (13) `markers` (5) `effect` (17) `mask` (17) `path` (6) `paths` (3) `shape` (6) `text` (15) `camera` (19) `light` (3) `material` (4) `track` (22) `warp` (3) `roto` (14) `paint` (6) `puppet` (10) `liquify` (2) `contentFill` (2) `face` (5) `essential` (27) `expr` (1) `script` (1) `scriptui` (4) `render` (3) `renderQueue` (22) `playback` (3) `view` (52) `window` (6) `editor` (1) `cache` (2) `jobs` (3) `mediaBrowser` (7) `templates` (5) `prefs` (5) `shortcuts` (7) `storage` (3) `app` (12) `engine` (1) `command` (2) `motion` (1) `learn` (5) `help` (6) `clipboard` (1) `color` (2)
 
 ## file
 
@@ -250,6 +250,20 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 - `comp.responsiveTime` Responsive Design
   `{op: intro|outro|workArea}`
 - `comp.miniFlowchart` Composition Mini-Flowchart · Composition · Tab
+- `comp.openInEssentialGraphics` Open in Essential Graphics · Composition
+  `{comp?}`
+- `comp.vr.createEnvironment` Create VR Environment · Composition > VR
+  `{comp? (a 3D composition), width? (equirectangular, default 2048), faceSize? (cube face px), name?, yaw?, pitch?, roll?} -> {comp} · a 2:1 composition that renders the scene around the active camera`
+- `comp.vr.environments` VR Environments
+  `{} -> {environments: [{comp, source, width, height, faceSize, yaw, pitch, roll}]}`
+- `comp.vr.extractCubemap` Extract Cubemap · Composition > VR
+  `{comp? (VR environment or 3D composition), time?, faceSize?, layout?: faces|strip, folder?, import?: bool} -> {paths}`
+- `comp.vr.setView` VR View Orientation
+  `{comp? (VR environment), yaw?, pitch?, roll? (degrees), faceSize?}`
+- `comp.cropToRegionOfInterest` Crop Comp to Region of Interest · Composition
+  `{comp?, rect? [x, y, w, h] (default the viewer's region of interest)}`
+- `comp.cropToLayerBounds` Crop Comp to Selected Layer(s) Bounds · Composition
+  `{comp?, layers?}`
 
 ## layer
 
@@ -806,6 +820,8 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `{points?: [id] (default selected), layer?, effect?}`
 - `camera.deletePoints` Delete Selected Points
   `{points?: [id] (default selected), layer?, effect?, wait?}`
+- `camera.stereoRig` Create Stereo 3D Rig · Layer > Camera
+  `{comp? (a 3D composition), view?: anaglyph|sideBySide|left|right|balanced, sceneDepth? (% of width), convergence?: bool} -> {left, right, output, controls}`
 
 ## light
 
@@ -989,7 +1005,7 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `{comp?, controller, index (1-based), group? (a group controller id, or "" for none)}`
 - `essential.setTemplateName` Set Template Name
   `{comp?, name}`
-- `essential.open` Open in Essential Graphics · Composition
+- `essential.open` Open in Essential Graphics
   `{comp?}`
 - `essential.list` Essential Graphics Controllers
   `{comp? (default: the composition open in Essential Graphics, else the active one)} -> {comp, templateName, controllers: [{id, name, kind: property|comment|group, group, layer, path, value, ui}], instances}`
@@ -1003,6 +1019,32 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `{} -> templates in the Templates folder with name, size, duration, controller count and poster`
 - `essential.installTemplate` Install Motion Graphics Template
   `{path (.fvxtemplate)} · copies it into the Templates folder`
+- `essential.addMedia` Add Media Replacement
+  `{layer (a footage or precomp layer in the primary composition), comp?, name?, group?} · each instance can swap that layer's source`
+- `essential.addMirror` Add Mirror
+  `{comp?, controller} · a second control for the same property`
+- `essential.canAdd` Can Add Property to Essential Graphics
+  `{layer?, path|prop} -> {can, reason?}`
+- `essential.instance` Essential Properties of a precomp layer
+  `{layer (a precomp layer), comp?} -> {source, properties: [{controller, name, kind, value, master, overridden}]}`
+- `essential.linkProperty` Link Property to Control
+  `{comp?, controller, layer?, path|prop} · the property follows the control by expression`
+- `essential.unlinkProperty` Unlink Property
+  `{layer?, path|prop}`
+- `essential.pushToComp` Push Override Values to Source
+  `{layer (an instance), comp?, controller?} · the instance's overrides become the master values`
+- `essential.revert` Revert
+  `{layers?, controller?} · instances follow the master values again`
+- `essential.set` Set Essential Property
+  `{layer (an instance), comp?, controller (id or name), value (a media control takes an item id or name)}`
+- `essential.setName` Essential Graphics Name
+  `{comp?, name}`
+- `essential.setPrimary` Primary Composition
+  `{comp}`
+- `essential.soloSupported` Solo Supported Properties
+  `{comp?, layers?} · shows in the Timeline only the properties Essential Graphics can take`
+- `essential.templateInfo` Template Information
+  `{path (.fvxtemplate or .mogrt)} -> {name, madeIn, opens, size, duration, controls, poster}`
 
 ## expr
 

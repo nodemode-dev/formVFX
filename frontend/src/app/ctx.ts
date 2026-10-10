@@ -62,9 +62,10 @@ const PICKERS: Record<string, Picker> = {
   'file.installScript': { key: 'path', mode: 'open', ext: ['jsx', 'js'] },
   'file.installScriptUIPanel': { key: 'path', mode: 'open', ext: ['jsx', 'js'] },
   'effect.plugins.load': { key: 'path', mode: 'open', ext: ['wasm', 'wat'], when: (p) => p.folder === undefined },
-  'essential.exportTemplate': { key: 'path', mode: 'save', ext: ['fvxtemplate'], name: 'Template.fvxtemplate', when: (p) => p.folder === undefined },
-  'essential.importTemplate': { key: 'path', mode: 'open', ext: ['fvxtemplate'] },
-  'essential.installTemplate': { key: 'path', mode: 'open', ext: ['fvxtemplate'] },
+  'essential.exportTemplate': { key: 'path', mode: 'save', ext: ['fvxtemplate', 'mogrt'], name: 'Template.fvxtemplate', when: (p) => p.folder === undefined },
+  'essential.importTemplate': { key: 'path', mode: 'open', ext: ['fvxtemplate', 'mogrt'] },
+  'essential.installTemplate': { key: 'path', mode: 'open', ext: ['fvxtemplate', 'mogrt'] },
+  'essential.templateInfo': { key: 'path', mode: 'open', ext: ['fvxtemplate', 'mogrt'] },
   'track.faceModel.install': { key: 'path', mode: 'open', ext: ['task'] },
   'file.replaceFootage': { key: 'path', mode: 'open', ext: MEDIA },
   'file.collectFiles': { key: 'folder', mode: 'folder' },
@@ -81,6 +82,7 @@ const FORM_FIRST = new Set([
   'file.projectSettings', 'layer.autoTrace', 'layer.sceneEditDetection', 'file.newCompFromSelection', 'templates.saveAs',
   'keys.wiggle', 'keys.smooth', 'layer.alignVideoToData', 'file.importSolid', 'file.replaceWithSolid', 'file.importPlaceholder', 'file.replaceWithPlaceholder',
   'puppet.follow', 'puppet.recordOptions', 'layer.mask.shape', 'path.freeTransform', 'comp.crop', 'comp.trimToWorkArea',
+  'comp.vr.createEnvironment', 'comp.vr.extractCubemap', 'camera.stereoRig', 'layer.geometryOptions',
 ]);
 
 const GESTURE_TAG = Math.random().toString(36).slice(2, 8);

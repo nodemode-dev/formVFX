@@ -24,5 +24,16 @@ pub fn specs() -> Vec<EffectSpec> {
         spec("fx.control.color", "Color Control", vec![color("color", "Color", [1.0, 0.0, 0.0])]),
         spec("fx.control.layer", "Layer Control", vec![layer_param("layer", "Layer")]),
         spec("fx.control.dropdown", "Dropdown Menu Control", vec![popup("menu", "Menu", 0, &["Item 1", "Item 2", "Item 3"])]),
+        spec(
+            "fx.control.stereo3d",
+            "Stereo 3D Controls",
+            vec![
+                popup("view", "Configuration", 0, &["Anaglyph Red Cyan", "Stereo Pair (Side by Side)", "Left Eye", "Right Eye", "Balanced Red Cyan"]),
+                p("sceneDepth", "Stereo Scene Depth", Value::Num(3.5), Ui::slider(0.0, 100.0, 0.0, 10.0, 2)),
+                check("convergence", "Enable Convergence", true),
+                p("convergenceOffset", "Convergence Z Offset", Value::Num(0.0), Ui::slider(-100_000.0, 100_000.0, -2000.0, 2000.0, 1)),
+                check("swap", "Swap Left-Right", false),
+            ],
+        ),
     ]
 }

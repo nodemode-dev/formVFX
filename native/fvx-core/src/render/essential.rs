@@ -19,11 +19,26 @@ pub fn patched(project: &Project, ev: &Eval, l: &Layer, src: u64) -> Option<Proj
             Some((c.layer, c.prop, ev.value(l, ip)))
         })
         .collect();
-    if changes.is_empty() {
+    let media: Vec<(u64, u64)> = sub
+        .essential
+        .iter()
+        .filter(|c| c.kind == "media")
+        .filter_map(|c| {
+            let ip = g.get(&c.id).filter(|ip| overridden(ip))?;
+            let item = ev.value(l, ip).num().round() as u64;
+            project.item(item).is_some().then_some((c.layer, item))
+        })
+        .collect();
+    if changes.is_empty() && media.is_empty() {
         return None;
     }
     let mut p = project.clone();
     let comp = p.comp_mut(src)?;
+    for (lid, item) in media {
+        if let Some(x) = comp.layer_mut(lid) {
+            x.source = Some(item);
+        }
+    }
     for (lid, uid, v) in changes {
         if let Some(pr) = comp.layer_mut(lid).and_then(|x| x.props.find_mut(uid)) {
             pr.value = v;

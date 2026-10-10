@@ -10,6 +10,8 @@ use crate::model::{Controller, ItemKind, LayerKind, Project, Value};
 use crate::render::essential::{GROUP, overridden};
 
 pub const EXT: &str = "fvxtemplate";
+pub const MOGRT: &str = "mogrt";
+const INNER: &str = "project.fvxtemplate";
 const FORMAT: &str = "formvfx.template/1";
 
 pub fn templates_dir() -> PathBuf {
@@ -100,6 +102,7 @@ pub fn remove(e: &mut Engine, p: &Json) -> Res {
     let i = ctrl_index(e, cid, p)?;
     let c = e.proj().comp_mut(cid).ok_or("no composition")?;
     let gone = c.essential.remove(i);
+    c.essential.retain(|x| !(x.kind == "mirror" && x.text == gone.id));
     if gone.kind == "group" {
         for x in c.essential.iter_mut().filter(|x| x.group == gone.id) {
             x.group.clear();
@@ -192,7 +195,22 @@ pub fn controllers_json(pj: &Project, cid: u64) -> Json {
             if c.kind == "comment" {
                 o["text"] = json!(c.text);
             }
-            if c.kind == "property" {
+            if c.kind == "mirror" {
+                o["mirrorOf"] = json!(c.text);
+            }
+            if c.kind == "media" {
+                match comp.layer(c.layer) {
+                    Some(l) => {
+                        o["layer"] = json!(l.id);
+                        o["layerName"] = json!(l.name);
+                        o["value"] = json!(l.source);
+                        o["itemName"] = json!(l.source.and_then(|s| pj.item(s)).map(|i| i.name.clone()));
+                        o["type"] = json!("media");
+                    }
+                    None => o["missing"] = json!(true),
+                }
+            }
+            if c.kind == "property" || c.kind == "mirror" {
                 match comp.layer(c.layer).and_then(|l| Some((l, l.props.find(c.prop)?))) {
                     Some((l, pr)) => {
                         o["layer"] = json!(l.id);
@@ -263,9 +281,13 @@ fn wanted(pj: &Project) -> HashMap<u64, Wanted> {
         let w: Wanted = c
             .essential
             .iter()
-            .filter(|x| x.kind == "property")
+            .filter(|x| x.kind == "property" || x.kind == "media")
             .filter_map(|x| {
-                let pr = c.layer(x.layer)?.props.find(x.prop)?;
+                let l = c.layer(x.layer)?;
+                if x.kind == "media" {
+                    return Some((x.id.clone(), x.name.clone(), Ui::Plain, Value::Num(l.source? as f64)));
+                }
+                let pr = l.props.find(x.prop)?;
                 Some((x.id.clone(), x.name.clone(), pr.ui.clone(), master_value(pr)))
             })
             .collect();
@@ -384,7 +406,7 @@ pub fn export_template(e: &mut Engine, p: &Json) -> Res {
     let comp_name = e.project.item(cid).map(|i| i.name.clone()).unwrap_or_default();
     let tname = ps(p, "name").map(str::to_string).unwrap_or_else(|| if comp.template_name.is_empty() { comp_name.clone() } else { comp.template_name.clone() });
     let path = match ps(p, "path") {
-        Some(x) if Path::new(x).extension().is_some_and(|e| e.eq_ignore_ascii_case(EXT)) => PathBuf::from(x),
+        Some(x) if Path::new(x).extension().is_some_and(|e| e.eq_ignore_ascii_case(EXT) || e.eq_ignore_ascii_case(MOGRT)) => PathBuf::from(x),
         Some(x) => PathBuf::from(x).with_extension(EXT),
         None => ps(p, "folder").map(PathBuf::from).unwrap_or_else(templates_dir).join(format!("{}.{EXT}", safe(&tname))),
     };
@@ -434,8 +456,8 @@ pub fn export_template(e: &mut Engine, p: &Json) -> Res {
     let doc = json!({"format": FORMAT, "name": tname, "comp": cid, "compName": comp_name, "width": comp.width, "height": comp.height, "duration": comp.duration, "frameRate": comp.frame_rate, "controllers": controllers, "createdBy": pj.saved_by, "project": serde_json::to_value(&pj).map_err(|x| x.to_string())?});
     let mut files: Vec<(&str, Vec<u8>)> = vec![("template.json", serde_json::to_vec_pretty(&doc).map_err(|x| x.to_string())?)];
     let shot = poster(e, &e.project, cid);
-    if let Some(png) = shot {
-        files.push(("poster.png", png));
+    if let Some(png) = &shot {
+        files.push(("poster.png", png.clone()));
     }
     for (n, b) in &media {
         files.push((n.as_str(), b.clone()));
@@ -443,12 +465,36 @@ pub fn export_template(e: &mut Engine, p: &Json) -> Res {
     if let Some(d) = path.parent() {
         std::fs::create_dir_all(d).map_err(|x| format!("{}: {x}", d.display()))?;
     }
-    std::fs::write(&path, crate::engine::lottie::zip(&files)).map_err(|x| format!("{}: {x}", path.display()))?;
+    let mut bytes = crate::engine::lottie::zip(&files);
+    if is_mogrt(&path.to_string_lossy()) {
+        let def = mogrt_definition(&doc);
+        let mut outer: Vec<(&str, Vec<u8>)> = vec![("definition.json", serde_json::to_vec_pretty(&def).map_err(|x| x.to_string())?)];
+        if let Some(png) = shot {
+            outer.push(("thumb.png", png));
+        }
+        outer.push((INNER, bytes));
+        bytes = crate::engine::lottie::zip(&outer);
+    }
+    std::fs::write(&path, bytes).map_err(|x| format!("{}: {x}", path.display()))?;
     Ok(json!({"path": path.to_string_lossy(), "name": tname, "controllers": doc["controllers"].as_array().map(Vec::len).unwrap_or(0), "media": media.len(), "missing": missing}))
 }
 
+fn is_mogrt(path: &str) -> bool {
+    Path::new(path).extension().is_some_and(|e| e.eq_ignore_ascii_case(MOGRT))
+}
+
 fn read_template(path: &str) -> Result<(Json, HashMap<String, Vec<u8>>), String> {
-    let bytes = std::fs::read(path).map_err(|x| format!("{path}: {x}"))?;
+    let mut bytes = std::fs::read(path).map_err(|x| format!("{path}: {x}"))?;
+    if is_mogrt(path) {
+        let outer = crate::engine::lottie::unzip(&bytes).map_err(|x| format!("{path}: {x}"))?;
+        bytes = match outer.get(INNER) {
+            Some(b) => b.clone(),
+            None if outer.keys().any(|k| k.ends_with(".aegraphic") || k.ends_with(".prgraphic")) => {
+                return Err(format!("{path} was made in After Effects or Premiere Pro: its project is Adobe's closed .aegraphic or .prgraphic format, which formvfx cannot open (essential.templateInfo lists its controls)"));
+            }
+            None => return Err(format!("{path} has no project formvfx can read")),
+        };
+    }
     let files = crate::engine::lottie::unzip(&bytes).map_err(|x| format!("{path}: {x}"))?;
     let doc: Json = serde_json::from_slice(files.get("template.json").ok_or_else(|| format!("{path} is not a formvfx template (no template.json)"))?).map_err(|x| format!("{path}: {x}"))?;
     if !doc.get("format").and_then(Json::as_str).is_some_and(|f| f.starts_with("formvfx.template/")) {
@@ -530,7 +576,7 @@ pub fn templates(_: &mut Engine, _: &Json) -> Res {
     let dir = templates_dir();
     let mut rows = vec![];
     if let Ok(rd) = std::fs::read_dir(&dir) {
-        let mut paths: Vec<PathBuf> = rd.filter_map(|x| x.ok().map(|x| x.path())).filter(|x| x.extension().is_some_and(|e| e.eq_ignore_ascii_case(EXT))).collect();
+        let mut paths: Vec<PathBuf> = rd.filter_map(|x| x.ok().map(|x| x.path())).filter(|x| x.extension().is_some_and(|e| e.eq_ignore_ascii_case(EXT) || e.eq_ignore_ascii_case(MOGRT))).collect();
         paths.sort();
         for path in paths {
             let s = path.to_string_lossy().to_string();
@@ -539,7 +585,10 @@ pub fn templates(_: &mut Engine, _: &Json) -> Res {
                     let poster = files.get("poster.png").map(|b| format!("data:image/png;base64,{}", crate::engine::lottie::b64(b)));
                     rows.push(json!({"path": s, "name": doc["name"], "width": doc["width"], "height": doc["height"], "duration": doc["duration"], "controllers": doc["controllers"].as_array().map(Vec::len).unwrap_or(0), "poster": poster}));
                 }
-                Err(err) => rows.push(json!({"path": s, "error": err})),
+                Err(err) => match mogrt_info(&s) {
+                    Ok(info) if is_mogrt(&s) => rows.push(json!({"path": s, "name": info["name"], "width": info["width"], "height": info["height"], "duration": info["duration"], "controllers": info["controls"].as_array().map(Vec::len).unwrap_or(0), "poster": info["poster"], "error": err})),
+                    _ => rows.push(json!({"path": s, "error": err})),
+                },
             }
         }
     }
@@ -547,12 +596,348 @@ pub fn templates(_: &mut Engine, _: &Json) -> Res {
 }
 
 pub fn install_template(_: &mut Engine, p: &Json) -> Res {
-    let path = ps(p, "path").ok_or("pass `path` (a .fvxtemplate file)")?;
-    let (doc, _) = read_template(path)?;
+    let path = ps(p, "path").ok_or("pass `path` (a .fvxtemplate or .mogrt file)")?;
+    let doc = match read_template(path) {
+        Ok((doc, _)) => doc,
+        Err(err) if is_mogrt(path) => json!({"name": mogrt_info(path).map_err(|_| err)?["name"]}),
+        Err(err) => return Err(err),
+    };
     let dir = templates_dir();
     std::fs::create_dir_all(&dir).map_err(|x| format!("{}: {x}", dir.display()))?;
     let name = Path::new(path).file_name().ok_or("bad path")?;
     let target = dir.join(name);
     std::fs::copy(path, &target).map_err(|x| format!("{}: {x}", target.display()))?;
     Ok(json!({"path": target.to_string_lossy(), "name": doc["name"]}))
+}
+
+fn kind_of(v: &Json) -> &'static str {
+    match v {
+        Json::Bool(_) => "checkbox",
+        Json::Number(_) => "slider",
+        Json::String(_) => "text",
+        Json::Array(a) if a.len() >= 3 && a.iter().all(|x| x.as_f64().is_some_and(|f| (0.0..=1.0).contains(&f))) => "color",
+        Json::Array(a) if a.len() == 2 || a.len() == 3 => "point",
+        Json::Object(o) if o.contains_key("text") => "text",
+        _ => "other",
+    }
+}
+
+fn mogrt_definition(doc: &Json) -> Json {
+    let name = doc["name"].as_str().unwrap_or("Template");
+    let controls: Vec<Json> = doc["controllers"]
+        .as_array()
+        .map(|a| {
+            a.iter()
+                .filter(|c| matches!(c["kind"].as_str(), Some("property" | "media" | "group" | "comment")))
+                .map(|c| {
+                    let value = if c["value"].get("text").is_some() { c["value"]["text"].clone() } else { c["value"].clone() };
+                    json!({"id": c["id"], "uiName": {"strDB": [{"localeString": "en_US", "str": c["name"]}]}, "formvfxKind": c["kind"], "kind": if c["kind"] == "property" { json!(kind_of(&value)) } else { c["kind"].clone() }, "value": value, "group": c["group"]})
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    json!({"capsuleName": name, "sourceInfoLocalized": {"en_US": {"name": name}}, "authoringApp": "formvfx", "authoringAppVersion": env!("CARGO_PKG_VERSION"), "width": doc["width"], "height": doc["height"], "duration": doc["duration"], "frameRate": doc["frameRate"], "clientControls": controls})
+}
+
+fn localized(v: &Json) -> Option<String> {
+    match v {
+        Json::String(s) => Some(s.clone()),
+        Json::Object(o) => o
+            .get("strDB")
+            .and_then(Json::as_array)
+            .and_then(|a| a.iter().find(|x| x["localeString"].as_str().is_some_and(|l| l.starts_with("en"))).or_else(|| a.first()))
+            .and_then(|x| x["str"].as_str().map(str::to_string))
+            .or_else(|| o.get("en_US").and_then(|x| x.get("name").and_then(Json::as_str).or(x.as_str())).map(str::to_string)),
+        _ => None,
+    }
+}
+
+fn mogrt_info(path: &str) -> Result<Json, String> {
+    let bytes = std::fs::read(path).map_err(|x| format!("{path}: {x}"))?;
+    let files = crate::engine::lottie::unzip(&bytes).map_err(|x| format!("{path}: {x}"))?;
+    let def: Json = files.get("definition.json").map(|b| serde_json::from_slice(b)).transpose().map_err(|x| format!("{path}: {x}"))?.ok_or_else(|| format!("{path} has no definition.json"))?;
+    let name = def.get("capsuleName").and_then(localized).or_else(|| def.get("sourceInfoLocalized").and_then(localized)).unwrap_or_else(|| Path::new(path).file_stem().and_then(|s| s.to_str()).unwrap_or("Template").to_string());
+    let controls: Vec<Json> = def
+        .get("clientControls")
+        .and_then(Json::as_array)
+        .map(|a| {
+            a.iter()
+                .map(|c| {
+                    let value = c.get("value").cloned().unwrap_or(Json::Null);
+                    let kind = c.get("kind").and_then(Json::as_str).map(str::to_string).unwrap_or_else(|| kind_of(&value).to_string());
+                    json!({"id": c.get("id"), "name": c.get("uiName").and_then(localized).unwrap_or_default(), "kind": kind, "type": c.get("type"), "value": value})
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    let app = if files.contains_key(INNER) {
+        "formvfx"
+    } else if files.keys().any(|k| k.ends_with(".aegraphic")) {
+        "After Effects"
+    } else if files.keys().any(|k| k.ends_with(".prgraphic")) {
+        "Premiere Pro"
+    } else {
+        "unknown"
+    };
+    let poster = files.get("thumb.png").map(|b| format!("data:image/png;base64,{}", crate::engine::lottie::b64(b)));
+    Ok(json!({"path": path, "format": "mogrt", "name": name, "madeIn": app, "opens": app == "formvfx", "width": def.get("width"), "height": def.get("height"), "duration": def.get("duration"), "controls": controls, "poster": poster, "files": files.keys().collect::<Vec<_>>()}))
+}
+
+pub fn template_info(_: &mut Engine, p: &Json) -> Res {
+    let path = ps(p, "path").ok_or("pass `path` (a .fvxtemplate or .mogrt file)")?;
+    if is_mogrt(path) {
+        return mogrt_info(path);
+    }
+    let (doc, files) = read_template(path)?;
+    let controls: Vec<Json> = doc["controllers"].as_array().cloned().unwrap_or_default().iter().map(|c| json!({"id": c["id"], "name": c["name"], "kind": c["kind"], "value": c["value"]})).collect();
+    let poster = files.get("poster.png").map(|b| format!("data:image/png;base64,{}", crate::engine::lottie::b64(b)));
+    Ok(json!({"path": path, "format": "fvxtemplate", "name": doc["name"], "madeIn": "formvfx", "opens": true, "width": doc["width"], "height": doc["height"], "duration": doc["duration"], "controls": controls, "poster": poster, "media": files.keys().filter(|k| k.starts_with("media/")).count()}))
+}
+
+pub fn add_media(e: &mut Engine, p: &Json) -> Res {
+    let (cid, lid) = e.layer_param(p)?;
+    let l = e.layer_ref(cid, lid)?;
+    if !matches!(l.kind, LayerKind::Footage | LayerKind::Precomp) || l.source.is_none() {
+        return Err("Media Replacement works on footage and precomp layers".into());
+    }
+    let comp = e.project.comp(cid).ok_or("no composition")?;
+    if let Some(c) = comp.essential.iter().find(|c| c.kind == "media" && c.layer == lid) {
+        return Ok(json!({"controller": c.id, "existing": true}));
+    }
+    let name = ps(p, "name").map(str::to_string).unwrap_or_else(|| l.name.clone());
+    let id = next_id(&comp.essential);
+    start_template(e, cid);
+    let c = e.proj().comp_mut(cid).ok_or("no composition")?;
+    c.essential.push(Controller { id: id.clone(), name: name.clone(), kind: "media".into(), layer: lid, group: ps(p, "group").unwrap_or("").to_string(), ..Default::default() });
+    e.set_label(format!("Add {name} as Media Replacement"));
+    Ok(json!({"controller": id, "name": name}))
+}
+
+pub fn add_mirror(e: &mut Engine, p: &Json) -> Res {
+    let cid = comp_param(e, p)?;
+    let i = ctrl_index(e, cid, p)?;
+    let c = e.project.comp(cid).ok_or("no composition")?;
+    let src = c.essential[i].clone();
+    if src.kind != "property" {
+        return Err("only property controllers can be mirrored".into());
+    }
+    let id = next_id(&c.essential);
+    let name = ps(p, "name").map(str::to_string).unwrap_or_else(|| src.name.clone());
+    let c = e.proj().comp_mut(cid).ok_or("no composition")?;
+    c.essential.insert(i + 1, Controller { id: id.clone(), name, kind: "mirror".into(), layer: src.layer, prop: src.prop, group: src.group.clone(), text: src.id.clone() });
+    e.set_label("Add Mirror");
+    Ok(json!({"controller": id, "mirrorOf": src.id}))
+}
+
+fn addable(e: &Engine, cid: u64, lid: u64, uid: u64) -> Result<(), String> {
+    let l = e.layer_ref(cid, lid)?;
+    let pr = l.props.find(uid).ok_or("only properties can be added, not groups")?;
+    if matches!(pr.ui, Ui::Hidden | Ui::Mask | Ui::Path | Ui::Layer | Ui::Gradient) {
+        return Err(format!("{} is not a type Essential Graphics supports", pr.name));
+    }
+    if l.props.path_of(uid).is_some_and(|x| x.starts_with(GROUP)) {
+        return Err("Essential Properties of a precomp cannot be added again".into());
+    }
+    let comp = e.project.comp(cid).ok_or("no composition")?;
+    if comp.essential.iter().any(|c| c.kind == "property" && c.layer == lid && c.prop == uid) {
+        return Err(format!("{} is already in Essential Graphics", pr.name));
+    }
+    Ok(())
+}
+
+pub fn can_add(e: &mut Engine, p: &Json) -> Res {
+    let (cid, lid, uid) = super::prop::locate(e, p)?;
+    Ok(match addable(e, cid, lid, uid) {
+        Ok(()) => json!({"can": true}),
+        Err(reason) => json!({"can": false, "reason": reason}),
+    })
+}
+
+fn instance_layer(e: &Engine, p: &Json) -> Result<(u64, u64, u64), String> {
+    let (cid, lid) = e.layer_param(p)?;
+    let l = e.layer_ref(cid, lid)?;
+    let src = l.source.filter(|_| l.kind == LayerKind::Precomp).ok_or("pass a precomp layer (an instance of a template composition)")?;
+    Ok((cid, lid, src))
+}
+
+pub fn instance(e: &mut Engine, p: &Json) -> Res {
+    let (cid, lid, src) = instance_layer(e, p)?;
+    let l = e.layer_ref(cid, lid)?;
+    let src_comp = e.project.comp(src).ok_or("no source composition")?;
+    let rows: Vec<Json> = l
+        .props
+        .sub(GROUP)
+        .map(|g| {
+            g.children
+                .iter()
+                .filter_map(|c| if let Node::Prop(pr) = c { Some(pr) } else { None })
+                .map(|pr| {
+                    let kind = src_comp.essential.iter().find(|c| c.id == pr.id).map(|c| c.kind.clone()).unwrap_or_default();
+                    json!({"controller": pr.id, "name": pr.name, "kind": kind, "uid": pr.uid, "value": pr.value.to_json(), "master": pr.default.to_json(), "overridden": overridden(pr), "animated": pr.is_animated()})
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    Ok(json!({"layer": lid, "source": src, "templateName": src_comp.template_name, "properties": rows}))
+}
+
+fn instance_prop(e: &Engine, cid: u64, lid: u64, p: &Json) -> Result<u64, String> {
+    let key = p.get("controller").ok_or("pass `controller` (its id or name)")?;
+    let l = e.layer_ref(cid, lid)?;
+    let g = l.props.sub(GROUP).ok_or("this layer has no Essential Properties")?;
+    g.children
+        .iter()
+        .filter_map(|c| if let Node::Prop(pr) = c { Some(pr) } else { None })
+        .find(|pr| key.as_str().is_some_and(|k| pr.id == k || pr.name == k) || key.as_u64().is_some_and(|n| pr.uid == n))
+        .map(|pr| pr.uid)
+        .ok_or_else(|| "no such Essential Property on this layer".into())
+}
+
+pub fn set(e: &mut Engine, p: &Json) -> Res {
+    let (cid, lid, _) = instance_layer(e, p)?;
+    let uid = instance_prop(e, cid, lid, p)?;
+    let v = p.get("value").ok_or("pass `value`")?;
+    let item = v.as_str().and_then(|s| e.project.items.iter().find(|i| i.name == s && matches!(i.kind, ItemKind::Footage(_) | ItemKind::Comp(_)))).map(|i| i.id);
+    let l = e.layer_mut(cid, lid)?;
+    let pr = l.props.find_mut(uid).ok_or("no such property")?;
+    let value = match (&pr.value, v) {
+        (Value::Num(_), Json::String(s)) if pr.ui == Ui::Plain => Value::Num(item.ok_or_else(|| format!("no footage or composition named {s}"))? as f64),
+        (Value::Text(d), Json::String(s)) => {
+            let mut d = d.clone();
+            d.text = s.clone();
+            Value::Text(d)
+        }
+        _ => pr.value.parse_like(v, pr.ui.options())?,
+    };
+    pr.value = value.clone();
+    let name = pr.name.clone();
+    e.set_label(format!("Set {name}"));
+    Ok(json!({"layer": lid, "controller": name, "value": value.to_json()}))
+}
+
+pub fn push_to_comp(e: &mut Engine, p: &Json) -> Res {
+    let (cid, lid, src) = instance_layer(e, p)?;
+    let only = ps(p, "controller").map(str::to_string);
+    let t = e.time_of(cid);
+    let comp = e.project.comp(cid).ok_or("no composition")?;
+    let l = comp.layer(lid).ok_or("no layer")?;
+    let ev = crate::eval::Eval::new(&e.project, cid, comp, t);
+    let src_comp = e.project.comp(src).ok_or("no source composition")?;
+    let mut pushes: Vec<(String, u64, Option<u64>, Value)> = vec![];
+    if let Some(g) = l.props.sub(GROUP) {
+        for c in &g.children {
+            let Node::Prop(pr) = c else { continue };
+            if !overridden(pr) || only.as_ref().is_some_and(|o| o != &pr.id && o != &pr.name) {
+                continue;
+            }
+            let Some(ctrl) = src_comp.essential.iter().find(|c| c.id == pr.id) else { continue };
+            let v = ev.value(l, pr);
+            pushes.push((pr.id.clone(), ctrl.layer, (ctrl.kind == "property").then_some(ctrl.prop), v));
+        }
+    }
+    if pushes.is_empty() {
+        return Err("this instance has no overridden Essential Properties to push".into());
+    }
+    let mut skipped = vec![];
+    let mut done = vec![];
+    for (id, slid, prop, v) in &pushes {
+        let sl = e.layer_mut(src, *slid)?;
+        match prop {
+            Some(u) => {
+                let Some(pr) = sl.props.find_mut(*u) else { continue };
+                if pr.is_animated() {
+                    skipped.push(id.clone());
+                    continue;
+                }
+                pr.value = v.clone();
+            }
+            None => sl.source = Some(v.num().round() as u64),
+        }
+        done.push(id.clone());
+    }
+    let l = e.layer_mut(cid, lid)?;
+    if let Some(g) = l.props.sub_mut(GROUP) {
+        for c in g.children.iter_mut() {
+            let Node::Prop(pr) = c else { continue };
+            if let Some((_, _, _, v)) = pushes.iter().find(|x| x.0 == pr.id && done.contains(&x.0)) {
+                pr.value = v.clone();
+                pr.default = v.clone();
+                pr.keys.clear();
+                pr.expr = None;
+            }
+        }
+    }
+    e.set_label("Push Override Values to Source");
+    Ok(json!({"pushed": done, "skipped": skipped}))
+}
+
+pub fn link_property(e: &mut Engine, p: &Json) -> Res {
+    let cid = comp_param(e, p)?;
+    let i = ctrl_index(e, cid, p)?;
+    let comp = e.project.comp(cid).ok_or("no composition")?;
+    let ctrl = comp.essential[i].clone();
+    if !matches!(ctrl.kind.as_str(), "property" | "mirror") {
+        return Err("link to a property controller".into());
+    }
+    let mut q = p.clone();
+    if let Some(o) = q.as_object_mut() {
+        o.remove("controller");
+        o.insert("comp".into(), json!(cid));
+    }
+    let (_, lid, uid) = super::prop::locate(e, &q)?;
+    if lid == ctrl.layer && uid == ctrl.prop {
+        return Err("a property cannot be linked to its own controller".into());
+    }
+    let src_layer = comp.layer(ctrl.layer).ok_or("the controller's layer is gone")?;
+    let src_kind = src_layer.props.find(ctrl.prop).map(|x| x.value.kind_name()).ok_or("the controller's property is gone")?;
+    let text = super::expression::reference(src_layer, ctrl.prop, lid == ctrl.layer).ok_or("cannot reference that property")?;
+    let l = e.layer_mut(cid, lid)?;
+    let pr = l.props.find_mut(uid).ok_or("that is a group, not a property")?;
+    if pr.value.kind_name() != src_kind {
+        return Err(format!("{} holds a {} and the controller a {}", pr.name, pr.value.kind_name(), src_kind));
+    }
+    pr.expr = Some(crate::model::prop::Expr { text: text.clone(), enabled: true });
+    e.set_label("Link Property to Control");
+    Ok(json!({"controller": ctrl.id, "layer": lid, "prop": uid, "expression": text}))
+}
+
+pub fn unlink_property(e: &mut Engine, p: &Json) -> Res {
+    let (cid, lid, uid) = super::prop::locate(e, p)?;
+    let comp = e.project.comp(cid).ok_or("no composition")?;
+    let refs: Vec<String> = comp.essential.iter().filter(|c| c.kind == "property").filter_map(|c| super::expression::reference(comp.layer(c.layer)?, c.prop, c.layer == lid)).collect();
+    let l = e.layer_mut(cid, lid)?;
+    let pr = l.props.find_mut(uid).ok_or("that is a group, not a property")?;
+    match &pr.expr {
+        Some(x) if refs.iter().any(|r| r == x.text.trim()) => pr.expr = None,
+        _ => return Err(format!("{} is not linked to an Essential Graphics control", pr.name)),
+    }
+    e.set_label("Unlink Property");
+    Ok(json!({"layer": lid, "prop": uid}))
+}
+
+pub fn set_primary(e: &mut Engine, p: &Json) -> Res {
+    let cid = comp_param(e, p)?;
+    start_template(e, cid);
+    e.state.essential_comp = Some(cid);
+    Ok(json!({"comp": cid}))
+}
+
+pub fn solo_supported(e: &mut Engine, p: &Json) -> Res {
+    let (cid, ids) = e.layers_param(p)?;
+    let comp = e.project.comp(cid).ok_or("no composition")?;
+    let ids: Vec<u64> = if ids.is_empty() { comp.layers.iter().map(|l| l.id).collect() } else { ids };
+    let mut props = vec![];
+    for lid in &ids {
+        let Some(l) = comp.layer(*lid) else { continue };
+        let mut uids = vec![];
+        l.props.for_each_prop(&mut |pr| uids.push(pr.uid));
+        for u in uids {
+            if addable(e, cid, *lid, u).is_ok() {
+                props.push(json!({"layer": lid, "prop": u}));
+            }
+        }
+    }
+    let n = props.len();
+    e.frontend("timeline.revealProps", json!({"props": props, "kind": "supported", "layers": ids}));
+    Ok(json!({"props": n}))
 }

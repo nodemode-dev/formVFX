@@ -2,11 +2,11 @@
 
 Generated from the formvfx engine by `./formvfx agents sync`; do not edit by hand.
 
-300 effects in 20 categories. Apply with `apply_effect {layer, effect, params}` (the id or the name) or `execute effect.apply {effect, layers}`. Each parameter is listed as `id` = default (control). After applying, the parameter's property path is `effects/#N/[id]` where N is the effect's position on the layer (1 = top); `get_layer` shows the exact paths. GPU marks effects that render on the GPU when it is available; every effect also renders on the CPU.
+301 effects in 20 categories. Apply with `apply_effect {layer, effect, params}` (the id or the name) or `execute effect.apply {effect, layers}`. Each parameter is listed as `id` = default (control). After applying, the parameter's property path is `effects/#N/[id]` where N is the effect's position on the layer (1 = top); `get_layer` shows the exact paths. GPU marks effects that render on the GPU when it is available; every effect also renders on the CPU.
 
 ## Contents
 
-`3D Channel` (8) `Audio` (13) `Blur & Sharpen` (16) `Channel` (14) `Color Correction` (39) `Distort` (38) `Expression Controls` (8) `Generate` (26) `Immersive Video` (12) `Keying` (11) `Matte` (4) `Noise & Grain` (13) `Obsolete` (10) `Perspective` (10) `Simulation` (18) `Stylize` (26) `Text` (2) `Time` (8) `Transition` (17) `Utility` (7)
+`3D Channel` (8) `Audio` (13) `Blur & Sharpen` (16) `Channel` (14) `Color Correction` (39) `Distort` (38) `Expression Controls` (9) `Generate` (26) `Immersive Video` (12) `Keying` (11) `Matte` (4) `Noise & Grain` (13) `Obsolete` (10) `Perspective` (10) `Simulation` (18) `Stylize` (26) `Text` (2) `Time` (8) `Transition` (17) `Utility` (7)
 
 ## 3D Channel
 
@@ -300,6 +300,8 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `point` = {"relative": [0.5, 0.5]} (point)
 - **Slider Control** `fx.control.slider`
   `slider` = 0 (slider 0..100)
+- **Stereo 3D Controls** `fx.control.stereo3d`
+  `view` = 0 (menu Anaglyph Red Cyan|Stereo Pair (Side by Side)|Left Eye|Right Eye|Balanced Red Cyan); `sceneDepth` = 3.5 (slider 0..10); `convergence` = true (checkbox); `convergenceOffset` = 0 (slider -2000..2000); `swap` = false (checkbox)
 
 ## Generate
 

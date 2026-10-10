@@ -8,10 +8,12 @@ import { toast } from '../ui/toast';
 interface Controller {
   id: string;
   name: string;
-  kind: 'property' | 'comment' | 'group';
+  kind: 'property' | 'comment' | 'group' | 'media' | 'mirror';
   group: string;
   text?: string;
   layerName?: string;
+  itemName?: string | null;
+  mirrorOf?: string;
   path?: string;
   value?: unknown;
   type?: string;
@@ -80,6 +82,7 @@ export class EssentialGraphicsPanel implements Panel {
         <div class="fx-eg-actions">
           <button class="cv-btn" type="button" data-act="comment" data-automation-id="essential.addComment">${icon('plus', 13)}Comment</button>
           <button class="cv-btn" type="button" data-act="group" data-automation-id="essential.addGroup">${icon('plus', 13)}Group</button>
+          <button class="cv-btn" type="button" data-act="media" data-automation-id="essential.addMedia" title="Add the selected footage or precomp layer as Media Replacement">${icon('plus', 13)}Media</button>
           <span class="fx-flex"></span>
           <button class="cv-btn cv-btn-primary" type="button" data-act="export" data-automation-id="essential.export">Export Template...</button>
         </div>
@@ -235,10 +238,11 @@ export class EssentialGraphicsPanel implements Panel {
   }
 
   private fill(n: HTMLElement, c: Controller, all: Controller[]): void {
-    setText(q(n, '.fx-eg-kind'), c.kind === 'property' ? (c.layerName ?? '') : c.kind === 'comment' ? 'Comment' : 'Group');
+    const kinds: Record<Controller['kind'], string> = { property: c.layerName ?? '', mirror: `Mirror · ${c.layerName ?? ''}`, media: 'Media', comment: 'Comment', group: 'Group' };
+    setText(q(n, '.fx-eg-kind'), kinds[c.kind]);
     setValue(q<HTMLInputElement>(n, '.fx-eg-label'), c.kind === 'comment' ? (c.text ?? '') : c.name);
-    setText(q(n, '.fx-eg-value'), c.kind === 'property' ? (c.missing ? 'missing' : show(c.value)) : '');
-    setTitle(n, c.kind === 'property' ? `${c.layerName ?? ''} > ${c.path ?? ''}` : '');
+    setText(q(n, '.fx-eg-value'), c.missing ? 'missing' : c.kind === 'property' || c.kind === 'mirror' ? show(c.value) : c.kind === 'media' ? (c.itemName ?? '') : '');
+    setTitle(n, c.kind === 'property' || c.kind === 'mirror' ? `${c.layerName ?? ''} > ${c.path ?? ''}` : c.kind === 'media' ? `${c.layerName ?? ''}: each instance can replace this layer's source` : '');
     setClass(n, 'is-group', c.kind === 'group');
     setClass(n, 'is-comment', c.kind === 'comment');
     setClass(n, 'in-group', !!c.group && all.some((g) => g.id === c.group));
@@ -249,6 +253,7 @@ export class EssentialGraphicsPanel implements Panel {
     const comp = this.compId();
     if (a === 'comment' && comp) await this.ctx.run('essential.addComment', { comp, text: 'Comment' });
     if (a === 'group' && comp) await this.ctx.run('essential.addGroup', { comp, name: 'Group' });
+    if (a === 'media' && comp) await this.ctx.run('essential.addMedia', { comp });
     if (a === 'export' && comp) {
       const r = (await this.ctx.invoke('essential.exportTemplate', { comp })) as { path: string; name: string } | undefined;
       if (r) toast(`Exported ${r.name} to ${r.path}`, 'info');
@@ -289,7 +294,7 @@ export class EssentialGraphicsPanel implements Panel {
     });
     if (!rows.length) {
       const empty = this.tpls.querySelector('.fx-eg-empty') ?? this.tpls.appendChild(el('<div class="fx-eg-empty"></div>'));
-      setText(empty, 'No templates installed yet. Export one from the Edit tab or install a .fvxtemplate file.');
+      setText(empty, 'No templates installed yet. Export one from the Edit tab or install a .fvxtemplate or .mogrt file.');
     } else this.tpls.querySelector('.fx-eg-empty')?.remove();
   }
 }

@@ -44,6 +44,7 @@ pub mod timeline;
 pub mod track;
 pub mod view3d;
 pub mod viewer;
+pub mod vr;
 pub mod warp;
 pub mod watch;
 

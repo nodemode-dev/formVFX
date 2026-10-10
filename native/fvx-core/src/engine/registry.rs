@@ -3,7 +3,7 @@ use std::sync::OnceLock;
 
 use serde_json::{Value as Json, json};
 
-use super::cmd::{browser, camtrack, color, comp, deps, edit, editing, effect, essential, expression, file, fill, footage, formats, help, keys, keytools, layer, layermisc, markers, mask, maskshape, paint, project, ptemplates, puppet, replace, roto, prop, script, session, shapes, styles, text, textanim, three, time, timeline, track, view3d, viewer, warp, watch};
+use super::cmd::{browser, camtrack, color, comp, deps, edit, editing, effect, essential, expression, file, fill, footage, formats, help, keys, keytools, layer, layermisc, markers, mask, maskshape, paint, project, ptemplates, puppet, replace, roto, prop, script, session, shapes, styles, text, textanim, three, time, timeline, track, view3d, viewer, vr, warp, watch};
 use super::{Engine, Res, export, rq};
 
 pub type Handler = fn(&mut Engine, &Json) -> Res;
@@ -153,7 +153,7 @@ pub static COMMANDS: &[Cmd] = &[
     c("essential.rename", "Rename Controller", "", "", "{comp?, controller, name?, text? (a comment's text)}", U, essential::rename),
     c("essential.move", "Move Controller", "", "", "{comp?, controller, index (1-based), group? (a group controller id, or \"\" for none)}", U, essential::move_to),
     c("essential.setTemplateName", "Set Template Name", "", "", "{comp?, name}", U, essential::set_template_name),
-    c("essential.open", "Open in Essential Graphics", "Composition", "", "{comp?}", N, essential::open),
+    c("essential.open", "Open in Essential Graphics", "", "", "{comp?}", N, essential::open),
     c("essential.list", "Essential Graphics Controllers", "", "", "{comp? (default: the composition open in Essential Graphics, else the active one)} -> {comp, templateName, controllers: [{id, name, kind: property|comment|group, group, layer, path, value, ui}], instances}", Q, essential::list),
     c("essential.revertToMaster", "Revert to Master", "", "", "{layers?, controller? (default: all)} · precomp layers: Essential Properties follow the master values again", U, essential::revert),
     c("essential.exportTemplate", "Export as Motion Graphics Template...", "Composition", "", "{comp?, path? (.fvxtemplate), folder? (default the Templates folder; the file is named after the template), name?, overwrite?: bool} · formvfx's own template: the composition, what it uses, its media and a poster frame in one file", N, essential::export_template),
@@ -674,6 +674,27 @@ pub static COMMANDS: &[Cmd] = &[
     c("keys.rpfCameraImport", "RPF Camera Import", "Animation/Keyframe Assistant", "", "{comp?, path (JSON frames or CSV of time,x,y,z,rx,ry,rz,fov)} · a keyed camera", U, editing::rpf_camera_import),
     c("layer.autoTrace", "Auto-trace...", "Layer", "", "{layer?, timeSpan?: currentFrame|workArea, channel?: alpha|red|green|blue|luminance, invert?, blur? (px), tolerance? (px), threshold? (%), minimumArea? (px), cornerRoundness? (%), applyToNewLayer?: bool}", U, editing::auto_trace),
     c("layer.sceneEditDetection", "Scene Edit Detection...", "Layer", "", "{layer?, mode?: markers|split|splitPrecompose, threshold?: 0..1 (default 0.25), wait?: bool} · finds the cuts in a footage layer (a background job)", U, editing::scene_edit_detection),
+    c("essential.addMedia", "Add Media Replacement", "", "", "{layer (a footage or precomp layer in the primary composition), comp?, name?, group?} · each instance can swap that layer's source", U, essential::add_media),
+    c("essential.addMirror", "Add Mirror", "", "", "{comp?, controller} · a second control for the same property", U, essential::add_mirror),
+    c("essential.canAdd", "Can Add Property to Essential Graphics", "", "", "{layer?, path|prop} -> {can, reason?}", Q, essential::can_add),
+    c("essential.instance", "Essential Properties of a precomp layer", "", "", "{layer (a precomp layer), comp?} -> {source, properties: [{controller, name, kind, value, master, overridden}]}", Q, essential::instance),
+    c("essential.linkProperty", "Link Property to Control", "", "", "{comp?, controller, layer?, path|prop} · the property follows the control by expression", U, essential::link_property),
+    c("essential.unlinkProperty", "Unlink Property", "", "", "{layer?, path|prop}", U, essential::unlink_property),
+    c("essential.pushToComp", "Push Override Values to Source", "", "", "{layer (an instance), comp?, controller?} · the instance's overrides become the master values", U, essential::push_to_comp),
+    c("essential.revert", "Revert", "", "", "{layers?, controller?} · instances follow the master values again", U, essential::revert),
+    c("essential.set", "Set Essential Property", "", "", "{layer (an instance), comp?, controller (id or name), value (a media control takes an item id or name)}", U, essential::set),
+    c("essential.setName", "Essential Graphics Name", "", "", "{comp?, name}", U, essential::set_template_name),
+    c("essential.setPrimary", "Primary Composition", "", "", "{comp}", N, essential::set_primary),
+    c("essential.soloSupported", "Solo Supported Properties", "", "", "{comp?, layers?} · shows in the Timeline only the properties Essential Graphics can take", N, essential::solo_supported),
+    c("essential.templateInfo", "Template Information", "", "", "{path (.fvxtemplate or .mogrt)} -> {name, madeIn, opens, size, duration, controls, poster}", Q, essential::template_info),
+    c("comp.openInEssentialGraphics", "Open in Essential Graphics", "Composition", "", "{comp?}", N, essential::open),
+    c("comp.vr.createEnvironment", "Create VR Environment...", "Composition/VR", "", "{comp? (a 3D composition), width? (equirectangular, default 2048), faceSize? (cube face px), name?, yaw?, pitch?, roll?} -> {comp} · a 2:1 composition that renders the scene around the active camera", U, vr::create_environment),
+    c("comp.vr.environments", "VR Environments", "", "", "{} -> {environments: [{comp, source, width, height, faceSize, yaw, pitch, roll}]}", Q, vr::environments),
+    c("comp.vr.extractCubemap", "Extract Cubemap...", "Composition/VR", "", "{comp? (VR environment or 3D composition), time?, faceSize?, layout?: faces|strip, folder?, import?: bool} -> {paths}", N, vr::extract_cubemap),
+    c("comp.vr.setView", "VR View Orientation", "", "", "{comp? (VR environment), yaw?, pitch?, roll? (degrees), faceSize?}", U, vr::set_view),
+    c("camera.stereoRig", "Create Stereo 3D Rig", "Layer/Camera", "", "{comp? (a 3D composition), view?: anaglyph|sideBySide|left|right|balanced, sceneDepth? (% of width), convergence?: bool} -> {left, right, output, controls}", U, vr::stereo_rig),
+    c("comp.cropToRegionOfInterest", "Crop Comp to Region of Interest", "Composition", "", "{comp?, rect? [x, y, w, h] (default the viewer's region of interest)}", U, vr::crop_to_roi),
+    c("comp.cropToLayerBounds", "Crop Comp to Selected Layer(s) Bounds", "Composition", "", "{comp?, layers?}", U, vr::crop_to_layer_bounds),
     c("layer.geometryOptions", "Geometry Options", "Layer", "", "{layers? (text or shape), bevelStyle?: none|angular|concave|convex, bevelDepth? (px), holeBevelDepth? (%), extrusionDepth? (px), sideColor?, sidesUseFill?: bool} · extrudes in the Advanced 3D renderer (turns it on)", U, three::geometry_options),
 ];
 

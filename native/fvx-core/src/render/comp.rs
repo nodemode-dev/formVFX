@@ -309,6 +309,13 @@ impl<'a> Renderer<'a> {
 
     pub fn render_comp(&self, id: u64, t: f64, s: f64, depth: u32) -> Img {
         use super::gpu::Backend;
+        if let Some(c) = self.project.comp(id)
+            && (c.vr.is_some() || c.stereo.is_some())
+            && depth < 8
+            && let Some(img) = super::vr::frame(self, c, t, s)
+        {
+            return img;
+        }
         if depth == 0
             && self.opts.backend != Backend::Cpu
             && self.project.settings.renderer != "cpu"
