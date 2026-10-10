@@ -432,7 +432,7 @@ pub fn prefs_pages(e: &mut Engine, _: &Json) -> Res {
         face_items.push(json!({"note": format!("Face Tracking uses the classical detector. The {} ({:.1} MB, {} licence) finds faces at any angle and tracks 478 points; it is downloaded once into {}.", fm.name, fm.size as f64 / 1_000_000.0, fm.licence, crate::render::roto::models_dir().display())}));
         face_items.push(json!({"button": "Download the Face Landmarker", "command": "face.model.download", "params": {"id": fm.id}}));
     }
-    Ok(json!([{"id": "previews", "items": previews}, {"id": "disk", "items": disk}, {"id": "memory", "items": []}, {"id": "roto", "items": roto_items}, {"id": "face", "items": face_items}]))
+    Ok(json!([{"id": "general", "items": super::session::pref_items(e)}, {"id": "previews", "items": previews}, {"id": "disk", "items": disk}, {"id": "memory", "items": []}, {"id": "roto", "items": roto_items}, {"id": "face", "items": face_items}]))
 }
 
 pub fn prefs_get(e: &mut Engine, p: &Json) -> Res {
@@ -440,7 +440,7 @@ pub fn prefs_get(e: &mut Engine, p: &Json) -> Res {
     if let Some(v) = crate::render::diskcache::value(k) {
         return Ok(v);
     }
-    Ok(e.prefs.get(k).cloned().unwrap_or(Json::Null))
+    Ok(e.prefs.get(k).cloned().or_else(|| super::session::default_pref(k)).unwrap_or(Json::Null))
 }
 
 pub fn prefs_set(e: &mut Engine, p: &Json) -> Res {

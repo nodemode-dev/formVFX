@@ -20,6 +20,14 @@ pub fn read_project(path: &str) -> Result<(Project, bool), String> {
     }
     match ext.as_str() {
         "ecproj" | "ecprojx" => Ok((ecproj::import(path)?, true)),
+        "fvxprojx" => {
+            let text = std::fs::read_to_string(path).map_err(|e| format!("{path}: {e}"))?;
+            let j = crate::engine::xmldoc::to_json(&text).map_err(|e| format!("{path} is not a readable .fvxprojx: {e}"))?;
+            if !j.get("format").and_then(Json::as_str).is_some_and(|f| f.starts_with("formvfx.project/")) {
+                return Err(format!("{path} is not a formvfx project"));
+            }
+            Ok((serde_json::from_value(j).map_err(|e| format!("{path}: {e}"))?, false))
+        }
         _ => {
             let text = std::fs::read_to_string(path).map_err(|e| format!("{path}: {e}"))?;
             let j: Json = serde_json::from_str(&text).map_err(|e| format!("{path} is not a formvfx project: {e}"))?;
@@ -48,11 +56,12 @@ pub fn open(e: &mut Engine, p: &Json) -> Res {
     } else {
         e.reset(project, Some(path.clone()));
         e.imported_from = None;
+        super::session::note_project(e, &path);
         Ok(json!({"path": path, "savedBy": saved_by}))
     }
 }
 
-fn relink(p: &mut Project, project_path: &str) {
+pub fn relink(p: &mut Project, project_path: &str) {
     let dir = Path::new(project_path).parent().map(Path::to_path_buf);
     for it in p.items.iter_mut() {
         if let ItemKind::Footage(f) = &mut it.kind {
@@ -83,7 +92,11 @@ pub fn write_project(e: &Engine, path: &str) -> Result<(), String> {
     let mut p = (*e.project).clone();
     p.format = FORMAT.into();
     p.saved_by = format!("formvfx {}", env!("CARGO_PKG_VERSION"));
-    let text = serde_json::to_string_pretty(&p).map_err(|e| e.to_string())?;
+    let text = if path.to_ascii_lowercase().ends_with(".fvxprojx") {
+        crate::engine::xmldoc::from_json("fvxprojx", &[("version", "1")], &serde_json::to_value(&p).map_err(|e| e.to_string())?)
+    } else {
+        serde_json::to_string_pretty(&p).map_err(|e| e.to_string())?
+    };
     let tmp = format!("{path}.tmp");
     std::fs::write(&tmp, text).map_err(|err| format!("{path}: {err}"))?;
     std::fs::rename(&tmp, path).map_err(|err| format!("{path}: {err}"))?;
@@ -93,7 +106,7 @@ pub fn write_project(e: &Engine, path: &str) -> Result<(), String> {
 fn with_ext(path: &str) -> Result<String, String> {
     let p = Path::new(path);
     match p.extension().and_then(|x| x.to_str()).map(str::to_ascii_lowercase) {
-        Some(x) if x == EXTENSION => Ok(path.to_string()),
+        Some(x) if x == EXTENSION || x == "fvxprojx" => Ok(path.to_string()),
         Some(x) if x == "ecproj" || x == "ecprojx" => Err("formvfx saves .fvxproj projects; .ecproj files can only be opened".into()),
         _ => Ok(p.with_extension(EXTENSION).to_string_lossy().to_string()),
     }
@@ -108,6 +121,7 @@ pub fn save(e: &mut Engine, p: &Json) -> Res {
     e.path = Some(path.clone());
     e.saved_revision = e.revision;
     e.imported_from = None;
+    super::session::note_project(e, &path);
     Ok(json!({"path": path}))
 }
 
@@ -116,6 +130,7 @@ pub fn save_as(e: &mut Engine, p: &Json) -> Res {
     write_project(e, &path)?;
     e.path = Some(path.clone());
     e.saved_revision = e.revision;
+    super::session::note_project(e, &path);
     Ok(json!({"path": path}))
 }
 
@@ -143,6 +158,7 @@ pub fn increment_and_save(e: &mut Engine, _: &Json) -> Res {
     write_project(e, &path)?;
     e.path = Some(path.clone());
     e.saved_revision = e.revision;
+    super::session::note_project(e, &path);
     Ok(json!({"path": path}))
 }
 
@@ -274,6 +290,8 @@ pub fn import(e: &mut Engine, p: &Json) -> Res {
         super::comp::open(e, &json!({"comp": c}))?;
     }
     e.state.project_selection = if comps.is_empty() { items.clone() } else { comps.clone() };
+    let media: Vec<String> = paths.iter().filter(|x| !x.to_ascii_lowercase().ends_with(".fvxproj")).cloned().collect();
+    super::session::note_footage(e, &media);
     e.set_label("Import");
     Ok(json!({"items": items, "layers": layers, "errors": errors, "comps": comps, "warnings": warnings}))
 }
@@ -476,4 +494,57 @@ pub fn new_comp_from_selection(e: &mut Engine, p: &Json) -> Res {
     }
     e.set_label("New Comp from Selection");
     Ok(json!({"comp": cid}))
+}
+
+pub fn close(e: &mut Engine, p: &Json) -> Res {
+    if p.get("comp").is_none() && e.state.active_comp.is_none() {
+        return Ok(json!({"closed": null}));
+    }
+    super::comp::close(e, p)
+}
+
+pub fn save_copy_as_xml(e: &mut Engine, p: &Json) -> Res {
+    let raw = ps(p, "path").ok_or("pass `path` (.fvxprojx)")?;
+    let path = Path::new(raw).with_extension("fvxprojx").to_string_lossy().to_string();
+    write_project(e, &path)?;
+    Ok(json!({"path": path}))
+}
+
+pub fn reveal_in_finder(e: &mut Engine, p: &Json) -> Res {
+    let ids = items_param(e, p);
+    let path = match ids.first().and_then(|i| e.project.item(*i)) {
+        Some(Item { kind: ItemKind::Footage(f), .. }) if !f.path.is_empty() => f.path.clone(),
+        Some(it) if !matches!(it.kind, ItemKind::Footage(_)) && e.path.is_none() => return Err(format!("{} has no file on disk", it.name)),
+        Some(Item { kind: ItemKind::Footage(_), name, .. }) => return Err(format!("{name} is a placeholder with no file")),
+        _ => e.path.clone().ok_or("select footage, or save the project first")?,
+    };
+    if !Path::new(&path).exists() {
+        return Err(format!("{path} is missing"));
+    }
+    if std::env::var_os("FORMVFX_NO_REVEAL").is_some() {
+        return Ok(json!({"path": path, "revealed": false}));
+    }
+    let dir = Path::new(&path).parent().map(|d| d.to_string_lossy().to_string()).unwrap_or_default();
+    let spawned = if cfg!(target_os = "macos") {
+        std::process::Command::new("open").args(["-R", &path]).spawn()
+    } else if cfg!(target_os = "windows") {
+        std::process::Command::new("explorer").arg(format!("/select,{path}")).spawn()
+    } else {
+        std::process::Command::new("xdg-open").arg(&dir).spawn()
+    };
+    spawned.map_err(|x| format!("could not open the file manager: {x}"))?;
+    Ok(json!({"path": path, "revealed": true}))
+}
+
+pub fn execute_file(e: &mut Engine, p: &Json) -> Res {
+    let path = ps(p, "path").ok_or("pass `path` (a .jsx, .js or .jsonl command file)")?;
+    let inside = Path::new(path).parent().is_some_and(|d| d == super::script::scripts_dir());
+    if !inside && !pb(p, "confirmed").unwrap_or(false) {
+        return Err(format!("{path} runs code from outside the Scripts folder; it needs confirmed: true"));
+    }
+    super::script::run_file(e, &json!({"path": path}))
+}
+
+pub fn import_vanishing_point(_: &mut Engine, _: &Json) -> Res {
+    Err("Vanishing Point (.vpe) files are not read: Photoshop writes them in a format with no public description, so formvfx cannot import them faithfully".into())
 }

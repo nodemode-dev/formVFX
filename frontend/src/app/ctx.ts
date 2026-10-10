@@ -24,6 +24,7 @@ export interface UiEvents {
   find: string;
   focusPanel: string;
   pasted: boolean;
+  revealItem: { item: number; folders: number[] };
 }
 
 interface Picker {
@@ -40,7 +41,9 @@ const MEDIA = ['mp4', 'mov', 'm4v', 'mkv', 'webm', 'avi', 'mxf', 'png', 'jpg', '
 const PICKERS: Record<string, Picker> = {
   'file.import': { key: 'paths', mode: 'open', multiple: true, ext: MEDIA },
   'file.importMultiple': { key: 'paths', mode: 'open', multiple: true, ext: MEDIA },
-  'file.open': { key: 'path', mode: 'open', ext: ['fvxproj', 'ecproj', 'ecprojx', 'json'] },
+  'file.open': { key: 'path', mode: 'open', ext: ['fvxproj', 'fvxprojx', 'ecproj', 'ecprojx', 'json'] },
+  'file.saveCopyAsXml': { key: 'path', mode: 'save', ext: ['fvxprojx'], name: 'Untitled Project.fvxprojx' },
+  'file.executeFile': { key: 'path', mode: 'open', ext: ['jsx', 'js', 'jsonl'] },
   'file.save': { key: 'path', mode: 'save', ext: ['fvxproj'], name: 'Untitled Project.fvxproj', when: (_p, c) => !c.store.state?.path },
   'file.saveAs': { key: 'path', mode: 'save', ext: ['fvxproj'], name: 'Untitled Project.fvxproj' },
   'file.saveCopy': { key: 'path', mode: 'save', ext: ['fvxproj'], name: 'Untitled Project copy.fvxproj' },
@@ -76,7 +79,7 @@ const FORM_FIRST = new Set([
   'layer.precompose', 'layer.newCamera', 'layer.newLight', 'layer.cameraSettings', 'layer.lightSettings', 'time.set', 'view.addGuide',
   'keys.set', 'layer.setTransform', 'layer.autoOrient', 'layer.sequence', 'file.interpretFootage', 'file.interpretProxy',
   'file.projectSettings', 'layer.autoTrace', 'layer.sceneEditDetection', 'file.newCompFromSelection', 'templates.saveAs',
-  'keys.wiggle', 'keys.smooth', 'layer.alignVideoToData', 'file.importSolid', 'file.replaceWithSolid', 'file.importPlaceholder',
+  'keys.wiggle', 'keys.smooth', 'layer.alignVideoToData', 'file.importSolid', 'file.replaceWithSolid', 'file.importPlaceholder', 'file.replaceWithPlaceholder',
   'puppet.follow', 'puppet.recordOptions', 'layer.mask.shape', 'path.freeTransform', 'comp.crop', 'comp.trimToWorkArea',
 ]);
 

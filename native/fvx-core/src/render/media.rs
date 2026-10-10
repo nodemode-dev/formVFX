@@ -332,6 +332,32 @@ impl Media {
         Some(d)
     }
 
+    pub fn bars(&self, w: usize, h: usize) -> Arc<Img> {
+        let key = format!("\u{1}bars\u{1}{w}x{h}");
+        if let Some(i) = self.stills.lock().get(&key) {
+            return i.clone();
+        }
+        const TOP: [[u8; 3]; 7] = [[191, 191, 191], [191, 191, 0], [0, 191, 191], [0, 191, 0], [191, 0, 191], [191, 0, 0], [0, 0, 191]];
+        const MID: [[u8; 3]; 7] = [[0, 0, 191], [19, 19, 19], [191, 0, 191], [19, 19, 19], [0, 191, 191], [19, 19, 19], [191, 191, 191]];
+        const LOW: [[u8; 3]; 4] = [[0, 33, 76], [255, 255, 255], [50, 0, 106], [19, 19, 19]];
+        let mut px = vec![255u8; w * h * 4];
+        for y in 0..h {
+            for x in 0..w {
+                let c = if y * 3 < h * 2 {
+                    TOP[(x * 7 / w).min(6)]
+                } else if y * 12 < h * 9 {
+                    MID[(x * 7 / w).min(6)]
+                } else {
+                    LOW[(x * 4 / w).min(3)]
+                };
+                px[(y * w + x) * 4..(y * w + x) * 4 + 3].copy_from_slice(&c);
+            }
+        }
+        let img = Arc::new(Img::from_rgba8(w, h, &px, false));
+        self.stills.lock().insert(key, img.clone());
+        img
+    }
+
     fn still_of(&self, f: &Footage, path: &str) -> Option<Arc<Img>> {
         let key = format!("{path}\u{1}{:?}\u{1}{}\u{1}{}\u{1}{}\u{1}{}x{}", f.layer, f.layer_name, f.layer_size, f.page, f.width, f.height);
         if let Some(i) = self.stills.lock().get(&key) {
@@ -368,6 +394,9 @@ impl Media {
     }
 
     pub fn frame(&self, f: &Footage, source_t: f64) -> Option<Arc<Img>> {
+        if f.missing && f.has_video && f.width > 0 && f.height > 0 {
+            return Some(self.bars(f.width as usize, f.height as usize));
+        }
         if !f.has_video || f.missing {
             return None;
         }

@@ -26,6 +26,7 @@ import { contextMenu, type PopupEntry } from '../ui/popup';
 import { Preferences } from '../ui/prefs';
 import { ScriptUIHost, type SuiTree } from '../ui/scriptui';
 import { ShortcutEditor } from '../ui/shortcut-editor';
+import { TemplateGallery } from '../ui/templates';
 import { applyTheme } from '../ui/themes';
 import { toast } from '../ui/toast';
 import { ctx, type ToolId } from './ctx';
@@ -67,6 +68,7 @@ const COMMAND_PANELS: Array<[string, string, string[], string]> = [
 class App {
   private readonly dock = new Dock();
   private readonly prefs = new Preferences(ctx);
+  private readonly templates = new TemplateGallery(ctx);
   private readonly scriptui = new ScriptUIHost(ctx);
   private readonly keys = new Keys(ctx);
   private shortcuts: ShortcutEditor | null = null;
@@ -331,6 +333,7 @@ class App {
           <button class="cv-home-action" type="button" data-h="open"><span class="cv-home-label">Open Project</span><span class="cv-key">O</span></button>
         </div>
         <div class="fx-home-more">
+          <button class="fx-link" type="button" data-h="template">New from a template</button>
           <button class="fx-link" type="button" data-h="import">Import footage</button>
           <button class="fx-link" type="button" data-h="demo">Open the demo project</button>
           <button class="fx-link" type="button" data-h="agent">Build it with an agent</button>
@@ -345,6 +348,7 @@ class App {
         if (h === 'new') void ctx.invoke('comp.new');
         if (h === 'open') void ctx.invoke('file.open');
         if (h === 'import') void ctx.invoke('file.import');
+        if (h === 'template') void this.templates.open();
         if (h === 'demo') void ctx.run('file.openDemoProject');
         if (h === 'agent') {
           this.home.hidden = true;
@@ -376,6 +380,11 @@ class App {
         if (ev.value === 'fit') this.viewer.fit();
         else if (typeof ev.value === 'number') this.viewer.setZoom(ev.value > 4 ? ev.value / 100 : ev.value);
       }
+      if (ev.action === 'revealItem' && typeof ev.item === 'number') ctx.ui.emit('revealItem', { item: ev.item, folders: Array.isArray(ev.folders) ? ev.folders.map(Number) : [] });
+    });
+    ctx.client.events.on('autosave', (ev) => {
+      if (ev.error) toast(`Auto-save failed: ${String(ev.error)}`, 'error');
+      else if (ev.path) setText(q(this.status, '.fx-st-rev'), `auto-saved ${String(ev.path).split(/[\\/]/).pop()}`);
     });
     ctx.client.events.on('activity', (ev) => {
       if (String(ev.source) !== 'ui' && ev.ok === false) toast(`${String(ev.source).replace(/^mcp:/, '')}: ${ev.error}`, 'error');
@@ -419,6 +428,9 @@ class App {
         return this.effects.refresh();
       case 'app.settings':
         void this.prefs.open(String(params.page ?? 'interface'));
+        return;
+      case 'file.newFromTemplate':
+        void this.templates.open();
         return;
       case 'app.commandPalette':
         void this.palette.open(String(params.query ?? ''));

@@ -556,5 +556,7 @@
 .fx-eg-tpl:hover { border-color: var(--accent-line); }
 .fx-eg-poster { display: block; aspect-ratio: 16 / 9; overflow: hidden; border-radius: var(--radius-xs); background: var(--surface-0); }
 .fx-eg-poster img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.fx-eg-poster canvas { display: block; width: 100%; height: 100%; }
+.fx-ptpl-grid { grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); max-height: 60vh; overflow: auto; }
 .fx-eg-tpl-name { font-size: var(--fs-12); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fx-eg-tpl-meta { color: var(--text-muted); font-size: var(--fs-11); }

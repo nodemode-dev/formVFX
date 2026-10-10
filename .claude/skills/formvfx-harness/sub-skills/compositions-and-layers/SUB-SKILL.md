@@ -38,6 +38,8 @@ All return `{"layer": id}` and land above the selected layer (or on top).
 
 `import_files {paths: [absolute paths], addToComp}` imports video, image sequences, stills, audio, Photoshop, Illustrator and PDF files, SVG, Lottie and 3D models. With `addToComp: true` each becomes a layer named after its file. The raw command is `file.import {paths, importAs: footage|composition|compositionLayerSizes}`; a layered Photoshop file imported `as composition` becomes a composition with one layer per Photoshop layer.
 
+Stand-ins and swaps: `file.importPlaceholder {name, width, height, frameRate, duration}` makes footage that shows colour bars until `file.replaceFootage {item, path}` gives it a file; `file.replaceWithPlaceholder`, `file.replaceWithSolid {item, color}` and `file.replaceWithLayeredComp {item}` (Photoshop, PDF, Illustrator) swap an item under every layer that uses it. `file.rememberInterpretation {item}` then `file.applyInterpretation {items}` copies frame rate, alpha, loops and colour profile. `project.duplicate`, `project.setLabel {items, label}`, `project.setProjectComment`, `comp.setPosterTime` (the frame thumbnails and templates show).
+
 ## Arrange and time
 
 | Need | Command |

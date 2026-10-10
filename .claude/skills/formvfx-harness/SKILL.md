@@ -50,7 +50,7 @@ Load the sub-skill for the part of the job in front of you. For a whole piece (a
 | 3D layers, cameras, lights, shadows, materials, primitives, 3D models, views | `sub-skills/camera-lights-3d/SUB-SKILL.md` |
 | Point tracking, stabilizing, the 3D camera tracker, mask tracking, face tracking | `sub-skills/tracking-and-stabilizing/SUB-SKILL.md` |
 | Expressions, the expression language, control rigs, scripts and ScriptUI windows | `sub-skills/expressions-and-scripting/SUB-SKILL.md` |
-| Rendering movies, image sequences, frames, GIF, Lottie, the Render Queue, saving projects | `sub-skills/render-and-export/SUB-SKILL.md` |
+| Rendering movies, image sequences, frames, GIF, Lottie, the Render Queue, saving projects, project templates, editor timelines (XML, FCPXML, OTIO, EDL), watch folders | `sub-skills/render-and-export/SUB-SKILL.md` |
 | Checking work: frames, contact sheets, property reads, expression errors, sanity checks | `sub-skills/verification/SUB-SKILL.md` |
 | The formvfx window itself: panels, workspaces, tools, zoom, what the person sees | `sub-skills/ui-automation/SUB-SKILL.md` |
 | A known deliverable (lower third, logo reveal, kinetic type, 3D card, matte reveal...) | `sub-skills/recipes/SUB-SKILL.md` |

@@ -51,6 +51,13 @@ fn find_installed(dir: &Path, name: &str) -> Option<PathBuf> {
     })
 }
 
+pub fn uninstall(_: &mut Engine, p: &Json) -> Res {
+    let name = ps(p, "name").ok_or("pass `name` (an installed script or ScriptUI panel)")?;
+    let path = find_installed(&scripts_dir(), name).or_else(|| find_installed(&panels_dir(), name)).ok_or_else(|| format!("no installed script or panel \"{name}\""))?;
+    std::fs::remove_file(&path).map_err(|err| format!("{}: {err}", path.display()))?;
+    Ok(json!({"removed": path.to_string_lossy()}))
+}
+
 fn script_files(dir: &Path) -> Vec<Json> {
     let mut out = vec![];
     if let Ok(rd) = std::fs::read_dir(dir) {

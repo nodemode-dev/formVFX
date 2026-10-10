@@ -2,11 +2,11 @@
 
 Generated from the formvfx engine by `./formvfx agents sync`; do not edit by hand.
 
-508 commands in 45 namespaces. Every menu item, button and drag in formvfx is one of these. Run one with `execute {command, params}` over MCP, inside `batch` for several as one undo step, or `formvfx exec ID 'JSON'` from a shell. `describe_command ID` returns the JSON Schema. In the parameter summaries `?` marks an optional parameter, `a|b` lists the accepted values, and `layers?`/`layer?` default to the selected layers. Times are composition seconds unless the summary says layer seconds.
+542 commands in 46 namespaces. Every menu item, button and drag in formvfx is one of these. Run one with `execute {command, params}` over MCP, inside `batch` for several as one undo step, or `formvfx exec ID 'JSON'` from a shell. `describe_command ID` returns the JSON Schema. In the parameter summaries `?` marks an optional parameter, `a|b` lists the accepted values, and `layers?`/`layer?` default to the selected layers. Times are composition seconds unless the summary says layer seconds.
 
 ## Contents
 
-`file` (34) `edit` (14) `project` (8) `item` (1) `comp` (17) `layer` (91) `prop` (15) `keys` (33) `anim` (7) `time` (8) `markers` (5) `effect` (12) `mask` (15) `path` (1) `shape` (6) `text` (15) `camera` (18) `light` (3) `material` (4) `track` (22) `warp` (3) `roto` (14) `paint` (6) `puppet` (10) `liquify` (2) `contentFill` (2) `face` (5) `essential` (14) `expr` (1) `script` (1) `scriptui` (4) `render` (3) `renderQueue` (22) `playback` (3) `view` (52) `window` (6) `cache` (2) `prefs` (3) `shortcuts` (7) `app` (12) `engine` (1) `command` (2) `motion` (1) `clipboard` (1) `color` (2)
+`file` (58) `edit` (14) `project` (11) `item` (1) `comp` (19) `layer` (91) `prop` (15) `keys` (33) `anim` (7) `time` (8) `markers` (5) `effect` (12) `mask` (15) `path` (1) `shape` (6) `text` (15) `camera` (18) `light` (3) `material` (4) `track` (22) `warp` (3) `roto` (14) `paint` (6) `puppet` (10) `liquify` (2) `contentFill` (2) `face` (5) `essential` (14) `expr` (1) `script` (1) `scriptui` (4) `render` (3) `renderQueue` (22) `playback` (3) `view` (52) `window` (6) `cache` (2) `templates` (5) `prefs` (3) `shortcuts` (7) `app` (12) `engine` (1) `command` (2) `motion` (1) `clipboard` (1) `color` (2)
 
 ## file
 
@@ -61,6 +61,52 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 - `file.installScriptUIPanel` Install ScriptUI Panel · File > Scripts
   `{path (.jsx or .js)} · copies it into ScriptUI Panels so it appears in the Window menu`
 - `file.scripts.list` Installed Scripts
+- `file.uninstallScript` Uninstall Script
+  `{name (an installed script or ScriptUI panel)}`
+- `file.executeFile` Execute File
+  `{path (.jsx, .js or .jsonl command file), confirmed?: bool (needed for a file outside the Scripts folder)}`
+- `file.close` Close · File · Cmd+W
+  `{comp?} · closes the active composition's viewer`
+- `file.openRecent` Open Recent
+  `{index? (0 is the latest) | path?}`
+- `file.clearRecent` Clear Recent Projects · File > Open Recent
+- `file.importRecent` Import Recent Footage
+  `{index? (0 is the latest) | path?}`
+- `file.clearRecentFootage` Clear Recent Footage · File > Import Recent Footage
+- `file.autoSave` Auto-Save Now
+  `{} · writes a numbered copy of the project in the Auto-Save folder (Settings > General), never over the project`
+- `file.recoveryInfo` Auto-Save Status
+  `{} -> {enabled, minutes, versions, folder, lastSave, lastPath, saves, error, dirty, nextIn (s), copies}`
+- `file.rememberInterpretation` Remember Interpretation · File > Interpret Footage
+  `{item? (default: the selected footage)}`
+- `file.applyInterpretation` Apply Interpretation · File > Interpret Footage · Cmd+Alt+V
+  `{items?: [id] (default: the selected footage)}`
+- `file.saveCopyAsXml` Save a Copy As XML · File > Save As
+  `{path (.fvxprojx)} · the project as XML; File > Open reads it like .fvxproj and Save keeps it XML`
+- `file.revealInFinder` Reveal in Finder · File
+  `{item? (default: the selected footage, else the project file)}`
+- `file.importPlaceholder` Placeholder · File > Import
+  `{name?, width?, height?, frameRate?, duration? (s)} · a footage item that shows colour bars until File > Replace Footage gives it a file`
+- `file.replaceWithPlaceholder` Placeholder · File > Replace Footage
+  `{item?, name?, width?, height?, frameRate?, duration? (s)}`
+- `file.replaceWithSolid` Solid · File > Replace Footage
+  `{item?, name?, color? #hex|[r,g,b], width?, height?}`
+- `file.replaceWithLayeredComp` With Layered Comp · File > Replace Footage
+  `{item? (a Photoshop, PDF or Illustrator footage item)} · the layers using it then use a composition of its layers`
+- `file.importVanishingPoint` Vanishing Point (.vpe) · File > Import
+  `{} · declined: Photoshop's .vpe format has no public description`
+- `file.timelineFormats` Timeline Interchange Formats
+  `{} -> [{id, name, extensions, import, export, note}]`
+- `file.importTimeline` Timeline (XML, FCPXML, OTIO, EDL) · File > Import
+  `{path (.xml, .fcpxml, .otio or .edl), format?: auto|xml|fcpxml|otio|edl|aaf|omf (AAF and OMF are refused), edlFrameRate? (default 30)} -> a composition with a footage layer per clip, cut where the timeline cut it; media not found comes in as placeholders`
+- `file.exportTimeline` Timeline (XML, FCPXML, OTIO, EDL) · File > Export
+  `{comp?, path (.xml, .fcpxml, .otio or .edl), format?: auto|xml|fcpxml|otio|edl, prerender?: none|unsupported|all (render the layers a timeline cannot hold, or every layer, to ProRes 4444 movies beside the file), precomps?: nest|prerender}`
+- `file.watchFolder` Watch Folder · File
+  `{folder, stop?: bool} · renders each .fvxproj or .fvxprojx dropped in the folder through its Render Queue, into [project] Output, and writes [project].status.json`
+- `file.watchFolder.poll` Poll Watch Folder
+  `{folder? (with no watch running there, renders what is waiting now)} -> {watching, rendered: [{project, state: done|failed, items: [{comp, status, output}]}]}`
+- `file.newFromTemplate` New Project from Template · File > New
+  `{} · opens the template gallery`
 - `file.collectFiles` Collect Files · File > Dependencies
   `{folder}`
 - `file.consolidateFootage` Consolidate All Footage · File > Dependencies
@@ -96,6 +142,12 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 
 ## project
 
+- `project.duplicate` Duplicate Project Items
+  `{items? (default: the selection)} -> {items}`
+- `project.setLabel` Item Label
+  `{items?, label: name (Red, Yellow, Aqua ...) | index 0-16}`
+- `project.setProjectComment` Project Comment
+  `{comment}`
 - `project.summary` Project Summary
 - `project.select` Select Project Items
   `{items: [id|name], add?: bool}`
@@ -119,6 +171,10 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 
 ## comp
 
+- `comp.setPosterTime` Set Poster Time · Composition
+  `{comp?, time? (s; default the current time)}`
+- `comp.revealInProject` Reveal Composition in Project · Layer > Reveal
+  `{comp?}`
 - `comp.new` New Composition · Composition · Cmd+N
   `{name?, width?, height?, frameRate?, duration? (s), background? [r,g,b]|#hex, pixelAspect?, startTime? (s), shutterAngle?, shutterPhase?, motionBlurSamples?, open?: bool}`
 - `comp.open` Open Composition
@@ -1004,6 +1060,19 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 - `cache.diskStats` Disk Cache Statistics
   `{} · folder, size, frame count, limit, hits`
 - `cache.cleanDisk` Empty Disk Cache · Edit > Purge
+
+## templates
+
+- `templates.list` Project Templates
+  `{thumbnails?: bool} -> [{id, name, description, category, builtin, width, height, frameRate, duration, controls, thumbnail? (hex RGB 256x144)}]`
+- `templates.thumbnail` Template Thumbnail
+  `{id} -> {id, width, height, rgb (hex)}`
+- `templates.create` New Project from Template
+  `{id | path (.fvxprojt), projectPath? (.fvxproj to save the new project as), footageDir?} -> an untitled copy with its embedded footage extracted`
+- `templates.saveAs` Save as Template · File
+  `{name, description?, category?, overwrite?: bool (default true), embedFootage?: bool (default true), embedLimitMB? (default 256)} · the whole project as a .fvxprojt in the Project Templates folder`
+- `templates.delete` Delete Template
+  `{id (user/[file] from templates.list)}`
 
 ## prefs
 

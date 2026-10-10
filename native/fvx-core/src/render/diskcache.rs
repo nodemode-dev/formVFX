@@ -37,7 +37,7 @@ pub fn save_pref(key: &str, value: &Json) {
 }
 
 pub fn persisted(key: &str) -> bool {
-    key.starts_with("diskCache.") || key.starts_with("previews.")
+    key.starts_with("diskCache.") || key.starts_with("previews.") || key.starts_with("autoSave.")
 }
 
 struct State {

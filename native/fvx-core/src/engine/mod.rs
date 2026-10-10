@@ -144,6 +144,7 @@ pub struct Engine {
     pub imported_from: Option<String>,
     pub jobs: jobs::Jobs,
     pub multi_frame: bool,
+    pub session: cmd::session::Session,
 }
 
 impl Default for Engine {
@@ -171,7 +172,9 @@ pub fn pu(p: &Json, k: &str) -> Option<u64> {
 impl Engine {
     pub fn new() -> Engine {
         let media = Arc::new(Media::default());
-        crate::render::media::share(&media);
+        if crate::render::media::shared().is_none() {
+            crate::render::media::share(&media);
+        }
         static PLUGINS: std::sync::Once = std::sync::Once::new();
         PLUGINS.call_once(|| {
             crate::effects::plugin::load_folder(&crate::effects::plugin::folder());
@@ -201,6 +204,7 @@ impl Engine {
             imported_from: None,
             jobs: jobs::Jobs::default(),
             multi_frame: true,
+            session: cmd::session::Session::load(),
         }
     }
 
@@ -320,7 +324,7 @@ impl Engine {
         }
     }
 
-    pub fn tick(&mut self, _now: f64) -> Json {
+    pub fn tick(&mut self, now: f64) -> Json {
         let mut busy = vec![];
         if self.render.busy() {
             busy.push("render");
@@ -334,7 +338,11 @@ impl Engine {
         if self.jobs.running() {
             busy.push("analysis");
         }
-        json!({"busy": busy, "autosave": null, "revision": self.revision})
+        if self.session.watch.as_ref().is_some_and(|w| w.busy()) {
+            busy.push("watchFolder");
+        }
+        let autosave = cmd::session::tick(self, now);
+        json!({"busy": busy, "autosave": autosave, "revision": self.revision})
     }
 
     pub fn end_gesture(&mut self) {

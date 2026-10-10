@@ -137,3 +137,60 @@ pub fn usage(e: &mut Engine, p: &Json) -> Res {
     let out: Vec<Json> = ids.iter().map(|id| json!({"item": id, "uses": e.project.uses_item(*id)})).collect();
     Ok(json!(out))
 }
+
+pub fn duplicate(e: &mut Engine, p: &Json) -> Res {
+    let ids = items_of(e, p);
+    if ids.is_empty() {
+        return Err("select the items to duplicate (or pass `items`)".into());
+    }
+    let mut made = vec![];
+    for id in ids {
+        let Some(it) = e.project.item(id).cloned() else { continue };
+        match it.kind {
+            ItemKind::Comp(_) => {
+                let r = super::comp::duplicate(e, &json!({"comp": id}))?;
+                if let Some(n) = r.get("comp").and_then(Json::as_u64) {
+                    made.push(n);
+                }
+            }
+            ItemKind::Folder => return Err(format!("{} is a folder; duplicate what is in it instead", it.name)),
+            _ => {
+                let pj = e.proj();
+                let mut copy = it;
+                copy.id = pj.new_id();
+                copy.name = pj.unique_item_name(&copy.name);
+                made.push(copy.id);
+                pj.items.push(copy);
+            }
+        }
+    }
+    e.state.project_selection = made.clone();
+    e.set_label("Duplicate");
+    Ok(json!({"items": made}))
+}
+
+pub fn set_label(e: &mut Engine, p: &Json) -> Res {
+    let ids = items_of(e, p);
+    if ids.is_empty() {
+        return Err("select the items to label (or pass `items`)".into());
+    }
+    let label = match p.get("label") {
+        Some(Json::Number(n)) => n.as_u64().filter(|x| (*x as usize) < crate::model::LABELS.len()).map(|x| x as u8),
+        Some(Json::String(s)) => crate::model::label_parse(s),
+        _ => None,
+    }
+    .ok_or("`label` is a label name (Red, Yellow, Aqua ...) or an index from 0 (None) to 16")?;
+    for id in &ids {
+        if let Some(it) = e.proj().item_mut(*id) {
+            it.label = label;
+        }
+    }
+    e.set_label(format!("Label {}", crate::model::label_name(label)));
+    Ok(json!({"items": ids, "label": label, "name": crate::model::label_name(label)}))
+}
+
+pub fn set_project_comment(e: &mut Engine, p: &Json) -> Res {
+    let c = ps(p, "comment").ok_or("pass `comment`")?.to_string();
+    e.proj().settings.comment = c.clone();
+    Ok(json!({"comment": c}))
+}

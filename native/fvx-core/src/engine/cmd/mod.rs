@@ -23,20 +23,25 @@ pub mod mask;
 pub mod maskshape;
 pub mod paint;
 pub mod project;
+pub mod ptemplates;
 pub mod puppet;
+pub mod replace;
 pub mod roto;
 pub mod prop;
 pub mod script;
+pub mod session;
 pub mod shapes;
 pub mod styles;
 pub mod text;
 pub mod textanim;
 pub mod three;
 pub mod time;
+pub mod timeline;
 pub mod track;
 pub mod view3d;
 pub mod viewer;
 pub mod warp;
+pub mod watch;
 
 pub fn select_only(e: &mut Engine, ids: &[u64]) {
     e.state.selected_layers = ids.to_vec();

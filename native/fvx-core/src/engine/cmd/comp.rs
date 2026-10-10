@@ -69,6 +69,29 @@ pub fn close(e: &mut Engine, p: &Json) -> Res {
     Ok(json!({"closed": id}))
 }
 
+pub fn set_poster_time(e: &mut Engine, p: &Json) -> Res {
+    let id = e.comp_id(p.get("comp"))?;
+    let t = pf(p, "time").unwrap_or_else(|| e.time_of(id));
+    let c = e.proj().comp_mut(id).ok_or("no composition")?;
+    c.poster_time = t.clamp(0.0, c.duration);
+    let t = c.poster_time;
+    Ok(json!({"comp": id, "posterTime": t}))
+}
+
+pub fn reveal_in_project(e: &mut Engine, p: &Json) -> Res {
+    let id = e.comp_id(p.get("comp"))?;
+    let mut open = vec![];
+    let mut at = e.project.item(id).and_then(|i| i.parent);
+    while let Some(f) = at {
+        open.push(f);
+        at = e.project.item(f).and_then(|i| i.parent);
+    }
+    e.state.project_selection = vec![id];
+    e.frontend("window.panel", json!({"panel": "project"}));
+    e.emit(json!({"type": "uiAction", "action": "revealItem", "item": id, "folders": open}));
+    Ok(json!({"comp": id, "folders": open}))
+}
+
 pub fn settings(e: &mut Engine, p: &Json) -> Res {
     let id = e.comp_id(p.get("comp"))?;
     if let Some(n) = ps(p, "name") {

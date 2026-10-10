@@ -248,3 +248,64 @@ pub fn to_json(text: &str) -> Result<Json, String> {
     let body = elements(&root).next().ok_or_else(|| format!("<{}> holds no project", root.name))?;
     value(body)
 }
+
+fn escape(s: &str, out: &mut String) {
+    for c in s.chars() {
+        match c {
+            '&' => out.push_str("&amp;"),
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
+            '"' => out.push_str("&quot;"),
+            c if (c as u32) < 0x20 && c != '\t' && c != '\n' => out.push_str(&format!("&#x{:X};", c as u32)),
+            c => out.push(c),
+        }
+    }
+}
+
+fn write(v: &Json, depth: usize, out: &mut String) {
+    let pad = "  ".repeat(depth);
+    match v {
+        Json::Null => out.push_str(&format!("{pad}<null/>\n")),
+        Json::Bool(b) => out.push_str(&format!("{pad}<bool>{b}</bool>\n")),
+        Json::Number(n) => out.push_str(&format!("{pad}<num>{n}</num>\n")),
+        Json::String(s) => {
+            out.push_str(&format!("{pad}<str>"));
+            escape(s, out);
+            out.push_str("</str>\n");
+        }
+        Json::Array(a) if a.is_empty() => out.push_str(&format!("{pad}<arr/>\n")),
+        Json::Array(a) => {
+            out.push_str(&format!("{pad}<arr>\n"));
+            for x in a {
+                write(x, depth + 1, out);
+            }
+            out.push_str(&format!("{pad}</arr>\n"));
+        }
+        Json::Object(m) if m.is_empty() => out.push_str(&format!("{pad}<obj/>\n")),
+        Json::Object(m) => {
+            out.push_str(&format!("{pad}<obj>\n"));
+            for (k, x) in m {
+                out.push_str(&format!("{pad}  <m n=\""));
+                escape(k, out);
+                out.push_str("\">\n");
+                write(x, depth + 2, out);
+                out.push_str(&format!("{pad}  </m>\n"));
+            }
+            out.push_str(&format!("{pad}</obj>\n"));
+        }
+    }
+}
+
+pub fn from_json(root: &str, attrs: &[(&str, &str)], v: &Json) -> String {
+    let mut out = String::from("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+    out.push_str(&format!("<{root}"));
+    for (k, a) in attrs {
+        out.push_str(&format!(" {k}=\""));
+        escape(a, &mut out);
+        out.push('"');
+    }
+    out.push_str(">\n");
+    write(v, 1, &mut out);
+    out.push_str(&format!("</{root}>\n"));
+    out
+}

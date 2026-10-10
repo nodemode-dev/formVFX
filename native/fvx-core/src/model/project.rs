@@ -58,6 +58,7 @@ pub struct ProjectSettings {
     pub hdr: String,
     pub output_space: String,
     pub renderer: String,
+    pub comment: String,
 }
 
 impl Default for ProjectSettings {
@@ -77,6 +78,7 @@ impl Default for ProjectSettings {
             hdr: "clip".into(),
             output_space: String::new(),
             renderer: "gpu".into(),
+            comment: String::new(),
         }
     }
 }

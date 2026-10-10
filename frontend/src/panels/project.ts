@@ -7,6 +7,8 @@ import { contextMenu } from '../ui/popup';
 import { promptName } from '../ui/dialogs';
 import { toast } from '../ui/toast';
 
+const LABELS = ['None', 'Red', 'Yellow', 'Aqua', 'Pink', 'Lavender', 'Peach', 'Sea Foam', 'Blue', 'Green', 'Purple', 'Orange', 'Brown', 'Fuchsia', 'Cyan', 'Sandstone', 'Dark Green'];
+
 const ICON: Record<string, string> = { Composition: 'iComp', Folder: 'iFolder', Footage: 'iFootage', Solid: 'iSolid' };
 
 function itemIcon(i: Item): string {
@@ -91,6 +93,11 @@ export class ProjectPanel implements Panel {
     ctx.ui.on('find', (term) => {
       this.search.value = term;
       this.render();
+    });
+    ctx.ui.on('revealItem', ({ item, folders }) => {
+      for (const f of folders) this.open.add(f);
+      this.render();
+      requestAnimationFrame(() => this.list.querySelector<HTMLElement>(`[data-key="${item}"]`)?.scrollIntoView({ block: 'nearest' }));
     });
   }
 
@@ -223,10 +230,20 @@ export class ProjectPanel implements Panel {
         if (n) void this.ctx.run('project.rename', { item: id, name: n });
       } },
       { label: 'New Comp from Selection...', run: () => void this.ctx.invoke('file.newCompFromSelection') },
+      ...(it.type !== 'Folder' ? [{ label: 'Duplicate', run: () => void this.ctx.run('project.duplicate', { items: [id] }) }] : []),
+      { label: 'Label', children: LABELS.map((name, i) => ({ label: name, run: () => void this.ctx.run('project.setLabel', { items: [id], label: i }) })) },
       ...(it.type === 'Footage' ? [
         { label: 'Interpret Footage...', run: () => void this.ctx.invoke('file.interpretFootage', { items: [id] }) },
-        { label: 'Replace Footage...', run: () => void this.ctx.invoke('file.replaceFootage') },
+        { label: 'Remember Interpretation', run: () => void this.ctx.run('file.rememberInterpretation', { item: id }) },
+        { label: 'Apply Interpretation', run: () => void this.ctx.run('file.applyInterpretation', { items: [id] }) },
+        { label: 'Replace Footage', children: [
+          { label: 'File...', run: () => void this.ctx.invoke('file.replaceFootage') },
+          { label: 'With Layered Comp', run: () => void this.ctx.run('file.replaceWithLayeredComp', { item: id }) },
+          { label: 'Placeholder...', run: () => void this.ctx.invoke('file.replaceWithPlaceholder') },
+          { label: 'Solid...', run: () => void this.ctx.invoke('file.replaceWithSolid') },
+        ] },
         { label: 'Set Proxy...', run: () => void this.ctx.invoke('file.setProxy') },
+        { label: 'Reveal in Finder', run: () => void this.ctx.run('file.revealInFinder', { item: id }) },
       ] : []),
       ...(it.type === 'Composition' ? [
         { label: 'Composition Settings...', run: () => void this.ctx.run('comp.open', { comp: id }).then(() => this.ctx.invoke('comp.settings')) },

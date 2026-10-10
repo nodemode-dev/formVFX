@@ -3,7 +3,7 @@ use std::sync::OnceLock;
 
 use serde_json::{Value as Json, json};
 
-use super::cmd::{camtrack, color, comp, deps, edit, effect, essential, expression, file, fill, formats, keys, keytools, layer, layermisc, markers, mask, maskshape, paint, project, puppet, roto, prop, script, shapes, styles, text, textanim, three, time, track, view3d, viewer, warp};
+use super::cmd::{camtrack, color, comp, deps, edit, effect, essential, expression, file, fill, formats, keys, keytools, layer, layermisc, markers, mask, maskshape, paint, project, ptemplates, puppet, replace, roto, prop, script, session, shapes, styles, text, textanim, three, time, timeline, track, view3d, viewer, warp, watch};
 use super::{Engine, Res, export, rq};
 
 pub type Handler = fn(&mut Engine, &Json) -> Res;
@@ -70,6 +70,40 @@ pub static COMMANDS: &[Cmd] = &[
     c("file.installScript", "Install Script File...", "File/Scripts", "", "{path (.jsx or .js)} · copies it into the Scripts folder so it appears in File > Scripts", N, script::install),
     c("file.installScriptUIPanel", "Install ScriptUI Panel...", "File/Scripts", "", "{path (.jsx or .js)} · copies it into ScriptUI Panels so it appears in the Window menu", N, script::install_panel),
     c("file.scripts.list", "Installed Scripts", "", "", "{}", Q, script::list),
+    c("file.uninstallScript", "Uninstall Script", "", "", "{name (an installed script or ScriptUI panel)}", N, script::uninstall),
+    c("file.executeFile", "Execute File", "", "", "{path (.jsx, .js or .jsonl command file), confirmed?: bool (needed for a file outside the Scripts folder)}", U, file::execute_file),
+    c("file.close", "Close", "File", "Cmd+W", "{comp?} · closes the active composition's viewer", N, file::close),
+    c("file.openRecent", "Open Recent", "", "", "{index? (0 is the latest) | path?}", N, session::open_recent),
+    c("file.clearRecent", "Clear Recent Projects", "File/Open Recent", "", "{}", N, session::clear_recent),
+    c("file.importRecent", "Import Recent Footage", "", "", "{index? (0 is the latest) | path?}", U, session::import_recent),
+    c("file.clearRecentFootage", "Clear Recent Footage", "File/Import Recent Footage", "", "{}", N, session::clear_recent_footage),
+    c("file.autoSave", "Auto-Save Now", "", "", "{} · writes a numbered copy of the project in the Auto-Save folder (Settings > General), never over the project", N, session::auto_save),
+    c("file.recoveryInfo", "Auto-Save Status", "", "", "{} -> {enabled, minutes, versions, folder, lastSave, lastPath, saves, error, dirty, nextIn (s), copies}", Q, session::recovery_info),
+    c("file.rememberInterpretation", "Remember Interpretation", "File/Interpret Footage", "", "{item? (default: the selected footage)}", N, session::remember_interpretation),
+    c("file.applyInterpretation", "Apply Interpretation", "File/Interpret Footage", "Cmd+Alt+V", "{items?: [id] (default: the selected footage)}", U, session::apply_interpretation),
+    c("file.saveCopyAsXml", "Save a Copy As XML...", "File/Save As", "", "{path (.fvxprojx)} · the project as XML; File > Open reads it like .fvxproj and Save keeps it XML", N, file::save_copy_as_xml),
+    c("file.revealInFinder", "Reveal in Finder", "File", "", "{item? (default: the selected footage, else the project file)}", N, file::reveal_in_finder),
+    c("file.importPlaceholder", "Placeholder...", "File/Import", "", "{name?, width?, height?, frameRate?, duration? (s)} · a footage item that shows colour bars until File > Replace Footage gives it a file", U, replace::import_placeholder),
+    c("file.replaceWithPlaceholder", "Placeholder...", "File/Replace Footage", "", "{item?, name?, width?, height?, frameRate?, duration? (s)}", U, replace::replace_with_placeholder),
+    c("file.replaceWithSolid", "Solid...", "File/Replace Footage", "", "{item?, name?, color? #hex|[r,g,b], width?, height?}", U, replace::replace_with_solid),
+    c("file.replaceWithLayeredComp", "With Layered Comp", "File/Replace Footage", "", "{item? (a Photoshop, PDF or Illustrator footage item)} · the layers using it then use a composition of its layers", U, replace::replace_with_layered_comp),
+    c("file.importVanishingPoint", "Vanishing Point (.vpe)...", "File/Import", "", "{} · declined: Photoshop's .vpe format has no public description", N, file::import_vanishing_point),
+    c("file.timelineFormats", "Timeline Interchange Formats", "", "", "{} -> [{id, name, extensions, import, export, note}]", Q, timeline::formats),
+    c("file.importTimeline", "Timeline (XML, FCPXML, OTIO, EDL)...", "File/Import", "", "{path (.xml, .fcpxml, .otio or .edl), format?: auto|xml|fcpxml|otio|edl|aaf|omf (AAF and OMF are refused), edlFrameRate? (default 30)} -> a composition with a footage layer per clip, cut where the timeline cut it; media not found comes in as placeholders", U, timeline::import_timeline),
+    c("file.exportTimeline", "Timeline (XML, FCPXML, OTIO, EDL)...", "File/Export", "", "{comp?, path (.xml, .fcpxml, .otio or .edl), format?: auto|xml|fcpxml|otio|edl, prerender?: none|unsupported|all (render the layers a timeline cannot hold, or every layer, to ProRes 4444 movies beside the file), precomps?: nest|prerender}", N, timeline::export_timeline),
+    c("file.watchFolder", "Watch Folder...", "File", "", "{folder, stop?: bool} · renders each .fvxproj or .fvxprojx dropped in the folder through its Render Queue, into <project> Output, and writes <project>.status.json", N, watch::watch_folder),
+    c("file.watchFolder.poll", "Poll Watch Folder", "", "", "{folder? (with no watch running there, renders what is waiting now)} -> {watching, rendered: [{project, state: done|failed, items: [{comp, status, output}]}]}", N, watch::poll),
+    c("file.newFromTemplate", "New Project from Template...", "File/New", "", "{} · opens the template gallery", F, nothing),
+    c("templates.list", "Project Templates", "", "", "{thumbnails?: bool} -> [{id, name, description, category, builtin, width, height, frameRate, duration, controls, thumbnail? (hex RGB 256x144)}]", Q, ptemplates::list),
+    c("templates.thumbnail", "Template Thumbnail", "", "", "{id} -> {id, width, height, rgb (hex)}", Q, ptemplates::thumbnail),
+    c("templates.create", "New Project from Template", "", "", "{id | path (.fvxprojt), projectPath? (.fvxproj to save the new project as), footageDir?} -> an untitled copy with its embedded footage extracted", N, ptemplates::create),
+    c("templates.saveAs", "Save as Template...", "File", "", "{name, description?, category?, overwrite?: bool (default true), embedFootage?: bool (default true), embedLimitMB? (default 256)} · the whole project as a .fvxprojt in the Project Templates folder", N, ptemplates::save_as),
+    c("templates.delete", "Delete Template", "", "", "{id (user/<file> from templates.list)}", N, ptemplates::delete),
+    c("project.duplicate", "Duplicate Project Items", "", "", "{items? (default: the selection)} -> {items}", U, project::duplicate),
+    c("project.setLabel", "Item Label", "", "", "{items?, label: name (Red, Yellow, Aqua ...) | index 0-16}", U, project::set_label),
+    c("project.setProjectComment", "Project Comment", "", "", "{comment}", U, project::set_project_comment),
+    c("comp.setPosterTime", "Set Poster Time", "Composition", "", "{comp?, time? (s; default the current time)}", U, comp::set_poster_time),
+    c("comp.revealInProject", "Reveal Composition in Project", "Layer/Reveal", "", "{comp?}", N, comp::reveal_in_project),
     c("scriptui.list", "ScriptUI Windows", "", "", "{}", Q, script::ui_list),
     c("scriptui.event", "ScriptUI Event", "", "", "{window, control, event: click|change|changing|doubleclick, text?, value?, selection?} · runs the control's handler", U, script::ui_event),
     c("scriptui.close", "Close ScriptUI Window", "", "", "{window}", U, script::ui_close),

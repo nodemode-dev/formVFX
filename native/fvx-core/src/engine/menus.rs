@@ -36,8 +36,19 @@ const PANELS: [(&str, &str); 17] = [
 
 const WORKSPACES: [&str; 7] = ["Default", "Standard", "Animation", "Effects", "Motion Tracking", "Text", "Minimal"];
 
-fn tree(recent_paths: &[String]) -> Vec<M> {
+fn recent_list(paths: &[String], run: &'static str, clear: &'static str) -> Vec<M> {
+    let mut out: Vec<M> = paths.iter().enumerate().map(|(i, path)| M::Owned(run, std::path::Path::new(path).file_name().and_then(|x| x.to_str()).unwrap_or(path).to_string(), json!({"index": i}))).collect();
+    if !out.is_empty() {
+        out.push(M::S);
+    }
+    out.push(M::I(clear));
+    out
+}
+
+fn tree(recent_paths: &[String], projects: &[String], footage: &[String]) -> Vec<M> {
     use M::*;
+    let open_recent = recent_list(projects, "file.openRecent", "file.clearRecent");
+    let import_recent = recent_list(footage, "file.importRecent", "file.clearRecentFootage");
     let mut recent: Vec<M> = recent_paths
         .iter()
         .enumerate()
@@ -69,30 +80,36 @@ fn tree(recent_paths: &[String]) -> Vec<M> {
         Sub(
             "File",
             vec![
-                Sub("New", vec![I("file.newProject"), I("project.newFolder")]),
+                Sub("New", vec![I("file.newProject"), I("project.newFolder"), I("file.newFromTemplate")]),
                 I("file.open"),
+                Sub("Open Recent", open_recent),
                 S,
+                I("file.close"),
                 I("file.closeProject"),
                 I("file.save"),
-                Sub("Save As", vec![I("file.saveAs"), I("file.saveCopy")]),
+                Sub("Save As", vec![I("file.saveAs"), I("file.saveCopy"), I("file.saveCopyAsXml")]),
                 I("file.incrementAndSave"),
                 I("file.revert"),
+                I("templates.saveAs"),
                 S,
-                Sub("Import", vec![I("file.import"), I("file.importMultiple"), I("file.importSolid"), I("file.importLottie"), I("essential.importTemplate")]),
-                Sub("Export", vec![I("file.exportLottie")]),
+                Sub("Import", vec![I("file.import"), I("file.importMultiple"), I("file.importPlaceholder"), I("file.importSolid"), I("file.importLottie"), I("file.importTimeline"), I("file.importVanishingPoint"), I("essential.importTemplate")]),
+                Sub("Import Recent Footage", import_recent),
+                Sub("Export", vec![I("file.exportLottie"), I("file.exportTimeline")]),
                 S,
                 I("layer.addItem"),
                 I("file.newCompFromSelection"),
                 S,
-                Sub("Interpret Footage", vec![I("file.interpretFootage"), I("file.interpretProxy")]),
-                I("file.replaceFootage"),
+                Sub("Interpret Footage", vec![I("file.interpretFootage"), I("file.interpretProxy"), S, I("file.rememberInterpretation"), I("file.applyInterpretation")]),
+                Sub("Replace Footage", vec![P("file.replaceFootage", "File...", Json::Null), I("file.replaceWithLayeredComp"), I("file.replaceWithPlaceholder"), I("file.replaceWithSolid")]),
                 I("file.reloadFootage"),
+                I("file.revealInFinder"),
                 S,
                 Sub("Set Proxy", vec![I("file.setProxy"), I("file.setProxyNone")]),
                 Sub("Create Proxy", vec![P("file.createProxy", "Still...", json!({"kind": "still"})), P("file.createProxy", "Movie...", json!({"kind": "movie"}))]),
                 I("file.useProxy"),
                 S,
                 Sub("Dependencies", vec![I("file.collectFiles"), I("file.consolidateFootage"), I("file.removeUnusedFootage"), I("file.reduceProject")]),
+                I("file.watchFolder"),
                 Sub("Scripts", scripts),
                 I("app.find"),
                 S,
@@ -128,6 +145,7 @@ fn tree(recent_paths: &[String]) -> Vec<M> {
             vec![
                 I("comp.new"),
                 I("comp.settings"),
+                I("comp.setPosterTime"),
                 S,
                 I("comp.trimToWorkArea"),
                 S,
@@ -256,7 +274,7 @@ fn tree(recent_paths: &[String]) -> Vec<M> {
                 Sub("Transform", vec![I("layer.autoOrient")]),
                 Sub("Arrange", vec![I("layer.bringToFront"), I("layer.bringForward"), I("layer.sendBackward"), I("layer.sendToBack")]),
                 S,
-                Sub("Reveal", vec![I("layer.revealSource")]),
+                Sub("Reveal", vec![I("layer.revealSource"), I("comp.revealInProject")]),
                 I("layer.precompose"),
             ],
         ),
@@ -405,6 +423,10 @@ fn tree(recent_paths: &[String]) -> Vec<M> {
     ]
 }
 
+fn footage_selected(e: &Engine, test: impl Fn(&crate::model::Footage) -> bool) -> bool {
+    e.state.project_selection.iter().any(|i| matches!(e.project.item(*i).map(|it| &it.kind), Some(crate::model::ItemKind::Footage(f)) if test(f)))
+}
+
 fn item(e: &Engine, id: &str, label: Option<&str>, params: Json) -> Json {
     let c = registry::find(id);
     let lbl = label.map(str::to_string).or_else(|| c.map(|c| c.label.to_string())).unwrap_or_else(|| id.to_string());
@@ -433,6 +455,15 @@ fn item(e: &Engine, id: &str, label: Option<&str>, params: Json) -> Json {
         "view.showSnapshot" => e.state.snapshot.is_some(),
         "view.displayColorManagement" | "view.simulateOutput" => e.project.settings.color_engine == "ocio" || crate::render::color::find(&e.project.settings.working_space).is_some(),
         "anim.clearRecentPresets" => !e.recent_presets.is_empty(),
+        "file.clearRecent" => !e.session.recent_projects.is_empty(),
+        "file.clearRecentFootage" => !e.session.recent_footage.is_empty(),
+        "file.importVanishingPoint" => false,
+        "file.close" | "comp.setPosterTime" | "comp.revealInProject" | "file.exportTimeline" => has_comp,
+        "templates.saveAs" => !e.project.items.is_empty(),
+        "file.rememberInterpretation" | "file.replaceWithPlaceholder" | "file.replaceWithSolid" => footage_selected(e, |_| true),
+        "file.applyInterpretation" => e.session.interpretation.is_some() && footage_selected(e, |_| true),
+        "file.replaceWithLayeredComp" => footage_selected(e, |f| ["psd", "psb", "pdf", "ai"].iter().any(|x| f.path.to_ascii_lowercase().ends_with(&format!(".{x}")))),
+        "file.revealInFinder" => e.path.is_some() || footage_selected(e, |f| !f.path.is_empty()),
         _ if id.starts_with("layer.style.") || id.starts_with("layer.mask.") || matches!(id, "layer.timeStretch" | "layer.timeReverse" | "layer.enableTimeRemap" | "layer.freezeFrame" | "layer.freezeOnLastFrame" | "layer.sequence" | "layer.settings" | "layer.revealSource" | "layer.quality" | "path.freeTransform" | "prop.separateDimensions" | "anim.applyPreset" | "anim.applyRecentPreset") => has_layers,
         "comp.trimToWorkArea" | "comp.responsiveTime" | "keys.audioToKeyframes" | "view.takeSnapshot" | "view.newViewer" | "view.splitLockedViewer" | "view.importGuides" | "view.exportGuides" | "comp.saveFrameAsPsd" | "comp.saveFrameAsExr" | "render.preRender" | "render.saveCurrentPreview" | "file.exportLottie" => has_comp,
         "render.addOutputModule" => !e.project.render_queue.is_empty(),
@@ -459,7 +490,7 @@ fn render(e: &Engine, nodes: &[M]) -> Vec<Json> {
 impl Engine {
     pub fn menu_bar(&self, p: &Json) -> Json {
         let only = ps(p, "menu");
-        let t = tree(&self.recent_presets);
+        let t = tree(&self.recent_presets, &self.session.recent_projects, &self.session.recent_footage);
         let picked: Vec<M> = t.into_iter().filter(|n| match (only, n) {
             (Some(m), M::Sub(label, _)) => *label == m,
             (Some(_), _) => false,
