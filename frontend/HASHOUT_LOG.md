@@ -124,6 +124,12 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - `Dock.home` opens Essential Graphics beside Effects & Presets (the tallest right-hand group in the built-in workspaces) instead of the first right-hand group, which is Info's short strip.
 - Loading a plug-in emits the frontend command `effects.refresh`: the context drops its effect catalogue and Effects & Presets re-reads it if it was ever shown; the engine service drops its cached catalogue whenever an `effect.plugins.*` command runs.
 
+## Template gallery and the Project panel (0.24.0)
+
+- `ui/templates.ts` builds its dialog once and keys the cards on the template id with `patchList`; each card's poster box keeps the 16:9 ratio of the 256 by 144 canvas inside it, so the grid has its final size before any thumbnail arrives. Thumbnails come one at a time from `templates.thumbnail` and are painted into the canvas that is already there; a newer listing (`pass`) stops an older one painting. After Save as Template the painted set is cleared, so an overwritten template repaints over its old picture rather than blanking first.
+- `comp.revealInProject` sends `uiAction` `revealItem` with the folders to open; the Project panel adds them to its open set, patches its rows and scrolls the item into view on the next frame. The item context menu gained Duplicate, Label, Remember and Apply Interpretation, the Replace Footage submenu and Reveal in Finder; all of them are engine commands.
+- The status bar's revision text briefly shows the auto-save file name when the engine reports one; the next state change writes the revision again.
+
 ## Boot ground
 
 - The critical style paints only `html` (`#0a0a0a`, then the boot script's profile ground); `body` is transparent until `tokens.css` gives it `--bg-primary`. Painting `body` too showed `#0a0a0a` for the first frames before the Studio ground `#111111`.

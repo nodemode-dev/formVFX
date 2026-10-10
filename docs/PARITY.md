@@ -1,6 +1,6 @@
 # formvfx against After Effects
 
-formvfx 0.23.1 measured line by line against Adobe After Effects 26.5 (September 2026), the way the form family measures itself: each capability is traced through formvfx's data model and engine command, the interface that exposes it, and the render or export path that applies it.
+formvfx 0.24.0 measured line by line against Adobe After Effects 26.5 (September 2026), the way the form family measures itself: each capability is traced through formvfx's data model and engine command, the interface that exposes it, and the render or export path that applies it.
 
 - **Full** · implemented and wired from the interface through to the render or export.
 - **Partial** · present but narrower than After Effects, or reachable only as a command form where After Effects gives direct manipulation.
@@ -14,7 +14,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 
 | | Rows | Full | Partial | None | Score |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| formvfx 0.23.1 | 72 | 64 | 6 | 2 | 67 of 72 (93%) |
+| formvfx 0.24.0 | 72 | 64 | 6 | 2 | 67 of 72 (93%) |
 
 ## Rows
 
@@ -22,11 +22,11 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 
 | # | Capability | formvfx | Trace | Verified |
 | ---: | --- | --- | --- | --- |
-| 1 | Project panel: folders, labels, search, comments, usage | Full | `project.*`, Project panel (`frontend/src/panels/project.ts`) | yes |
+| 1 | Project panel: folders, labels, search, comments, usage | Full | `project.*` (duplicate, labels and the project comment since 0.24.0), Project panel (`frontend/src/panels/project.ts`); Open Recent and Import Recent Footage, auto-save copies (`file.autoSave`, `file.recoveryInfo`), the `.fvxprojx` XML twin, project templates (`templates.*`, File > New > New Project from Template), placeholders and Replace with Placeholder, Solid or Layered Comp | yes; 0.24.0: an `.fvxprojx` round trip value for value, templates created with footage extracted, placeholders rendering colour bars, Replace with Solid rendering the solid and undoing |
 | 2 | Import video, image sequences, stills, audio, PSD as composition, AI and PDF pages, SVG | Full | `file.import {importAs}`, `import_files`; Import dialog | mp4, png |
-| 3 | Interpret Footage, proxies | Full | `file.interpretFootage`, `file.interpretProxy`, generated forms | no |
+| 3 | Interpret Footage, proxies | Full | `file.interpretFootage`, `file.interpretProxy`, Remember and Apply Interpretation (`file.rememberInterpretation`, `file.applyInterpretation`), generated forms | Apply Interpretation copying frame rate and loops |
 | 4 | Collect Files, Reduce Project, dependencies | Full | `file.collectFiles`, File > Dependencies menu | no |
-| 5 | Dynamic Link with an editor | Partial | formvfx's side: a composition is served as a live clip, no render, from the open project (unsaved edits included) or from any saved project through a side engine that reopens the file when it changes (`GET /api/link/frame.png`, `/api/link/audio`, `/api/link/info`, `backend/app/engine/link.py`); Export Dynamic Link Clip in the Project panel, `link.export` and the `dynamic_link` MCP tool write the `.fvxlink` descriptor. The editor side (placing a `.fvxlink` on a formcut timeline) is not built yet | frames and audio, live and side engine, reload after save |
+| 5 | Dynamic Link with an editor | Partial | formvfx's side: a composition is served as a live clip, no render, from the open project (unsaved edits included) or from any saved project through a side engine that reopens the file when it changes (`GET /api/link/frame.png`, `/api/link/audio`, `/api/link/info`, `backend/app/engine/link.py`); Export Dynamic Link Clip in the Project panel, `link.export` and the `dynamic_link` MCP tool write the `.fvxlink` descriptor. The editor side (placing a `.fvxlink` on a formcut timeline) is not built yet. Since 0.24.0 an editor's cut travels both ways as Final Cut Pro XML, FCPXML, OTIO or a CMX 3600 EDL (`file.importTimeline`, `file.exportTimeline`) | frames and audio, live and side engine, reload after save; formcut's FCPXML, EDL, XML and OTIO imported with every clip cut at its frames, and formvfx's exports read back by formcut's importers |
 
 ### Compositions
 
@@ -146,7 +146,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 
 | # | Capability | formvfx | Trace | Verified |
 | ---: | --- | --- | --- | --- |
-| 65 | Render Queue: render settings, output modules, templates, several outputs | Full | `renderQueue.*`, `render.addOutputModule`; Render Queue panel | two output modules on one item, templates, 3:2 pulldown, Pre-render |
+| 65 | Render Queue: render settings, output modules, templates, several outputs | Full | `renderQueue.*`, `render.addOutputModule`; Render Queue panel; Watch Folder renders dropped projects through their own queues (`file.watchFolder`, `file.watchFolder.poll`) | two output modules on one item, templates, 3:2 pulldown, Pre-render; a project dropped in a watched folder rendered with its status file |
 | 66 | H.264, HEVC, AV1, ProRes, WebM, GIF, PNG, TIFF, EXR and audio output | Full | `renderQueue.formats` | AV1, ProRes 4444 with alpha, HEVC Main 10, interlaced H.264, WebM, EXR and PNG sequences, AIFF, WAV |
 | 67 | Lottie export (a plug-in in After Effects) | Full | `file.exportLottie`, `file.importLottie` | drawn by rlottie within a pixel of formvfx's own frames |
 | 68 | Save frame as PSD or layered EXR | Full | `comp.saveFrameAsPsd`, `comp.saveFrameAsExr` | read back by psd-tools and OpenEXR |
@@ -162,7 +162,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 
 ### Platform (not scored)
 
-| Capability | After Effects 26.5 | formvfx 0.23.1 |
+| Capability | After Effects 26.5 | formvfx 0.24.0 |
 | --- | --- | --- |
 | Desktop operating systems | macOS, Windows (x64, ARM) | macOS, Windows, Linux (Tauri) |
 | In a browser | no | yes (`./formvfx serve`) |
@@ -185,6 +185,6 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 
 ## Where formvfx leads
 
-Lottie export without a plug-in, Linux and the browser, an Apache-2.0 licence, and an agent surface: every one of its 508 engine commands is reachable from Claude Code, Codex or Cursor through MCP or the command line, with a skill that teaches the workflow.
+Lottie export without a plug-in, editor timelines in four open formats (After Effects exchanges timelines through Premiere Pro projects), Linux and the browser, an Apache-2.0 licence, and an agent surface: every one of its 542 engine commands is reachable from Claude Code, Codex or Cursor through MCP or the command line, with a skill that teaches the workflow.
 
 Sources: Adobe, [What's new in After Effects](https://helpx.adobe.com/after-effects/desktop/what-s-new/whats-new.html), read October 7, 2026.
