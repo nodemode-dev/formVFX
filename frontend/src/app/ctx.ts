@@ -56,6 +56,7 @@ const PICKERS: Record<string, Picker> = {
   'view.importGuides': { key: 'path', mode: 'open', ext: ['json'] },
   'file.exportLottie': { key: 'path', mode: 'save', ext: ['json', 'lottie'], name: 'Animation.json' },
   'file.importLottie': { key: 'path', mode: 'open', ext: ['json', 'lottie'] },
+  'file.importAep': { key: 'path', mode: 'open', ext: ['aep'] },
   'file.importTimeline': { key: 'path', mode: 'open', ext: ['xml', 'fcpxml', 'otio', 'edl', 'aaf', 'omf'] },
   'render.saveCurrentPreview': { key: 'path', mode: 'save', ext: ['mp4'], name: 'Preview.mp4' },
   'file.runScript': { key: 'path', mode: 'open', ext: ['jsx', 'js', 'jsonl', 'json', 'txt'], when: (p) => p.name === undefined },

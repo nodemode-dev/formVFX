@@ -150,6 +150,28 @@ export class Preferences {
     return [section, on, reserve, note, gpuSection, gpuRow, gpuNote];
   }
 
+  private async refresh(): Promise<void> {
+    const id = this.current;
+    const before = this.pages.find((p) => p.id === id);
+    try {
+      this.pages = await this.ctx.client.exec<PrefPage[]>('prefs.pages');
+    } catch {
+      return;
+    }
+    const after = this.pages.find((p) => p.id === id);
+    if (!before || !after || this.current !== id || id === 'memory') return;
+    const shape = (p: PrefPage): string => p.items.map((i) => i.section ?? i.button ?? i.label ?? (i.note !== undefined ? '' : '-')).join('\n');
+    if (shape(before) !== shape(after)) {
+      await this.show(id);
+      return;
+    }
+    const pane = this.pane as HTMLElement;
+    after.items.forEach((item, idx) => {
+      const node = pane.children[idx];
+      if (item.note !== undefined && node instanceof HTMLElement) setText(node, item.note);
+    });
+  }
+
   private set(key: string, value: unknown): void {
     void this.ctx.run('prefs.set', { key, value });
   }
@@ -160,7 +182,7 @@ export class Preferences {
     if (item.button && item.command) {
       const b = el<HTMLButtonElement>(`<button class="cv-btn fx-prefs-btn" type="button">${escapeHtml(item.button)}</button>`);
       b.dataset.automationId = `preferences.${item.command}`;
-      b.addEventListener('click', () => void this.ctx.invoke(item.command as string, item.params ?? {}));
+      b.addEventListener('click', () => void this.ctx.invoke(item.command as string, item.params ?? {}).finally(() => void this.refresh()));
       return b;
     }
     if (!item.label) return el('<span hidden></span>');
