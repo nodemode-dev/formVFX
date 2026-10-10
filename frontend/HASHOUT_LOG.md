@@ -79,6 +79,7 @@ Living context for the interface. Code carries almost no comments; the reasoning
 
 - `Preferences.show` builds a page off the DOM and swaps it in with one `replaceChildren` once its values (and, for Memory & CPU, `engine.performance`) have arrived; the old page stays until then, and a page left before its values arrive is dropped. It used to empty the pane first and append the Multi-Frame Rendering rows after a second request, so the page blinked empty and then grew.
 - Memory & CPU > GPU Acceleration: the checkbox sends `engine.performance {gpu}` and the note shows the adapter or the reason the CPU is used.
+- Since 0.29.0 a page button re-reads `prefs.pages` when its command settles. If the page's rows are the same (sections, buttons and labels in order) only the notes' text is patched; if they changed (a model downloaded or removed swaps its buttons) the page is rebuilt by `show`, which is still one `replaceChildren`. Memory & CPU is left alone, since its rows come from `engine.performance`.
 
 ## Object Matte tool (0.9.0)
 

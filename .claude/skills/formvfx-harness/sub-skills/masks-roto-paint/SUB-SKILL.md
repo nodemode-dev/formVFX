@@ -41,7 +41,7 @@ For separating a subject from footage:
 3. Refine with more strokes on frames where it drifted, then `roto.freeze {layer, wait: true}` to lock the result.
 4. `roto.status {layer, frame}` reports progress and can return the matte; `roto.options {view: alphaOverlay}` changes what the window shows.
 
-Roto Brush 2 and 3 use a model chosen in Settings (`roto.models`, `roto.model.select`).
+The model is chosen in Settings > Roto Brush or with `roto.model.select {id}`: `classical` (built in), `mobilesam` (propagated by optical flow), `sam2` (SAM 2.1 tiny, which remembers the stroked frames and the frames just before, so it holds an object through motion and occlusion far better; under a second a frame) or `sam2full` (the same at full resolution, several seconds a frame, for the final pass). `roto.models` shows which are installed; `roto.model.download {id: sam2}` installs SAM 2 (about 156 MB). The effect's Version shows the model a matte was made with.
 
 ## Object Matte (one click)
 
