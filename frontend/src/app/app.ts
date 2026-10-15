@@ -12,13 +12,14 @@ import { MediaBrowserPanel } from '../panels/media-browser';
 import { ProjectPanel } from '../panels/project';
 import { AlignPanel, CharacterPanel, CommandPanel, HistoryPanel, InfoPanel, ParagraphPanel, PreviewPanel, RenderQueuePanel } from '../panels/small';
 import { TerminalPanel } from '../panels/terminal';
+import { ChatPanel } from '../panels/chat';
 import { TimelinePanel } from '../panels/timeline';
 import { TrackerPanel } from '../panels/tracker';
 import { editTarget, trackerOptions } from '../panels/tracker-controls';
 import { ViewerPanel } from '../panels/viewer';
 import { Dialog } from '../ui/dialogs';
 import { Dock, WORKSPACES } from '../ui/dock';
-import { el, escapeHtml, q, revealApp, setClass, setText } from '../ui/dom';
+import { el, escapeHtml, isMac, q, revealApp, setClass, setText } from '../ui/dom';
 import { icon } from '../ui/icons';
 import '../ui/icons-vfx';
 import { Keys } from '../ui/keys';
@@ -117,7 +118,9 @@ class App {
       savedWorkspaces: () => this.dock.savedNames(),
       after: {
         Window: [
-          { label: 'Terminal', run: () => this.dock.show('terminal') },
+          { label: 'Terminal', shortcut: 'Cmd+J', run: () => this.dock.show('terminal') },
+          { label: 'Start Claude Code', shortcut: 'Shift+Cmd+J', run: () => this.terminal.launch('claude') },
+          { label: 'Chat with Claude', shortcut: 'Alt+Cmd+J', run: () => this.dock.show('chat') },
           { label: 'Agents', run: () => this.dock.show('agents') },
           { label: 'Command Palette...', shortcut: 'Cmd+K', run: () => void this.palette.open() },
           { label: 'Maximize Panel', shortcut: '`', run: () => this.dock.toggleMaximizeFocused() },
@@ -158,6 +161,18 @@ class App {
     this.buildHome();
     this.bindEngine();
     document.addEventListener('paste', (e) => void this.paste(e));
+    document.addEventListener(
+      'keydown',
+      (e) => {
+        if (e.key.toLowerCase() !== 'j' || !(isMac ? e.metaKey : e.ctrlKey)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.altKey) this.dock.show('chat');
+        else if (e.shiftKey) this.terminal.launch('claude');
+        else this.dock.show('terminal');
+      },
+      true,
+    );
     ctx.ui.on('showPanel', (id) => this.dock.show(id));
     ctx.ui.on('focusPanel', (id) => this.dock.focus(id));
     ctx.start();
@@ -192,6 +207,7 @@ class App {
     this.dock.register('renderQueue', 'Render Queue', () => new RenderQueuePanel(ctx));
     this.dock.register('history', 'History', () => new HistoryPanel(ctx));
     this.dock.register('terminal', 'Terminal', () => this.terminal);
+    this.dock.register('chat', 'Chat', () => new ChatPanel(ctx, (session) => this.terminal.launch('claude', undefined, session ?? undefined)));
     this.dock.register('agents', 'Agents', () => new AgentsPanel(ctx));
     this.dock.register('flowchart', 'Flowchart', () => new FlowchartPanel(ctx));
     this.dock.register('wiggler', 'Wiggler', () => new WigglerPanel(ctx));
@@ -217,6 +233,7 @@ class App {
           contextMenu(r.left, r.bottom + 4, [
             { label: 'Open Terminal', run: () => this.dock.show('terminal') },
             { label: 'Start Claude Code', run: () => this.terminal.launch('claude') },
+            { label: 'Chat with Claude', run: () => this.dock.show('chat') },
             { label: 'Start Codex', run: () => this.terminal.launch('codex') },
             { label: 'Start Cursor', run: () => this.terminal.launch('cursor') },
             '-',

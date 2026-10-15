@@ -17,6 +17,7 @@ export interface ClientEvents {
   toast: ServerEvent;
   busy: ServerEvent;
   activity: ServerEvent;
+  chat: ServerEvent;
   consent: ServerEvent;
   uiRequest: ServerEvent;
   uiAction: ServerEvent;
@@ -131,6 +132,6 @@ export class Client {
 }
 
 const KNOWN: Record<string, true> = {
-  changed: true, frontend: true, toast: true, busy: true, activity: true, consent: true, uiRequest: true, uiAction: true,
+  changed: true, frontend: true, toast: true, busy: true, activity: true, chat: true, consent: true, uiRequest: true, uiAction: true,
   openComp: true, openUrl: true, purgeCaches: true, autosave: true,
 };

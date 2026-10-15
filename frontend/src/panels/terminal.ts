@@ -25,6 +25,7 @@ export class TerminalPanel implements Panel {
   private ws: WebSocket | null = null;
   private started = false;
   private status: TermStatus | null = null;
+  private claudeLive = false;
 
   constructor(private readonly ctx: Ctx) {
     this.el = el(`<div class="fx-term">
@@ -38,9 +39,24 @@ export class TerminalPanel implements Panel {
         <button class="cv-icon-btn" type="button" data-act="restart" title="New shell">${icon('refresh', 14)}</button>
       </div>
       <div class="fx-term-host" data-automation-id="terminal.screen"></div>
-      <div class="fx-term-hint">Agents started here are trusted and already know formvfx: CLAUDE.md, AGENTS.md, the formvfx MCP server and the formvfx-harness skill are in this folder.</div>
+      <form class="fx-term-ask" autocomplete="off">
+        ${icon('agent', 13)}
+        <input class="fx-term-ask-input" type="text" placeholder="Ask Claude Code to change this project" data-automation-id="terminal.ask" />
+        <button class="cv-btn" type="submit">Ask</button>
+        <button class="cv-btn" type="button" data-act="chat" title="Chat with Claude (Alt+Mod+J)">Chat</button>
+      </form>
+      <div class="fx-term-hint">Claude Code starts here already connected to this window over the formvfx MCP server, with no setup step. Codex and Cursor read the MCP server and the formvfx-harness skill from this folder.</div>
     </div>`);
     this.host = q(this.el, '.fx-term-host');
+    const ask = q<HTMLInputElement>(this.el, '.fx-term-ask-input');
+    q(this.el, '.fx-term-ask').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = ask.value.trim();
+      if (!text) return;
+      ask.value = '';
+      this.launch('claude', text);
+    });
+    q(this.el, '[data-act="chat"]').addEventListener('click', () => this.ctx.ui.emit('showPanel', 'chat'));
     for (const b of Array.from(this.el.querySelectorAll<HTMLElement>('[data-launch]'))) {
       b.dataset.automationId = `terminal.launch.${b.dataset.launch}`;
       b.addEventListener('click', () => this.launch(b.dataset.launch as string));
@@ -114,15 +130,16 @@ export class TerminalPanel implements Panel {
     this.connect();
   }
 
-  private connect(launch?: string): void {
+  private connect(query = ''): void {
     const t = this.term;
     if (!t) return;
-    const ws = new WebSocket(wsUrl(`/api/terminal/ws?cols=${t.cols}&rows=${t.rows}${launch ? `&launch=${launch}` : ''}`));
+    const ws = new WebSocket(wsUrl(`/api/terminal/ws?cols=${t.cols}&rows=${t.rows}${query ? `&${query}` : ''}`));
     this.ws = ws;
     ws.onmessage = (ev) => {
       const s = String(ev.data);
       if (s === '{"exit": true}') {
-        t.write('\r\n\x1b[2m[shell exited, press Restart for a new one]\x1b[0m\r\n');
+        if (this.ws === ws) this.claudeLive = false;
+        t.write('\r\n\x1b[2m[session ended, press New shell or Claude Code to start again]\x1b[0m\r\n');
         return;
       }
       t.write(s);
@@ -137,22 +154,36 @@ export class TerminalPanel implements Panel {
     if (t && this.ws?.readyState === WebSocket.OPEN) this.ws.send(`\u0000${JSON.stringify({ resize: [t.cols, t.rows] })}`);
   }
 
-  restart(launch?: string): void {
+  restart(query = ''): void {
+    this.claudeLive = false;
     this.ws?.close();
     this.term?.reset();
-    this.connect(launch);
+    this.connect(query);
     this.term?.focus();
   }
 
-  launch(agent: string): void {
+  launch(agent: string, prompt?: string, resume?: string): void {
     this.ctx.ui.emit('showPanel', 'terminal');
     if (!this.started) {
       this.started = true;
-      void this.start().then(() => this.launch(agent));
+      void this.start().then(() => this.launch(agent, prompt, resume));
+      return;
+    }
+    if (agent === 'claude') {
+      if (this.claudeLive && !resume && this.ws?.readyState === WebSocket.OPEN) {
+        if (prompt) this.ws.send(`${prompt}\r`);
+      } else {
+        const p = new URLSearchParams({ agent: 'claude' });
+        if (prompt) p.set('prompt', prompt);
+        if (resume) p.set('resume', resume);
+        this.restart(p.toString());
+        this.claudeLive = true;
+      }
+      this.term?.focus();
       return;
     }
     if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(`\u0000${JSON.stringify({ launch: agent })}`);
-    else this.restart(agent);
+    else this.restart(`launch=${agent}`);
     this.term?.focus();
   }
 

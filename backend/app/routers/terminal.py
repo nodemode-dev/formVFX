@@ -9,7 +9,7 @@ import threading
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from ..agent import consent, workspace
+from ..agent import claude_code, consent, workspace
 from ..core import config
 
 router = APIRouter(prefix="/api/terminal", tags=["terminal"])
@@ -39,12 +39,13 @@ def _shell() -> list[str]:
 
 
 class Session:
-    def __init__(self, cols: int, rows: int, env: dict, cwd: str):
+    def __init__(self, cols: int, rows: int, env: dict, cwd: str, argv: list[str] | None = None):
         self.cols, self.rows = max(20, min(500, cols)), max(5, min(300, rows))
         self.pid = None
         self.fd = None
         self.process = None
         self.winpty = None
+        cmd = argv or _shell()
         if POSIX:
             import pty
 
@@ -54,18 +55,18 @@ class Session:
                     os.chdir(cwd)
                 except OSError:
                     os.chdir(os.path.expanduser("~"))
-                os.execvpe(_shell()[0], _shell(), env)  # noqa: S606 the shell is the feature
+                os.execvpe(cmd[0], cmd, env)  # noqa: S606 the shell is the feature
             self.pid, self.fd = pid, fd
             self.resize(self.cols, self.rows)
             return
         try:
             from winpty import PtyProcess
 
-            self.winpty = PtyProcess.spawn(_shell(), cwd=cwd, env=env, dimensions=(self.rows, self.cols))
+            self.winpty = PtyProcess.spawn(cmd, cwd=cwd, env=env, dimensions=(self.rows, self.cols))
         except Exception:
             import subprocess
 
-            self.process = subprocess.Popen(_shell(), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env, cwd=cwd)
+            self.process = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env, cwd=cwd)
 
     def resize(self, cols: int, rows: int) -> None:
         self.cols, self.rows = max(20, min(500, cols)), max(5, min(300, rows))
@@ -120,8 +121,9 @@ def status() -> dict:
         "pty": POSIX,
         "shell": _shell()[0],
         "cwd": str(ws),
-        "agents": {name: shutil.which(binary) is not None for name, binary in AGENTS.items()},
+        "agents": {name: (claude_code.cli() is not None) if name == "claude" else shutil.which(binary) is not None for name, binary in AGENTS.items()},
         "launch": AGENTS,
+        "claude": claude_code.info(),
     }
 
 
@@ -139,7 +141,14 @@ async def terminal(socket: WebSocket) -> None:
         base = socket.query_params["engine"]
     env = _environment(base)
     cwd = socket.query_params.get("cwd") or env["FORMVFX_WORKSPACE"]
-    session = Session(cols, rows, env, cwd)
+    argv = None
+    if socket.query_params.get("agent") == "claude":
+        try:
+            argv = claude_code.argv(base, socket.query_params.get("prompt") or None, socket.query_params.get("resume") or None)
+            env = claude_code.child_env(env)
+        except RuntimeError as e:
+            await socket.send_text(f"\r\n\x1b[33m{e}\x1b[0m\r\n")
+    session = Session(cols, rows, env, cwd, argv)
     loop = asyncio.get_running_loop()
     queue: asyncio.Queue = asyncio.Queue()
     stop = threading.Event()

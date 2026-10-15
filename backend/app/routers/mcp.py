@@ -8,6 +8,7 @@ from ..core.security import local_origin
 
 router = APIRouter(tags=["mcp"])
 VERSIONS = ["2026-07-28", "2025-11-25", "2025-06-18", "2025-03-26"]
+LIST_CACHE = {"ttlMs": 60_000, "cacheScope": "private"}
 
 
 def _ok(rid, result: dict, modern: bool) -> dict:
@@ -51,14 +52,14 @@ async def mcp(request: Request) -> Response:
     elif method == "ping":
         out = _ok(rid, {}, modern)
     elif method == "prompts/list":
-        out = _ok(rid, {"prompts": tools.PROMPTS}, modern)
+        out = _ok(rid, {"prompts": tools.PROMPTS, **(LIST_CACHE if modern else {})}, modern)
     elif method == "prompts/get":
         if params.get("name") == "workflow":
             out = _ok(rid, {"description": tools.PROMPTS[0]["description"], "messages": [{"role": "user", "content": {"type": "text", "text": tools.WORKFLOW}}]}, modern)
         else:
             out = _err(rid, -32602, f"No prompt named {params.get('name')}")
     elif method == "tools/list":
-        out = _ok(rid, {"tools": tools.TOOLS}, modern)
+        out = _ok(rid, {"tools": tools.TOOLS, **(LIST_CACHE if modern else {})}, modern)
     elif method == "tools/call":
         name, args = params.get("name"), params.get("arguments") or {}
         if name not in tools.NAMES or not isinstance(args, dict):
