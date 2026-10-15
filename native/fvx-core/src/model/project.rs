@@ -900,12 +900,22 @@ pub struct Project {
     pub render_queue: Vec<RenderItem>,
     #[serde(default)]
     pub saved_by: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub uid: String,
 }
 
 impl Default for Project {
     fn default() -> Self {
-        Project { format: FORMAT.into(), settings: ProjectSettings::default(), data: vec![], items: vec![], next_id: 0, next_uid: 0, render_queue: vec![], saved_by: String::new() }
+        Project { format: FORMAT.into(), settings: ProjectSettings::default(), data: vec![], items: vec![], next_id: 0, next_uid: 0, render_queue: vec![], saved_by: String::new(), uid: new_project_uid() }
     }
+}
+
+pub fn new_project_uid() -> String {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static COUNT: AtomicU64 = AtomicU64::new(0);
+    let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
+    let n = COUNT.fetch_add(1, Ordering::Relaxed);
+    format!("{:x}-{:x}-{:x}", nanos, std::process::id(), n)
 }
 
 impl Project {

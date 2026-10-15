@@ -22,6 +22,7 @@ pub fn summary(e: &mut Engine, _: &Json) -> Res {
     let items: Vec<Json> = e.project.items.iter().map(|i| json!({"id": i.id, "name": i.name, "type": i.type_name(), "parent": i.parent})).collect();
     Ok(json!({
         "path": e.path,
+        "uid": e.project.uid,
         "dirty": e.is_dirty(),
         "items": items,
         "activeComp": e.state.active_comp,

@@ -47,6 +47,9 @@ pub fn open(e: &mut Engine, p: &Json) -> Res {
     let path = ps(p, "path").ok_or("pass `path`")?.to_string();
     let (mut project, imported) = read_project(&path)?;
     relink(&mut project, &path);
+    if project.uid.is_empty() {
+        project.uid = crate::model::project::new_project_uid();
+    }
     let saved_by = project.saved_by.clone();
     if imported {
         e.reset(project, None);
