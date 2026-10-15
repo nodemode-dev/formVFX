@@ -262,6 +262,14 @@ fvx-core is formvfx's compositing engine, written for formvfx in Rust and loaded
 
 - `engine/state.rs` `flowchart`: with `layers`, each layer's parent and track matte are edges too, `{"from": "l<parent>", "to": "l<child>", "kind": "parent"}` and `{"from": "l<matte>", "to": "l<layer>", "kind": "matte", "label": "Alpha Matte"}`. Flow edges (source into layer, layer into comp) keep no `kind`, so earlier readers of the payload (the MCP flowchart tool) see what they saw before plus the new edges.
 
+## Reflections of other layers (0.39.0)
+
+- **`render/mirror.rs`.** A `Mirror` holds what reflective surfaces can see: plane layers as their flat buffer with the world matrix and its inverse (the same intersection the shadow casters use, z = 0 in layer space), and every mesh layer's world triangles in one bounding volume hierarchy (median split on the longest axis, leaves of four, slab test, Moller-Trumbore). `trace` returns the nearest hit with its straight colour, normal and, for meshes, the material.
+- **When it is built.** `build_scene` asks for it only when some live 3D layer has Reflection Intensity above 0; it gathers live 3D layers that are not cameras, lights, the environment layer or a sky, and have Appears in Reflections on. The reflecting layer is skipped by id in `trace`, so a surface never sees itself.
+- **Shading a hit.** Mesh hits go through `shade_pbr` with that mesh's material (no second bounce); plane hits use the layer's own colours unlit. `Scene::reflection` lays the hit over the environment sample when there is one; without an environment the hit's alpha is the weight, so empty space reflects nothing rather than black.
+- **Sharpness.** Below about 98 the reflection is the mean of seven rays in a hexagon around the mirror direction, spread up to 0.6 rad at Sharpness 0; the environment sample is also taken at the matching blur level. Seven rays cost about four times one (2.2 s against 0.5 s for a 1280 x 720 frame of reflective text in the scratch test); a single ray is used whenever nothing but the environment is there to hit.
+- **Plane layers.** Classic shading keeps its own environment reflection in `shade_classic`; `plane_light` adds other layers on top (with `with_env` false so the environment is not counted twice).
+
 ## Extruded-layer materials (0.38.0)
 
 - **Parts.** An extruded fill now meshes with three materials, front, bevel and side, pushed per fill op in that order (`shape_mesh` takes `[front, bevel, side]`). Bevel rings use the bevel material; before they used the front's. Geometry Options gained Bevel Color and Bevel Uses Front Color (on by default, so older layers look as they did).
