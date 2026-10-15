@@ -26,6 +26,7 @@ Open http://localhost:5230, choose **Open the demo project** on the start screen
 - **In formvfx**: Claude Code starts inside the app already connected, with no setup step: Window > Start Claude Code (Shift+Cmd or Ctrl+J) runs it in the Terminal panel, the Ask Claude Code field there sends it a request, and Window > Chat with Claude (Alt+Cmd or Ctrl+J) opens a Chat panel that runs it headless, streams the answer with each tool it uses, and hands the conversation to the terminal. It edits the open project live, every change undoable, without permission prompts. Claude Code is found wherever it is installed, also from the packaged app. Codex and Cursor start from the Terminal panel's buttons with the `formvfx` MCP server and the `formvfx-harness` skill.
 - **From this repository**: `.mcp.json`, `.codex/config.toml` and `.cursor/mcp.json` run `./formvfx mcp`. The first change asks once in the formvfx window.
 - **From anywhere**: `./formvfx agents install` (or the Agents panel) sets the three clients up for your account.
+- **Dynamic Link**: Export Dynamic Link Clip (Project panel) writes a `.fvxlink` that an editor such as formcut plays live with no render. Links keep working when the project is moved or renamed (found again by its project id beside the `.fvxlink`, in its old folder or among recent projects) and when a comp is renumbered (found by name). `POST /api/link/check` reports and fixes a link, `POST /api/link/render` renders the comp for Render and Replace, and Window > Dynamic Link shows what is being served.
 - **Command line**: `./formvfx state`, `commands FILTER`, `describe ID`, `exec ID 'JSON'`, `batch 'JSON'`, `frame OUT.png --time S`, `render --wait`.
 
 ## Desktop
@@ -68,13 +69,13 @@ Tagging `vX.Y.Z` builds macOS, Linux and Windows bundles in GitHub Actions and o
 
 | Area | Files | Lines |
 | --- | ---: | ---: |
-| Compositing engine (Rust, fvx-core) | 166 | 81,371 |
-| Engine service (Python) | 37 | 2,913 |
-| Interface (TypeScript) | 58 | 13,116 |
-| Interface styles (CSS) | 8 | 1,951 |
+| Compositing engine (Rust, fvx-core) | 166 | 81,384 |
+| Engine service (Python) | 37 | 3,113 |
+| Interface (TypeScript) | 59 | 13,222 |
+| Interface styles (CSS) | 8 | 1,966 |
 | Desktop shell (Rust, Tauri) | 1 | 141 |
 | Setup and CLI | 35 | 1,078 |
 | Agent skill (Markdown, hand-written) | 16 | 786 |
-| Total | 321 | 101,356 |
+| Total | 322 | 101,690 |
 
 Non-blank lines in tracked files; generated skill references excluded. `./formvfx counts` prints this table.
