@@ -50,6 +50,7 @@ export class Keys {
   private table = new Map<string, Binding>();
   private last: { combo: string; at: number } = { combo: '', at: 0 };
   private pasteWait = 0;
+  nativeOwned: Set<string> | null = null;
   handlers: {
     reveal: (kind: string) => void;
     palette: () => void;
@@ -89,6 +90,7 @@ export class Keys {
     if (this.handlers?.isTyping()) return;
     const combo = comboOf(e);
     if (!combo) return;
+    if (this.nativeOwned?.has(combo)) return;
     const now = performance.now();
     const double = this.last.combo === combo && now - this.last.at < 350;
     this.last = { combo, at: now };

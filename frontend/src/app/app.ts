@@ -25,7 +25,8 @@ import { el, escapeHtml, isMac, q, revealApp, setClass, setText } from '../ui/do
 import { icon } from '../ui/icons';
 import '../ui/icons-vfx';
 import { Keys } from '../ui/keys';
-import { MenuBar } from '../ui/menubar';
+import { MenuBar, type MenuExtras } from '../ui/menubar';
+import { NativeMenus, normalizeCombo, wantsNativeMenus } from '../ui/native-menu';
 import { Palette } from '../ui/palette';
 import { contextMenu, type PopupEntry } from '../ui/popup';
 import { Preferences } from '../ui/prefs';
@@ -81,6 +82,7 @@ class App {
   private readonly viewerChannel = new BroadcastChannel('formvfx-viewer');
   private readonly keys = new Keys(ctx);
   private shortcuts: ShortcutEditor | null = null;
+  private native: NativeMenus | null = null;
   private palette!: Palette;
   private viewer!: ViewerPanel;
   private timeline!: TimelinePanel;
@@ -115,7 +117,7 @@ class App {
       <footer class="cv-status fx-status"></footer>
     </div>`);
     appEl.appendChild(shell);
-    const menubar = new MenuBar(ctx, {
+    const extras: MenuExtras = {
       workspace: () => this.dock.workspace,
       savedWorkspaces: () => this.dock.savedNames(),
       after: {
@@ -135,8 +137,14 @@ class App {
           { label: 'About formvfx', run: () => this.about() },
         ],
       },
-    });
+    };
+    const menubar = new MenuBar(ctx, extras);
     q(shell, '.fx-menubar-host').appendChild(menubar.el);
+    if (wantsNativeMenus()) {
+      this.native = new NativeMenus(ctx, extras, 'formvfx', () => this.about(), () => void this.prefs.open());
+      this.keys.nativeOwned = this.native.owned;
+      this.native.start();
+    }
     this.toolbar = q(shell, '.fx-toolbar');
     this.status = q(shell, '.fx-status');
     q(shell, '.fx-main').appendChild(this.dock.el);
@@ -167,6 +175,7 @@ class App {
       'keydown',
       (e) => {
         if (e.key.toLowerCase() !== 'j' || !(isMac ? e.metaKey : e.ctrlKey)) return;
+        if (this.native?.owned.has(normalizeCombo(['Cmd', e.altKey ? 'Alt' : '', e.shiftKey ? 'Shift' : '', 'J'].filter(Boolean).join('+')))) return;
         e.preventDefault();
         e.stopPropagation();
         if (e.altKey) this.dock.show('chat');
