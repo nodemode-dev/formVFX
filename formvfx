@@ -16,7 +16,7 @@ usage: ./formvfx [command] [options]
   build                 production build of the interface into frontend/dist
   serve                 serve the built interface from the engine on 127.0.0.1:8230
   freeze                freeze the engine service and the compositing engine into the Tauri sidecar binary
-  desktop dev|build     run or bundle the desktop app
+  desktop dev|build     run the desktop app, or build and install it (build is the same as ./build_app)
   doctor                check the toolchain, installs and ports
 
   exec ID [JSON]        run one formvfx command in the running app (prints the JSON result)
@@ -27,6 +27,7 @@ usage: ./formvfx [command] [options]
   frame OUT.png [--time S] [--comp C] [--max N]  save a rendered frame
   render [--wait]       render the Render Queue
 
+  claude [ARGS]         start Claude Code here, connected to formvfx over MCP (starts the engine when needed)
   mcp                   formvfx over MCP's stdio transport (starts the engine when needed)
   agents install|sync|status  set Claude Code, Codex and Cursor up (install), refresh the skills (sync)
   counts [--check]      code sizes for the README
@@ -52,11 +53,14 @@ case "$cmd" in
     [ $# -gt 0 ] && shift
     case "$sub" in
       dev) exec setup/desktop_dev "$@" ;;
-      build) exec setup/desktop_build "$@" ;;
+      build) exec ./build_app "$@" ;;
       *) usage; exit 2 ;;
     esac ;;
   doctor) exec setup/doctor "$@" ;;
   exec|batch|commands|describe|state|frame|render) exec python3 setup/fx.py "$cmd" "$@" ;;
+  claude)
+    command -v claude >/dev/null 2>&1 || { printf '[formvfx] Claude Code is not installed: https://claude.com/claude-code\n'; exit 1; }
+    exec claude --mcp-config "{\"mcpServers\":{\"formvfx\":{\"type\":\"stdio\",\"command\":\"$PWD/formvfx\",\"args\":[\"mcp\"]}}}" --allowedTools mcp__formvfx "$@" ;;
   mcp) exec python3 setup/mcp_stdio.py "$@" ;;
   agents) exec python3 setup/agents.py "$@" ;;
   counts) exec python3 setup/line_counts.py "$@" ;;

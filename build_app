@@ -1,0 +1,155 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")"
+source setup/lib.sh
+
+usage() {
+  cat <<'EOF'
+./build_app            build formvfx's desktop app from this folder, start to finish
+  --no-install         macOS: leave the built app where it is instead of copying it to Applications
+  --install            Linux: install the built .deb with apt (asks for your password)
+  --open               open the app when the build is done
+  --clean              rebuild the Rust side and the frozen engine from nothing
+Every step's output goes to build_app.log beside this file.
+EOF
+}
+
+install_app=auto open_app=0 clean=0
+for arg in "$@"; do
+  case "$arg" in
+    --no-install) install_app=no ;;
+    --install) install_app=yes ;;
+    --open) open_app=1 ;;
+    --clean) clean=1 ;;
+    -h|--help) usage; exit 0 ;;
+    *) usage >&2; exit 2 ;;
+  esac
+done
+
+log="$FORMVFX_ROOT/build_app.log"
+: > "$log"
+exec > >(tee -a "$log") 2>&1
+trap 'status=$?; [ $status -eq 0 ] || printf "\n[formvfx] the build stopped (exit %s). The full log is %s\n" "$status" "$log"' EXIT
+
+os="$(fx_os)"
+step() { printf '\n[formvfx] == %s\n' "$*"; }
+rust_env() {
+  if [ -f "$HOME/.cargo/env" ]; then
+    # shellcheck disable=SC1091
+    source "$HOME/.cargo/env"
+  fi
+}
+
+step "checking the tools"
+[ "$os" = macos ] || [ "$os" = linux ] || fx_die "build_app runs on macOS and Linux; on Windows run build_app.bat"
+if [ "$os" = macos ]; then
+  xcode-select -p >/dev/null 2>&1 || fx_die "the Xcode command line tools are missing: run xcode-select --install, then ./build_app again"
+fi
+if [ "$os" = linux ]; then
+  pkg-config --exists webkit2gtk-4.1 2>/dev/null || fx_die "webkit2gtk 4.1 is missing: sudo apt install libwebkit2gtk-4.1-dev libssl-dev librsvg2-dev build-essential, then ./build_app again"
+fi
+py="$(fx_python)" || fx_die "Python 3.12 or newer is required (on macOS: brew install python)"
+command -v node >/dev/null 2>&1 || fx_die "Node 20.19 or newer is required (on macOS: brew install node)"
+node -e 'const [a,b]=process.versions.node.split(".").map(Number); process.exit(a>22||(a===22&&b>=12)||(a===20&&b>=19)?0:1)' \
+  || fx_die "Node $(node -v) is too old; Vite needs 20.19 or 22.12 or newer"
+rust_env
+if ! command -v rustup >/dev/null 2>&1; then
+  fx_say "installing Rust with rustup (https://rustup.rs) into ~/.cargo; your shell profile is not changed"
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable --no-modify-path
+  rust_env
+fi
+rustup toolchain list | grep -q '^stable' || rustup toolchain install stable --profile minimal
+[ "$(dirname "$(command -v rustc)")" = "$(dirname "$(command -v cargo)")" ] \
+  || fx_die "rustc ($(command -v rustc)) and cargo ($(command -v cargo)) come from different installs; remove one (brew uninstall rust) and run ./build_app again"
+fx_say "python $("$py" -c 'import platform; print(platform.python_version())'), node $(node -v), $(rustc -V), $(cargo -V | awk '{print $1, $2}')"
+if command -v claude >/dev/null 2>&1; then
+  fx_say "Claude Code $(claude --version 2>/dev/null | awk '{print $1}') found; the app's Terminal and Chat panels start it already connected"
+else
+  fx_say "Claude Code is not installed; the app builds without it, and its Claude Code button asks for it (https://claude.com/claude-code)"
+fi
+
+step "installing the engine service, the compositing engine and the interface"
+setup/install_all
+step "installing the desktop packages (PyInstaller) and checking the Tauri toolchain"
+setup/install_desktop
+
+if [ "$clean" = 1 ]; then
+  step "cleaning earlier builds"
+  ( cd src-tauri && cargo clean )
+  rm -rf backend/build/pyinstaller backend/dist-engine
+  for f in src-tauri/binaries/formvfx-engine-*; do
+    [ -e "$f" ] && rm -f "$f"
+  done
+fi
+
+step "building the interface"
+setup/build_frontend
+step "freezing the engine service and the compositing engine into the app's sidecar"
+setup/freeze_backend
+[ -f src-tauri/icons/icon.icns ] || frontend/node_modules/.bin/tauri icon assets/formvfx_icon.png -o src-tauri/icons
+
+tauri_args=(build)
+case "$os" in
+  macos)
+    tauri_args+=(--bundles app)
+    [ -n "${APPLE_SIGNING_IDENTITY:-}" ] || tauri_args+=(--config '{"bundle":{"macOS":{"signingIdentity":"-"}}}')
+    ;;
+  linux) tauri_args+=(--bundles "${FORMVFX_BUNDLES:-deb}") ;;
+esac
+
+step "building the desktop app (the first build compiles several hundred Rust crates)"
+tlog="$(mktemp)"
+if ! frontend/node_modules/.bin/tauri "${tauri_args[@]}" 2>&1 | tee "$tlog"; then
+  grep -Eq 'error\[E|could not compile' "$tlog" || fx_die "tauri build failed outside the Rust compile; see the lines above"
+  fx_say "the Rust compile failed; cleaning src-tauri/target and trying once more"
+  ( cd src-tauri && cargo clean )
+  frontend/node_modules/.bin/tauri "${tauri_args[@]}" || fx_die "tauri build failed twice; send build_app.log"
+fi
+rm -f "$tlog"
+
+bundle="$FORMVFX_ROOT/src-tauri/target/release/bundle"
+version="$("$py" -c 'import json, sys; print(json.load(open(sys.argv[1]))["version"])' src-tauri/tauri.conf.json)"
+
+if [ "$os" = macos ]; then
+  app="$bundle/macos/formvfx.app"
+  [ -d "$app" ] || fx_die "the build finished but $app is missing"
+  codesign --verify --deep --strict "$app" 2>/dev/null || fx_say "codesign could not verify the app; it is ad-hoc signed, so macOS may ask once before it opens"
+  step "packing the disk image"
+  mkdir -p "$bundle/dmg"
+  dmg="$bundle/dmg/formvfx_${version}_$(uname -m).dmg"
+  stage="$(mktemp -d)"
+  ditto "$app" "$stage/formvfx.app"
+  ln -s /Applications "$stage/Applications"
+  rm -f "$dmg"
+  hdiutil create -quiet -volname formvfx -srcfolder "$stage" -ov -format UDZO "$dmg"
+  rm -rf "$stage"
+  fx_say "app: $app"
+  fx_say "disk image: $dmg"
+  target_app=""
+  if [ "$install_app" != no ]; then
+    dest=/Applications
+    [ -w "$dest" ] || { dest="$HOME/Applications"; mkdir -p "$dest"; }
+    if pgrep -x formvfx >/dev/null 2>&1; then
+      osascript -e 'tell application "formvfx" to quit' >/dev/null 2>&1 || true
+      sleep 2
+    fi
+    rm -rf "$dest/formvfx.app"
+    ditto "$app" "$dest/formvfx.app"
+    xattr -dr com.apple.quarantine "$dest/formvfx.app" 2>/dev/null || true
+    target_app="$dest/formvfx.app"
+    fx_say "installed: $target_app"
+  fi
+  if [ "$open_app" = 1 ]; then open "${target_app:-$app}"; fi
+else
+  deb="$(ls -t "$bundle"/deb/*.deb 2>/dev/null | head -1 || true)"
+  [ -n "$deb" ] && fx_say "package: $deb"
+  if [ "$install_app" = yes ] && [ -n "$deb" ]; then
+    sudo apt install -y "$deb"
+  elif [ -n "$deb" ]; then
+    fx_say "install it with: sudo apt install $deb   (or run ./build_app --install)"
+  fi
+  if [ "$open_app" = 1 ]; then
+    if [ "$(command -v formvfx 2>/dev/null)" = /usr/bin/formvfx ]; then nohup /usr/bin/formvfx >/dev/null 2>&1 & else "$FORMVFX_ROOT/src-tauri/target/release/formvfx" >/dev/null 2>&1 & fi
+  fi
+fi
+fx_say "done in ${SECONDS}s"
