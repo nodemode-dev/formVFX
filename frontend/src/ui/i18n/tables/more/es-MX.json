@@ -1,0 +1,14 @@
+{
+"Add Active Comp": "Agregar composición activa",
+"Add footage to the composition to track it.": "Agrega material de archivo a la composición para hacerle seguimiento.",
+"Animation Presets": "Ajustes preestablecidos de animación",
+"Audio levels, previews and audio-driven keyframes.": "Niveles de audio, vistas previas y fotogramas clave controlados por audio.",
+"Immersive Video": "Video inmersivo",
+"Import Footage": "Importar material de archivo",
+"No footage layers": "No hay capas de material de archivo",
+"Preview: Draw Preview Wireframe": "Vista previa: dibujar estructura alámbrica de vista previa",
+"Previews": "Vistas previas",
+"Select a footage layer with a mask drawn around a flat surface (a screen, a sign, a wall).": "Selecciona una capa de material de archivo con una máscara dibujada alrededor de una superficie plana (una pantalla, un cartel, una pared).",
+"Select a layer, then add an effect from the Effect menu or the Effects & Presets panel, or drop one here.": "Selecciona una capa y agrega un efecto desde el menú Efecto o el panel Efectos y ajustes preestablecidos, o suéltalo aquí.",
+"Wireframe Preview": "Vista previa en estructura alámbrica"
+}

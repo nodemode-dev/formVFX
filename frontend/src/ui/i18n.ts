@@ -5,6 +5,7 @@ export type { Lang } from './i18n/langs';
 type Table = Record<string, string>;
 const STORE = 'formvfx_lang';
 const TABLES = import.meta.glob<Table>('./i18n/tables/*.json', { import: 'default' });
+const MORE = import.meta.glob<Table>('./i18n/tables/more/*.json', { import: 'default' });
 const tables = new Map<Lang, Table>([['en', {}]]);
 
 function readSaved(): Lang {
@@ -31,7 +32,9 @@ async function load(l: Lang): Promise<void> {
   for (const code of [LANG_PARENT[l], l]) {
     if (!code || tables.has(code) || code === 'en') continue;
     const loader = TABLES[`./i18n/tables/${code}.json`];
-    tables.set(code, loader ? await loader() : {});
+    const more = MORE[`./i18n/tables/more/${code}.json`];
+    const [a, b] = await Promise.all([loader ? loader() : Promise.resolve({}), more ? more() : Promise.resolve({})]);
+    tables.set(code, { ...b, ...a });
   }
 }
 
