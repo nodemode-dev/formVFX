@@ -651,11 +651,11 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 - `effect.apply` Apply Effect
   `{effect: id|name (e.g. Gaussian Blur), layers?}`
 - `effect.plugins.list` Effect Plug-ins
-  `{} -> loaded WebAssembly plug-ins (id, name, category, vendor, version, path, params), load errors and the Plug-ins folder`
+  `{} -> loaded WebAssembly plug-ins (id, name, category, vendor, version, path, params), OpenFX plug-ins (`ofx`: id, name, identifier, context, path, params), the OpenFX folders searched, plug-in messages, load errors and the Plug-ins folder`
 - `effect.plugins.load` Load Plug-in
-  `{path (.wasm or .wat), install?: bool (copy it into the Plug-ins folder so it loads at every start)} · a WebAssembly effect plug-in (ABI in docs/PLUGINS.md); its effect appears in the Effect menu and Effects & Presets`
+  `{path (.wasm or .wat, or an OpenFX .ofx.bundle or the .ofx inside one), install?: bool (copy it into the Plug-ins folder so it loads at every start)} · a WebAssembly effect plug-in (ABI in docs/PLUGINS.md), sandboxed, or an OpenFX image effect (filter, general or generator context), which runs native code in the engine; its effects appear in the Effect menu and Effects & Presets`
 - `effect.plugins.reload` Reload Plug-ins
-  `{} · loads the Plug-ins folder again`
+  `{} · loads the Plug-ins folder again, and OpenFX bundles from OFX_PLUGIN_PATH and the system OpenFX folder (a bundle that stopped formvfx while loading is skipped until Load Plug-in loads it on purpose)`
 - `effect.remove` Remove Effect
   `{layer?, effect: uid|index|name}`
 - `effect.removeAll` Remove All · Effect · Cmd+Shift+E

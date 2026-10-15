@@ -475,6 +475,7 @@ dependencies = [
  "i_overlay",
  "image",
  "kurbo",
+ "libloading",
  "miniz_oxide 0.8.9",
  "parking_lot",
  "pyo3",

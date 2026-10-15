@@ -233,33 +233,75 @@ pub fn plugins_list(_: &mut Engine, _: &Json) -> Res {
         .iter()
         .map(|p| json!({"id": p.id, "name": p.name, "category": p.category, "vendor": p.vendor, "version": p.version, "path": p.path, "params": p.spec.params.iter().filter(|x| x.id != "plugin").map(|x| x.id).collect::<Vec<_>>()}))
         .collect();
-    let errors: Vec<Json> = effects::plugin::errors().into_iter().map(|(k, m)| json!({"source": k, "error": m})).collect();
-    Ok(json!({"folder": effects::plugin::folder().to_string_lossy(), "abi": effects::plugin::ABI, "plugins": rows, "errors": errors}))
+    let ofx: Vec<Json> = effects::ofx::loaded()
+        .iter()
+        .map(|p| json!({"id": p.id, "name": p.name, "category": p.category, "identifier": p.identifier, "version": p.version, "context": p.context, "path": p.path, "params": p.spec.params.iter().filter(|x| x.id != "plugin").map(|x| x.id).collect::<Vec<_>>()}))
+        .collect();
+    let mut errors: Vec<Json> = effects::plugin::errors().into_iter().map(|(k, m)| json!({"source": k, "error": m})).collect();
+    errors.extend(effects::ofx::errors().into_iter().map(|(k, m)| json!({"source": k, "error": m, "kind": "ofx"})));
+    let folders: Vec<String> = effects::ofx::system_folders().iter().map(|d| d.to_string_lossy().to_string()).collect();
+    Ok(json!({"folder": effects::plugin::folder().to_string_lossy(), "abi": effects::plugin::ABI, "plugins": rows, "ofx": ofx, "ofxFolders": folders, "ofxArch": effects::ofx::arch_dir(), "ofxMessages": effects::ofx::messages().lock().clone(), "errors": errors}))
+}
+
+fn copy_tree(from: &std::path::Path, to: &std::path::Path) -> std::io::Result<()> {
+    if from.is_dir() {
+        std::fs::create_dir_all(to)?;
+        for entry in std::fs::read_dir(from)? {
+            let entry = entry?;
+            copy_tree(&entry.path(), &to.join(entry.file_name()))?;
+        }
+        Ok(())
+    } else {
+        std::fs::copy(from, to).map(|_| ())
+    }
+}
+
+fn is_ofx(path: &str) -> bool {
+    let l = path.trim_end_matches(['/', '\\']).to_ascii_lowercase();
+    l.ends_with(".ofx.bundle") || l.ends_with(".ofx")
 }
 
 pub fn plugins_load(e: &mut Engine, p: &Json) -> Res {
-    let path = ps(p, "path").ok_or("pass `path` (a .wasm or .wat plug-in)")?.to_string();
+    let raw = ps(p, "path").ok_or("pass `path` (a .wasm or .wat plug-in, or an OpenFX .ofx.bundle)")?.trim_end_matches(['/', '\\']).to_string();
+    let path = std::path::Path::new(&raw)
+        .ancestors()
+        .find(|a| a.file_name().is_some_and(|n| n.to_string_lossy().to_ascii_lowercase().ends_with(".ofx.bundle")))
+        .map(|a| a.to_string_lossy().to_string())
+        .unwrap_or(raw);
     let used = if crate::engine::pb(p, "install").unwrap_or(false) {
         let dir = effects::plugin::folder();
         std::fs::create_dir_all(&dir).map_err(|err| format!("{}: {err}", dir.display()))?;
         let target = dir.join(std::path::Path::new(&path).file_name().ok_or("bad path")?);
-        std::fs::copy(&path, &target).map_err(|err| format!("{}: {err}", target.display()))?;
+        copy_tree(std::path::Path::new(&path), &target).map_err(|err| format!("{}: {err}", target.display()))?;
         target.to_string_lossy().to_string()
     } else {
         path
     };
+    if is_ofx(&used) {
+        effects::ofx::forgive(&used);
+        let pls = effects::ofx::load(&used)?;
+        e.frontend("effects.refresh", json!({}));
+        return Ok(json!({"path": used, "plugins": pls.iter().map(|pl| json!({"id": pl.id, "name": pl.name, "category": pl.category, "context": pl.context})).collect::<Vec<_>>()}));
+    }
     let pl = effects::plugin::load(&used)?;
     e.frontend("effects.refresh", json!({}));
     Ok(json!({"id": pl.id, "name": pl.name, "category": pl.category, "path": pl.path}))
 }
 
 pub fn plugins_reload(e: &mut Engine, _: &Json) -> Res {
-    let (n, errors) = effects::plugin::load_folder(&effects::plugin::folder());
+    let (n, mut errors) = effects::plugin::load_folder(&effects::plugin::folder());
     for p in effects::plugin::loaded() {
         if !p.path.starts_with(&*effects::plugin::folder().to_string_lossy()) {
             let _ = effects::plugin::load(&p.path);
         }
     }
+    let (mut m, errs) = effects::ofx::load_folder(&effects::plugin::folder());
+    errors.extend(errs);
+    for dir in effects::ofx::system_folders() {
+        let (k, errs) = effects::ofx::load_folder(&dir);
+        m += k;
+        errors.extend(errs);
+    }
     e.frontend("effects.refresh", json!({}));
-    Ok(json!({"loaded": n, "errors": errors}))
+    Ok(json!({"loaded": n, "ofx": m, "errors": errors}))
 }

@@ -178,6 +178,7 @@ pub fn system_info(e: &mut Engine, _: &Json) -> Res {
         "commands": crate::engine::registry::all().len(),
         "effects": crate::effects::every().len(),
         "plugins": crate::effects::plugin::specs().len(),
+        "ofxPlugins": crate::effects::ofx::specs().len(),
         "mobileSam": crate::render::roto::installed(),
         "faceLandmarker": crate::render::facemesh::installed(),
         "logging": logging(e),

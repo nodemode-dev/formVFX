@@ -25,6 +25,7 @@ pub mod stylize;
 pub mod stylize2;
 pub mod noise2;
 pub mod ocio;
+pub mod ofx;
 pub mod paint;
 pub mod plugin;
 pub mod puppet;
@@ -291,6 +292,7 @@ fn flat(s: &str) -> String {
 pub fn every() -> Vec<&'static EffectSpec> {
     let mut v: Vec<&'static EffectSpec> = all().iter().collect();
     v.extend(plugin::specs());
+    v.extend(ofx::specs());
     v
 }
 

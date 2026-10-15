@@ -199,6 +199,11 @@ impl Engine {
         static PLUGINS: std::sync::Once = std::sync::Once::new();
         PLUGINS.call_once(|| {
             crate::effects::plugin::load_folder(&crate::effects::plugin::folder());
+            crate::effects::ofx::recover();
+            crate::effects::ofx::load_folder(&crate::effects::plugin::folder());
+            for dir in crate::effects::ofx::system_folders() {
+                crate::effects::ofx::load_folder(&dir);
+            }
         });
         Engine {
             project: Arc::new(Project::default()),
@@ -570,7 +575,7 @@ impl Engine {
             "version": env!("CARGO_PKG_VERSION"),
             "engine": "fvx",
             "commands": registry::all().len(),
-            "effects": {"total": crate::effects::every().len(), "plugins": crate::effects::plugin::specs().len()},
+            "effects": {"total": crate::effects::every().len(), "plugins": crate::effects::plugin::specs().len(), "ofx": crate::effects::ofx::specs().len()},
             "export": export::FORMATS.iter().map(|f| f.0).collect::<Vec<_>>(),
             "projectExtension": crate::model::EXTENSION,
             "presetExtension": "fvxpreset",
