@@ -13,6 +13,7 @@ import { ProjectPanel } from '../panels/project';
 import { AlignPanel, CharacterPanel, CommandPanel, HistoryPanel, InfoPanel, ParagraphPanel, PreviewPanel, RenderQueuePanel } from '../panels/small';
 import { TerminalPanel } from '../panels/terminal';
 import { ChatPanel } from '../panels/chat';
+import { LumetriScopesPanel, ProgressPanel } from '../panels/scopes';
 import { TimelinePanel } from '../panels/timeline';
 import { TrackerPanel } from '../panels/tracker';
 import { editTarget, trackerOptions } from '../panels/tracker-controls';
@@ -213,7 +214,7 @@ class App {
     this.dock.register('wiggler', 'Wiggler', () => new WigglerPanel(ctx));
     this.dock.register('smoother', 'Smoother', () => new SmootherPanel(ctx));
     this.dock.register('motionSketch', 'Motion Sketch', () => new MotionSketchPanel(ctx));
-    for (const [id, title, prefixes, blurb] of COMMAND_PANELS) this.dock.register(id, title, () => (id === 'tracker' ? new TrackerPanel(ctx, id, title, prefixes, blurb) : new CommandPanel(ctx, id, title, prefixes, blurb)));
+    for (const [id, title, prefixes, blurb] of COMMAND_PANELS) this.dock.register(id, title, () => (id === 'tracker' ? new TrackerPanel(ctx, id, title, prefixes, blurb) : id === 'lumetriScopes' ? new LumetriScopesPanel(ctx) : id === 'progress' ? new ProgressPanel(ctx) : new CommandPanel(ctx, id, title, prefixes, blurb)));
   }
 
   private buildTitleTools(shell: HTMLElement): void {
