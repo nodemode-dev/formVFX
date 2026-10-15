@@ -1,6 +1,6 @@
 # formvfx
 
-Motion graphics and visual effects for the desktop and the browser, in the form family beside formvis and formcut. Compositions, layers, keyframes and the Graph Editor, 306 effects and WebAssembly effect plug-ins, Essential Graphics templates (After Effects `.mogrt` files and `.aep` projects open), text animators with 169 presets, shape layers and SVG paste, masks, Roto Brush, paint, puppet pins, 3D cameras and lights, tracking and stabilizing, expressions, scripts and ScriptUI panels, colour management and a Render Queue, with an agent harness so Claude Code, Codex and Cursor can drive every tool from formvfx's embedded terminal.
+Motion graphics and visual effects for the desktop and the browser, in the form family beside formvis and formcut. Compositions, layers, keyframes and the Graph Editor, 306 effects, WebAssembly effect plug-ins and OpenFX plug-ins (the effects other OpenFX hosts load), Essential Graphics templates (After Effects `.mogrt` files and `.aep` projects open), text animators with 169 presets, shape layers and SVG paste, masks, Roto Brush, paint, puppet pins, 3D cameras and lights, tracking and stabilizing, expressions, scripts and ScriptUI panels, colour management and a Render Queue, with an agent harness so Claude Code, Codex and Cursor can drive every tool from formvfx's embedded terminal.
 
 Version 0.39.0 · Apache-2.0 · compositing engine: formvfx's own, in Rust (`native/fvx-core`)
 
@@ -69,13 +69,13 @@ Tagging `vX.Y.Z` builds macOS, Linux and Windows bundles in GitHub Actions and o
 
 | Area | Files | Lines |
 | --- | ---: | ---: |
-| Compositing engine (Rust, fvx-core) | 167 | 81,972 |
+| Compositing engine (Rust, fvx-core) | 168 | 83,636 |
 | Engine service (Python) | 37 | 3,113 |
 | Interface (TypeScript) | 59 | 13,361 |
 | Interface styles (CSS) | 8 | 1,976 |
 | Desktop shell (Rust, Tauri) | 1 | 141 |
 | Setup and CLI | 35 | 1,078 |
 | Agent skill (Markdown, hand-written) | 16 | 786 |
-| Total | 323 | 102,427 |
+| Total | 324 | 104,091 |
 
 Non-blank lines in tracked files; generated skill references excluded. `./formvfx counts` prints this table.
