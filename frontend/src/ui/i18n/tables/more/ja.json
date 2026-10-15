@@ -1,4 +1,8 @@
 {
+"Drag to a layer to use it in this effect": "レイヤーにドラッグすると、そのレイヤーをこのエフェクトで使用します",
+"Effect Enabled": "エフェクトを有効化",
+"Move Earlier": "前へ移動",
+"Move Later": "後ろへ移動",
 "Dynamic Link": "Dynamic Link",
 "Export Link for Active Comp": "アクティブなコンポジションのリンクを書き出し",
 "No link requests yet.": "リンクリクエストはまだありません。",
