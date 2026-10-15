@@ -6,7 +6,7 @@ use std::sync::{Arc, OnceLock};
 
 use parking_lot::{Condvar, Mutex, RwLock};
 
-use super::{EffectSpec, FxCtx, Init, ParamSpec, hidden, no_pad};
+use super::{EffectSpec, FxCtx, Init, ParamSpec, hidden};
 use crate::model::Value;
 use crate::model::prop::Ui;
 use crate::render::image::Img;
@@ -153,7 +153,18 @@ pub struct Plugin {
     desc: Box<Effect>,
     map: Vec<ParamMap>,
     unsafe_render: Option<Mutex<()>>,
+    pool: Mutex<Vec<Pooled>>,
+    rendered: std::sync::atomic::AtomicBool,
     pub spec: &'static EffectSpec,
+}
+
+impl Drop for Plugin {
+    fn drop(&mut self) {
+        let all: Vec<Pooled> = self.pool.lock().drain(..).collect();
+        for p in all {
+            destroy(self, p);
+        }
+    }
 }
 
 unsafe impl Send for Plugin {}
@@ -527,9 +538,26 @@ struct RectD {
     y2: f64,
 }
 
-unsafe extern "C" fn clip_image(c: *mut Clip, _t: f64, _region: *const RectD, out: *mut *mut Props) -> Status {
+fn other_frame(t: f64, w: usize, h: usize) -> Option<usize> {
+    let live = RENDER.with(|r| r.get()).and_then(|p| unsafe { (p as *const Live).as_ref() })?;
+    if (t - live.frame).abs() < 1e-6 {
+        return None;
+    }
+    let c = unsafe { &*live.fx };
+    let img = c.frame(t / c.fps.max(1e-6) - c.t).filter(|i| i.w == w && i.h == h)?;
+    let b = Bufs::new(live.depth, &img.px);
+    let p = b.src();
+    live.arena.lock().push(b);
+    Some(p)
+}
+
+unsafe extern "C" fn clip_image(c: *mut Clip, t: f64, _region: *const RectD, out: *mut *mut Props) -> Status {
     let c = guard!(unsafe { c.as_ref() });
     let Some((ptr, w, h, row)) = *c.buf.lock() else { return FAILED };
+    if ptr == 0 {
+        return FAILED;
+    }
+    let ptr = if c.name == "Source" { other_frame(t, w, h).unwrap_or(ptr) } else { ptr };
     let img = Box::new(c.props.clone());
     img.s("OfxPropType", "OfxTypeImage");
     img.p("OfxImagePropData", ptr + (h.saturating_sub(1)) * row);
@@ -1177,7 +1205,7 @@ fn host_props() -> *mut Props {
         p.i("OfxImageEffectPropSupportsOverlays", &[0]);
         p.i("OfxImageEffectPropSupportsMultiResolution", &[1]);
         p.i("OfxImageEffectPropSupportsTiles", &[0]);
-        p.i("OfxImageEffectPropTemporalClipAccess", &[0]);
+        p.i("OfxImageEffectPropTemporalClipAccess", &[1]);
         p.ss("OfxImageEffectPropSupportedComponents", &["OfxImageComponentRGBA"]);
         p.ss("OfxImageEffectPropSupportedContexts", &["OfxImageEffectContextFilter", "OfxImageEffectContextGeneral", "OfxImageEffectContextGenerator"]);
         p.ss("OfxImageEffectPropSupportedPixelDepths", &["OfxBitDepthFloat", "OfxBitDepthShort", "OfxBitDepthByte"]);
@@ -1276,13 +1304,15 @@ fn crashed() -> Vec<String> {
 }
 
 pub fn recover() {
-    if let Ok(p) = std::fs::read_to_string(marker()) {
-        let mut list = crashed();
-        if !p.trim().is_empty() && !list.iter().any(|x| x == p.trim()) {
-            list.push(p.trim().to_string());
+    for m in [marker(), render_marker()] {
+        if let Ok(p) = std::fs::read_to_string(&m) {
+            let mut list = crashed();
+            if !p.trim().is_empty() && !list.iter().any(|x| x == p.trim()) {
+                list.push(p.trim().to_string());
+            }
+            let _ = std::fs::write(super::plugin::folder().join(".ofx-crashed"), list.join("\n"));
+            let _ = std::fs::remove_file(&m);
         }
-        let _ = std::fs::write(super::plugin::folder().join(".ofx-crashed"), list.join("\n"));
-        let _ = std::fs::remove_file(marker());
     }
 }
 
@@ -1313,7 +1343,7 @@ pub fn load_folder(dir: &Path) -> (usize, Vec<String>) {
     for b in found {
         let path = b.to_string_lossy().to_string();
         if skip.contains(&path) {
-            let msg = format!("{path}: skipped, it stopped formvfx while loading before (Load Plug-in loads it again on purpose)");
+            let msg = format!("{path}: skipped, it stopped formvfx while loading or on its first render last time (Load Plug-in loads it again on purpose)");
             failures().write().retain(|x| x.0 != path);
             failures().write().push((path, msg.clone()));
             errs.push(msg);
@@ -1527,6 +1557,10 @@ unsafe fn describe(path: &str, raw: &RawPlugin, ident: &str) -> Result<Arc<Plugi
     if super::all().iter().any(|e| e.name == name && e.id != id) {
         name = format!("{name} (OFX)");
     }
+    let taken = |n: &str| registry().read().iter().any(|p| p.name == n && p.id != id) || super::plugin::loaded().iter().any(|p| p.name == n);
+    if taken(&name) {
+        name = format!("{name} ({ident})");
+    }
     let mut params = vec![hidden("plugin", "Plug-in", &id)];
     let mut map = vec![];
     for p in ctx.params.params.lock().iter() {
@@ -1538,7 +1572,8 @@ unsafe fn describe(path: &str, raw: &RawPlugin, ident: &str) -> Result<Arc<Plugi
         }
     }
     let safety = ctx.props.get_s("OfxImageEffectPluginRenderThreadSafety").into_iter().next().unwrap_or_default();
-    let spec: &'static EffectSpec = Box::leak(Box::new(EffectSpec { id: leak(&id), name: leak(&name), category: leak(&category), params, render, pad: no_pad }));
+    let spec: &'static EffectSpec = Box::leak(Box::new(EffectSpec { id: leak(&id), name: leak(&name), category: leak(&category), params, render, pad }));
+    let single = ctx.props.get_i("OfxImageEffectPluginPropSingleInstance").first().copied().unwrap_or(0) != 0;
     Ok(Arc::new(Plugin {
         id,
         name,
@@ -1551,7 +1586,9 @@ unsafe fn describe(path: &str, raw: &RawPlugin, ident: &str) -> Result<Arc<Plugi
         main,
         desc: ctx,
         map,
-        unsafe_render: (safety == "OfxImageEffectRenderUnsafe").then(|| Mutex::new(())),
+        unsafe_render: (safety == "OfxImageEffectRenderUnsafe" || single).then(|| Mutex::new(())),
+        pool: Mutex::new(vec![]),
+        rendered: std::sync::atomic::AtomicBool::new(false),
         spec,
     }))
 }
@@ -1562,6 +1599,9 @@ struct Live {
     maps: *const Vec<ParamMap>,
     w: f64,
     h: f64,
+    depth: &'static str,
+    frame: f64,
+    arena: Mutex<Vec<Bufs>>,
 }
 
 impl Live {
@@ -1595,26 +1635,17 @@ fn to_ofx(m: &ParamMap, v: &Value, live: &Live) -> Vec<f64> {
 
 const DEPTHS: [(&str, usize); 3] = [("OfxBitDepthFloat", 4), ("OfxBitDepthShort", 2), ("OfxBitDepthByte", 1)];
 
-fn instance(plug: &Plugin, c: &FxCtx, w: usize, h: usize, src: usize, dst: usize) -> Box<Effect> {
-    let row = w * 4 * DEPTHS.iter().find(|d| d.0 == plug.depth).map(|d| d.1).unwrap_or(4);
+fn instance(plug: &Plugin) -> Box<Effect> {
     let inst = new_effect("OfxTypeImageEffectInstance");
     *inst.props.map.lock() = plug.desc.props.map.lock().clone();
-    let r = c.r.max(1e-9);
-    let (pw, ph) = (w as f64 / r, h as f64 / r);
     let p = &inst.props;
     p.s("OfxPropType", "OfxTypeImageEffectInstance");
     p.s("OfxImageEffectPropContext", &plug.context);
     p.p("OfxPropInstanceData", 0);
-    p.d("OfxImageEffectPropProjectSize", &[pw, ph]);
-    p.d("OfxImageEffectPropProjectOffset", &[0.0, 0.0]);
-    p.d("OfxImageEffectPropProjectExtent", &[pw, ph]);
     p.d("OfxImageEffectPropPixelAspectRatio", &[1.0]);
     p.d("OfxImageEffectInstancePropEffectDuration", &[1.0]);
     p.i("OfxImageEffectInstancePropSequentialRender", &[0]);
-    p.d("OfxImageEffectPropFrameRate", &[c.fps]);
     p.i("OfxPropIsInteractive", &[0]);
-    p.d("OfxImageEffectPropRenderScale", &[r, r]);
-    let frame = c.t * c.fps;
     for dc in plug.desc.clips.lock().iter() {
         let cl = Box::new(Clip { name: dc.name.clone(), props: dc.props.clone(), buf: Mutex::new(None) });
         let connected = dc.name == "Output" || dc.name == "Source";
@@ -1626,19 +1657,8 @@ fn instance(plug: &Plugin, c: &FxCtx, w: usize, h: usize, src: usize, dst: usize
         q.s("OfxImageClipPropUnmappedComponents", "OfxImageComponentRGBA");
         q.s("OfxImageEffectPropPreMultiplication", "OfxImageAlphaPremultiplied");
         q.d("OfxImagePropPixelAspectRatio", &[1.0]);
-        q.d("OfxImageEffectPropFrameRate", &[c.fps]);
-        q.d("OfxImageEffectPropUnmappedFrameRate", &[c.fps]);
-        q.d("OfxImageEffectPropFrameRange", &[frame, frame]);
-        q.d("OfxImageEffectPropUnmappedFrameRange", &[frame, frame]);
         q.s("OfxImageClipPropFieldOrder", "OfxFieldNone");
         q.i("OfxImageClipPropContinuousSamples", &[0]);
-        q.d("OfxImageEffectPropRenderScale", &[r, r]);
-        q.d("OfxImagePropRenderScale", &[r, r]);
-        *cl.buf.lock() = match dc.name.as_str() {
-            "Output" => Some((dst, w, h, row)),
-            "Source" => Some((src, w, h, row)),
-            _ => None,
-        };
         inst.clips.lock().push(cl);
     }
     *inst.params.props.map.lock() = plug.desc.params.props.map.lock().clone();
@@ -1660,43 +1680,157 @@ fn instance(plug: &Plugin, c: &FxCtx, w: usize, h: usize, src: usize, dst: usize
     inst
 }
 
-pub fn run(plug: &Plugin, c: &FxCtx, img: &mut Img) -> Result<(), String> {
-    let _serial = plug.unsafe_render.as_ref().map(|m| m.lock());
-    let (w, h) = (img.w, img.h);
-    let mut bufs = Bufs::new(plug.depth, &img.px);
-    let (src, dst) = bufs.ptrs();
-    let inst = instance(plug, c, w, h, src, dst);
-    let live = Live {
+pub struct Pooled {
+    inst: Box<Effect>,
+    last: HashMap<String, (Vec<f64>, String)>,
+}
+
+fn prepare(inst: &Effect, plug: &Plugin, c: &FxCtx, w: usize, h: usize, src: usize, dst: usize) {
+    let row = w * 4 * DEPTHS.iter().find(|d| d.0 == plug.depth).map(|d| d.1).unwrap_or(4);
+    let r = c.r.max(1e-9);
+    let (pw, ph) = (w as f64 / r, h as f64 / r);
+    let frame = c.t * c.fps;
+    let p = &inst.props;
+    p.d("OfxImageEffectPropProjectSize", &[pw, ph]);
+    p.d("OfxImageEffectPropProjectOffset", &[0.0, 0.0]);
+    p.d("OfxImageEffectPropProjectExtent", &[pw, ph]);
+    p.d("OfxImageEffectPropFrameRate", &[c.fps]);
+    p.d("OfxImageEffectPropRenderScale", &[r, r]);
+    for cl in inst.clips.lock().iter() {
+        let q = &cl.props;
+        q.d("OfxImageEffectPropFrameRate", &[c.fps]);
+        q.d("OfxImageEffectPropUnmappedFrameRate", &[c.fps]);
+        q.d("OfxImageEffectPropFrameRange", &[frame, frame]);
+        q.d("OfxImageEffectPropUnmappedFrameRange", &[frame, frame]);
+        q.d("OfxImageEffectPropRenderScale", &[r, r]);
+        q.d("OfxImagePropRenderScale", &[r, r]);
+        *cl.buf.lock() = match cl.name.as_str() {
+            "Output" => Some((dst, w, h, row)),
+            "Source" => Some((src, w, h, row)),
+            _ => None,
+        };
+    }
+}
+
+fn apply_values(pooled: &mut Pooled, plug: &Plugin, c: &FxCtx, live: &Live) -> Vec<String> {
+    let mut changed = vec![];
+    let ps = pooled.inst.params.params.lock();
+    for m in &plug.map {
+        let Some(v) = c.p.get(m.id) else { continue };
+        let Some(p) = ps.iter().find(|p| p.name == m.ofx) else { continue };
+        let now = if m.kind == "OfxParamTypeString" {
+            let s = if let Value::Str(s) = v { s.clone() } else { String::new() };
+            *p.text.lock() = cs(&s);
+            (vec![], s)
+        } else {
+            let vals = to_ofx(m, v, live);
+            let mut pv = p.val.lock();
+            for (i, x) in vals.iter().enumerate().take(pv.len()) {
+                pv[i] = *x;
+            }
+            (pv.clone(), String::new())
+        };
+        if pooled.last.get(&m.ofx).is_some_and(|old| *old != now) {
+            changed.push(m.ofx.clone());
+        }
+        pooled.last.insert(m.ofx.clone(), now);
+    }
+    changed
+}
+
+fn handle_of(inst: &Effect) -> *const c_void {
+    inst as *const Effect as *const c_void
+}
+
+fn destroy(plug: &Plugin, pooled: Pooled) {
+    call(plug.main, "OfxActionDestroyInstance", handle_of(&pooled.inst), None, None);
+}
+
+fn with_instance<R>(plug: &Plugin, c: &FxCtx, w: usize, h: usize, bufs: (usize, usize), live: &Live, f: impl FnOnce(*const c_void) -> Result<R, String>) -> Result<R, String> {
+    let popped = plug.pool.lock().pop();
+    let fresh = popped.is_none();
+    let mut pooled = popped.unwrap_or_else(|| Pooled { inst: instance(plug), last: HashMap::new() });
+    prepare(&pooled.inst, plug, c, w, h, bufs.0, bufs.1);
+    let changed = apply_values(&mut pooled, plug, c, live);
+    let handle = handle_of(&pooled.inst);
+    let r = c.r.max(1e-9);
+    let frame = c.t * c.fps;
+    if fresh {
+        let s = call(plug.main, "OfxActionCreateInstance", handle, None, None);
+        if !ok(s) {
+            return Err(format!("create instance failed ({s})"));
+        }
+    } else if !changed.is_empty() {
+        let args = Props::default();
+        args.s("OfxPropChangeReason", "OfxChangeUserEdited");
+        call(plug.main, "OfxActionBeginInstanceChanged", handle, Some(&args), None);
+        for name in &changed {
+            let a = Props::default();
+            a.s("OfxPropType", "OfxTypeParameter");
+            a.s("OfxPropName", name);
+            a.s("OfxPropChangeReason", "OfxChangeUserEdited");
+            a.d("OfxPropTime", &[frame]);
+            a.d("OfxImageEffectPropRenderScale", &[r, r]);
+            call(plug.main, "OfxActionInstanceChanged", handle, Some(&a), None);
+        }
+        call(plug.main, "OfxActionEndInstanceChanged", handle, Some(&args), None);
+    }
+    let out = f(handle);
+    let mut pool = plug.pool.lock();
+    if out.is_ok() && pool.len() < cpus() as usize {
+        pool.push(pooled);
+    } else {
+        drop(pool);
+        destroy(plug, pooled);
+    }
+    out
+}
+
+fn live_for(plug: &Plugin, c: &FxCtx, w: usize, h: usize) -> Live {
+    Live {
         fx: (c as *const FxCtx).cast(),
         ids: plug.map.iter().map(|m| (m.ofx.clone(), m.id)).collect(),
         maps: &plug.map as *const Vec<ParamMap>,
         w: w as f64,
         h: h as f64,
-    };
-    for m in &plug.map {
-        let Some(v) = c.p.get(m.id) else { continue };
-        let ps = inst.params.params.lock();
-        let Some(p) = ps.iter().find(|p| p.name == m.ofx) else { continue };
-        if m.kind == "OfxParamTypeString" {
-            if let Value::Str(s) = v {
-                *p.text.lock() = cs(s);
-            }
-            continue;
-        }
-        let vals = to_ofx(m, v, &live);
-        let mut pv = p.val.lock();
-        for (i, x) in vals.iter().enumerate().take(pv.len()) {
-            pv[i] = *x;
-        }
+        depth: plug.depth,
+        frame: c.t * c.fps,
+        arena: Mutex::new(vec![]),
+    }
+}
+
+fn render_marker() -> PathBuf {
+    super::plugin::folder().join(".ofx-rendering")
+}
+
+pub fn run(plug: &Plugin, c: &FxCtx, img: &mut Img) -> Result<(), String> {
+    let _serial = plug.unsafe_render.as_ref().map(|m| m.lock());
+    let (w, h) = (img.w, img.h);
+    let mut bufs = Bufs::new(plug.depth, &img.px);
+    let ptrs = bufs.ptrs();
+    let live = live_for(plug, c, w, h);
+    let first = !plug.rendered.load(std::sync::atomic::Ordering::Relaxed);
+    if first {
+        let _ = std::fs::write(render_marker(), &plug.path);
     }
     let prev = RENDER.with(|r| r.replace(Some(&live as *const Live as usize)));
-    let handle = &*inst as *const Effect as *const c_void;
     let r = c.r.max(1e-9);
     let frame = c.t * c.fps;
-    let result = (|| {
-        let s = call(plug.main, "OfxActionCreateInstance", handle, None, None);
-        if !ok(s) {
-            return Err(format!("create instance failed ({s})"));
+    let result = with_instance(plug, c, w, h, ptrs, &live, |handle| {
+        let ia = Props::default();
+        ia.d("OfxPropTime", &[frame]);
+        ia.s("OfxImageEffectPropFieldToRender", "OfxFieldNone");
+        ia.i("OfxImageEffectPropRenderWindow", &[0, 0, w as c_int, h as c_int]);
+        ia.d("OfxImageEffectPropRenderScale", &[r, r]);
+        let io = Props::default();
+        io.s("OfxPropName", "");
+        io.d("OfxPropTime", &[frame]);
+        if call(plug.main, "OfxImageEffectActionIsIdentity", handle, Some(&ia), Some(&io)) == OK {
+            let clip = io.get_s("OfxPropName").into_iter().next().unwrap_or_default();
+            let t = io.get_d("OfxPropTime").first().copied().unwrap_or(frame);
+            if clip == "Source" {
+                return Ok(Some(t));
+            }
         }
         let seq = Props::default();
         seq.d("OfxImageEffectPropFrameRange", &[frame, frame]);
@@ -1716,16 +1850,49 @@ pub fn run(plug: &Plugin, c: &FxCtx, img: &mut Img) -> Result<(), String> {
         ra.i("OfxImageEffectPropRenderQualityDraft", &[0]);
         let s = call(plug.main, "OfxImageEffectActionRender", handle, Some(&ra), None);
         call(plug.main, "OfxImageEffectActionEndSequenceRender", handle, Some(&seq), None);
-        call(plug.main, "OfxActionDestroyInstance", handle, None, None);
         if s != OK {
             return Err(format!("render failed ({s})"));
         }
-        Ok(())
-    })();
+        Ok(None)
+    });
     RENDER.with(|x| x.set(prev));
-    result?;
-    bufs.read(&mut img.px);
+    if first {
+        let _ = std::fs::remove_file(render_marker());
+        plug.rendered.store(true, std::sync::atomic::Ordering::Relaxed);
+    }
+    match result? {
+        Some(t) if (t - frame).abs() < 1e-6 => {}
+        Some(t) => {
+            if let Some(o) = c.frame(t / c.fps.max(1e-6) - c.t).filter(|o| o.w == w && o.h == h) {
+                img.px.copy_from_slice(&o.px);
+            }
+        }
+        None => bufs.read(&mut img.px),
+    }
     Ok(())
+}
+
+fn pad(c: &FxCtx) -> f64 {
+    let Some(plug) = find(&c.s("plugin")) else { return 0.0 };
+    let (w, h) = (c.size[0].max(1.0).round() as usize, c.size[1].max(1.0).round() as usize);
+    let live = live_for(&plug, c, w, h);
+    let prev = RENDER.with(|r| r.replace(Some(&live as *const Live as usize)));
+    let frame = c.t * c.fps;
+    let rod = with_instance(&plug, c, w, h, (0, 0), &live, |handle| {
+        let ia = Props::default();
+        ia.d("OfxPropTime", &[frame]);
+        ia.d("OfxImageEffectPropRenderScale", &[1.0, 1.0]);
+        let io = Props::default();
+        io.d("OfxImageEffectPropRegionOfDefinition", &[0.0, 0.0, w as f64, h as f64]);
+        let s = call(plug.main, "OfxImageEffectActionGetRegionOfDefinition", handle, Some(&ia), Some(&io));
+        Ok(if s == OK { io.get_d("OfxImageEffectPropRegionOfDefinition") } else { vec![] })
+    });
+    RENDER.with(|x| x.set(prev));
+    let Ok(v) = rod else { return 0.0 };
+    if v.len() < 4 || v.iter().any(|x| !x.is_finite()) {
+        return 0.0;
+    }
+    [-v[0], -v[1], v[2] - w as f64, v[3] - h as f64].into_iter().fold(0.0f64, f64::max).min(4096.0)
 }
 
 enum Bufs {
@@ -1740,6 +1907,14 @@ impl Bufs {
             "OfxBitDepthShort" => Bufs::S(px.iter().map(|v| (v.clamp(0.0, 1.0) * 65535.0).round() as u16).collect(), vec![0; px.len()]),
             "OfxBitDepthByte" => Bufs::B(px.iter().map(|v| (v.clamp(0.0, 1.0) * 255.0).round() as u8).collect(), vec![0; px.len()]),
             _ => Bufs::F(px.to_vec(), vec![0.0; px.len()]),
+        }
+    }
+
+    fn src(&self) -> usize {
+        match self {
+            Bufs::F(a, _) => a.as_ptr() as usize,
+            Bufs::S(a, _) => a.as_ptr() as usize,
+            Bufs::B(a, _) => a.as_ptr() as usize,
         }
     }
 
