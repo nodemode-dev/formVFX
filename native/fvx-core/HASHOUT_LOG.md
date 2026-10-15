@@ -262,6 +262,10 @@ fvx-core is formvfx's compositing engine, written for formvfx in Rust and loaded
 
 - `engine/state.rs` `flowchart`: with `layers`, each layer's parent and track matte are edges too, `{"from": "l<parent>", "to": "l<child>", "kind": "parent"}` and `{"from": "l<matte>", "to": "l<layer>", "kind": "matte", "label": "Alpha Matte"}`. Flow edges (source into layer, layer into comp) keep no `kind`, so earlier readers of the payload (the MCP flowchart tool) see what they saw before plus the new edges.
 
+## Project identity (0.36.0)
+
+- `model/project.rs` `Project.uid` (serde default, skipped when empty) and `new_project_uid()` (hex of the clock in nanoseconds, the process id and a counter; no randomness crate): every new project gets one, and `file::open` gives one to a project read without it, so the next save writes it. `project.summary` reports it. Dynamic Link uses it to find a moved or renamed project. Save As and Save a Copy keep the id, so copies of one project share it; the link resolver prefers the same file name, then the newest file.
+
 ## Not yet
 
 Masks, time remapping and shape path vertices from `.aep` projects (each named in a warning), Premiere Pro's `.prgraphic`, Lottie effects and text animators, Photoshop layer styles and adjustment layers on import, CMYK and Lab Photoshop documents, Illustrator layers as separate composition layers, lens distortion in the camera solve, Liquify brushing in the viewer (the commands exist), lighting on per-character 3D text, blend modes inside an Advanced 3D run, the ACES 2.0 output transforms, white-point simulation output transforms and the camera builtins for Canon and ADX, and GPU kernels for more than the eleven effects listed in `gpu::CAPABLE`.

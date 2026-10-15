@@ -63,6 +63,18 @@ Living context for the engine service. Code carries almost no comments; the reas
 - `app/agent/chat.py` and `routers/chat.py` (`/api/chat/state|claude|send|cancel|reset`): one headless `claude -p --output-format stream-json --verbose --include-partial-messages` turn at a time on a daemon thread, `--resume` with the session from `system/init`; publishes `{"type": "chat", "kind": user|start|init|delta|tool|toolDone|usage|done|reset}` to windows over the bus. Subagent events (`parent_tool_use_id`) and the ToolSearch chip are skipped; 200 messages kept in memory.
 - `routers/mcp.py`: `tools/list` and `prompts/list` carry `LIST_CACHE` (`ttlMs`, `cacheScope`) under protocol 2026-07-28. Claude Code 2.1.300 rejects a 2026-07-28 list result without them (`Invalid result for tools/list: ttlMs expected number`) and then shows no formvfx tools at all: this was why Claude Code did not connect, over HTTP and over the stdio relay alike.
 
+## Dynamic Link robustness (0.36.0)
+
+- `engine/link.py` `resolve(project, uid, hint)`: the open project wins (`live`, also when only its project id matches); then the path itself (`direct`, if its id agrees or either has none); then a search of the `.fvxlink`'s folder (`hint`, the `link` query parameter), the project's old folder, the open project's folder and the folders of `recent.json` (the engine's recent projects in the data folder), first by project id (same file name preferred, then newest), then by file name (`relinked`). Nothing found raises "no project at ... moved or renamed and was not found in <folders>", which the router turns into a 404. `_peek_uid` reads a `.fvxproj`'s `uid` and caches it by mtime.
+- `_comp_params`: a comp id that no longer exists in that project falls back to the comp's name (`compName`), so a renumbered comp still resolves.
+- Descriptors (`export`) now carry `formvfx` (the writer's version), `projectId`, `compName` placeholders in the frame and audio URLs, and the `check` and `render` endpoints. Older descriptors (no `projectId`) still work by path and file name.
+- `check(descriptor, path, write)`: refuses a link whose `formvfx.link/N` is newer than this build reads, with the writer's version in the message; warns when the writer's version differs or the comp's width, height or frame rate changed; with `write` and a path, rewrites the `.fvxlink` to the resolved project and comp.
+- `render(descriptor, output, fmt)` (Render and Replace): opens the resolved saved project in a side engine (never the window's project, so its Render Queue and undo stay untouched), adds the comp to that engine's queue and renders with `wait`; output defaults to `<project> - <comp> (rendered).<ext>` beside the project. A live project with unsaved changes gets a warning that the render uses the saved file.
+- `_log` keeps the last 60 link events (kind, project, comp, ok, relinked or error, message, resolved path); `status()` returns them with the side engines. Routes: `GET /api/link/status`, `POST /api/link/check`, `POST /api/link/render` (body `link` or `path`); `info`, `frame.png` and `audio` accept `projectId`, `compName` and `link`.
+- `agent/tools.py` `dynamic_link` gains the `check`, `render` and `status` actions (path is the `.fvxlink`).
+- Export does not save the project. A project opened before 0.36.0 has its id in memory only until its next save, so a link exported before that relinks by file name rather than by id.
+- Known gap: when the window's own project file is moved while it is open, links keep resolving to the open project (live), but Render and Replace needs the saved file and fails until the project is saved again.
+
 ## Known gaps
 
 - None recorded at 0.3.0; the desktop sidecar freeze and the Tauri shell shipped in 0.2.0.
