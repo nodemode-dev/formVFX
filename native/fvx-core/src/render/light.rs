@@ -5,6 +5,7 @@ use rayon::prelude::*;
 
 use super::image::Img;
 use super::mesh::{Proj, Tri, depth_map};
+use super::mirror::Mirror;
 use crate::eval::{Camera, Eval};
 use crate::geom::Mat4;
 use crate::model::Layer;
@@ -59,7 +60,7 @@ pub fn norm(a: [f64; 3]) -> [f64; 3] {
     if l < 1e-12 { [0.0, 0.0, -1.0] } else { scale(a, 1.0 / l) }
 }
 
-fn cross(a: [f64; 3], b: [f64; 3]) -> [f64; 3] {
+pub fn cross(a: [f64; 3], b: [f64; 3]) -> [f64; 3] {
     [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
 }
 
@@ -224,7 +225,10 @@ pub struct Scene {
     pub env: Option<Arc<EnvMap>>,
     pub eye: [f64; 3],
     pub ortho_fwd: Option<[f64; 3]>,
+    pub mirror: Option<Arc<Mirror>>,
 }
+
+const CONE: [[f64; 2]; 7] = [[0.0, 0.0], [1.0, 0.0], [0.5, 0.866], [-0.5, 0.866], [-1.0, 0.0], [-0.5, -0.866], [0.5, -0.866]];
 
 #[derive(Clone, Copy, Debug)]
 pub struct Surface {
@@ -284,6 +288,62 @@ fn smooth(e0: f64, e1: f64, x: f64) -> f64 {
 }
 
 impl Scene {
+    pub fn reflection(&self, p: [f64; 3], n: [f64; 3], v: [f64; 3], self_id: u64, sharp: f32, with_env: bool) -> Option<([f32; 3], f32)> {
+        let env = if with_env { self.env.as_ref() } else { None };
+        let mirror = self.mirror.as_ref().filter(|m| !m.is_empty());
+        if env.is_none() && mirror.is_none() {
+            return None;
+        }
+        let r = norm(sub(scale(n, 2.0 * dot(n, v)), v));
+        let blur = 1.0 - sharp.clamp(0.0, 1.0);
+        let rays: &[[f64; 2]] = if blur < 0.02 || mirror.is_none() { &CONE[..1] } else { &CONE };
+        let up = if r[1].abs() > 0.9 { [1.0, 0.0, 0.0] } else { [0.0, 1.0, 0.0] };
+        let ax = norm(cross(r, up));
+        let ay = cross(r, ax);
+        let spread = blur as f64 * 0.6;
+        let (mut acc, mut w) = ([0.0f32; 3], 0.0f32);
+        for o in rays {
+            let d = norm(add(r, add(scale(ax, o[0] * spread), scale(ay, o[1] * spread))));
+            if dot(d, n) <= 0.0 {
+                continue;
+            }
+            let back = env.map(|e| e.sample(d, blur));
+            let hit = mirror.and_then(|m| m.trace(p, d, self_id).map(|h| (h, m)));
+            let (c, a) = match hit {
+                Some((h, m)) => {
+                    let base = [h.color[0], h.color[1], h.color[2]];
+                    let lit = match h.mesh.and_then(|(mi, mat)| m.meshes.get(mi).and_then(|x| x.1.get(mat as usize)).map(|mt| (m.meshes[mi].0, mt))) {
+                        Some((id, mt)) => {
+                            let s = self.shade_pbr(h.p, h.n, base, mt.metallic, mt.roughness, id, false);
+                            [s[0] + mt.emissive[0], s[1] + mt.emissive[1], s[2] + mt.emissive[2]]
+                        }
+                        None => base,
+                    };
+                    (lit, h.color[3].clamp(0.0, 1.0))
+                }
+                None => ([0.0; 3], 0.0),
+            };
+            match back {
+                Some(b) => {
+                    for k in 0..3 {
+                        acc[k] += c[k] * a + b[k] * (1.0 - a);
+                    }
+                    w += 1.0;
+                }
+                None => {
+                    for k in 0..3 {
+                        acc[k] += c[k] * a;
+                    }
+                    w += a;
+                }
+            }
+        }
+        if w <= 1e-4 {
+            return None;
+        }
+        Some((acc.map(|x| x / w), w / rays.len() as f32))
+    }
+
     pub fn view_dir(&self, p: [f64; 3]) -> [f64; 3] {
         match self.ortho_fwd {
             Some(f) => scale(f, -1.0),

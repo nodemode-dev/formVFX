@@ -21,6 +21,7 @@ pub mod lut;
 pub mod maskfx;
 pub mod media;
 pub mod mesh;
+pub mod mirror;
 pub mod ocio;
 pub mod pdf;
 pub mod psd;

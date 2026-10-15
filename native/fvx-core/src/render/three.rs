@@ -6,6 +6,7 @@ use super::comp::{Renderer, content_bounds, fx_frame};
 use super::image::{Img, Tile};
 use super::light::{self, Caster, EnvMap, Scene, Surface};
 use super::mesh::{self, Frag, Proj};
+use super::mirror::{Mirror, Plane};
 use crate::eval::{Camera, Eval};
 use crate::geom::Mat3;
 use crate::model::{Comp, Layer};
@@ -43,6 +44,7 @@ impl Renderer<'_> {
         if lights.is_empty() && !models && env_layer.is_none() {
             return None;
         }
+        let mirror = self.mirror(ev, comp, depth);
         let env = lights.iter().find(|l| l.kind == light::ENVIRONMENT).map(|el| {
             let src = el.source.and_then(|id| comp.layer(id)).or(env_layer);
             match src.and_then(|s| self.flat_buffer(ev, s, depth + 1, 1024.0)) {
@@ -88,7 +90,34 @@ impl Renderer<'_> {
             Some((c, light::len(light::sub(hi, lo)) * 0.5))
         };
         let maps = light::shadow_maps(&lights, &caster_tris, bounds);
-        Some(Scene { lights, casters, maps, env, eye: cam.eye, ortho_fwd: cam.ortho.map(|_| cam.forward) })
+        Some(Scene { lights, casters, maps, env, eye: cam.eye, ortho_fwd: cam.ortho.map(|_| cam.forward), mirror })
+    }
+
+    fn mirror(&self, ev: &Eval, comp: &Comp, depth: u32) -> Option<Arc<Mirror>> {
+        let live = |l: &&Layer| l.is_3d() && !l.is_camera() && !l.is_light() && !l.environment && l.env_background.is_none() && l.switches.video && l.is_active_at(ev.t);
+        let shiny = comp.layers.iter().filter(live).any(|l| Surface::of(ev, l).0.reflection > 0.0);
+        if !shiny {
+            return None;
+        }
+        let (mut planes, mut meshes) = (vec![], vec![]);
+        for l in comp.layers.iter().filter(live) {
+            let g = l.props.sub("materialOptions");
+            if !g.and_then(|g| g.get("appearsInReflections")).map(|p| ev.value(l, p).boolean()).unwrap_or(true) {
+                continue;
+            }
+            if mesh::as_mesh(ev, l) {
+                if let Some(m) = mesh::layer_mesh(ev, l, self.media) {
+                    meshes.push((l.id, m.tris, m.mats));
+                }
+                continue;
+            }
+            let Some((img, rect, r)) = self.flat_buffer(ev, l, depth + 1, 1024.0) else { continue };
+            let world = ev.world_matrix(l);
+            let Some(inv) = world.inverse() else { continue };
+            planes.push(Plane { id: l.id, inv, world, img, rect: [rect[0], rect[1]], r });
+        }
+        let m = Mirror::new(planes, meshes);
+        (!m.is_empty()).then(|| Arc::new(m))
     }
 
     pub(super) fn plane_light(&self, ev: &Eval, l: &Layer, cam: &Camera, s: f64, scene: &Scene, tile: &mut Tile) {
@@ -115,7 +144,18 @@ impl Renderer<'_> {
                 let lp = inv.apply((x0 + x as i64) as f64 + 0.5, (y0 + y as i64) as f64 + 0.5);
                 let p = w.apply([lp[0], lp[1], 0.0]);
                 let base = [px[0] / a, px[1] / a, px[2] / a];
-                let (c, only) = scene.shade_classic(p, n, base, &surf, l.id);
+                let (mut c, only) = scene.shade_classic(p, n, base, &surf, l.id);
+                if surf.reflection > 0.0 && scene.mirror.is_some() {
+                    let v = scene.view_dir(p);
+                    let nn = if light::dot(n, v) < 0.0 { light::scale(n, -1.0) } else { n };
+                    let refl = surf.reflection_at(light::dot(nn, v) as f32);
+                    if let Some((e, w)) = scene.reflection(p, nn, v, l.id, surf.sharpness, false) {
+                        let k = (refl * w).min(1.0);
+                        for i in 0..3 {
+                            c[i] += (e[i] - c[i]) * k;
+                        }
+                    }
+                }
                 if surf.shadows == 2 {
                     px[0] = 0.0;
                     px[1] = 0.0;
@@ -189,7 +229,7 @@ impl Renderer<'_> {
         let scene = match scene {
             Some(sc) => sc,
             None => {
-                fallback = Scene { lights: vec![], casters: vec![], maps: vec![], env: None, eye: cam.eye, ortho_fwd: cam.ortho.map(|_| cam.forward) };
+                fallback = Scene { lights: vec![], casters: vec![], maps: vec![], env: None, eye: cam.eye, ortho_fwd: cam.ortho.map(|_| cam.forward), mirror: None };
                 &fallback
             }
         };
@@ -209,12 +249,11 @@ impl Renderer<'_> {
             let mut rgb = if accepts { scene.shade_pbr(f.p, n, [c[0], c[1], c[2]], m.metallic, m.roughness, l.id, surf.shadows > 0) } else { [c[0], c[1], c[2]] };
             let refl = surf.reflection_at(nv);
             if refl > 0.0
-                && let Some(env) = scene.env.as_ref()
+                && let Some((e, w)) = scene.reflection(f.p, n, v, l.id, surf.sharpness, true)
             {
-                let r = light::sub(light::scale(n, 2.0 * light::dot(n, v)), v);
-                let e = env.sample(r, 1.0 - surf.sharpness);
+                let k = (refl * w).min(1.0);
                 for i in 0..3 {
-                    rgb[i] += (e[i] - rgb[i]) * refl.min(1.0);
+                    rgb[i] += (e[i] - rgb[i]) * k;
                 }
             }
             let mut a = c[3];
