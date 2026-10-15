@@ -1,4 +1,8 @@
 {
+"Drag to a layer to parent this layer to it": "拖曳到某個圖層上，將其設為此圖層的父級",
+"Drag to a layer to use it as this layer's track matte": "拖曳到某個圖層上，將其用作此圖層的軌道遮罩",
+"Remove Parent": "移除父級",
+"Remove Track Matte": "移除軌道遮罩",
 "Background tasks": "背景工作",
 "Cancel All": "全部取消",
 "Histogram": "直方圖",

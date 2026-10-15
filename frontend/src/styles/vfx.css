@@ -14,6 +14,7 @@
   --fx-flow-effect: #6c446e;
   --fx-flow-layer: #444852;
   --fx-flow-back: #d08040;
+  --fx-flow-matte: #4fb3d9;
   --fx-sc-app: #6c4fb0;
   --fx-sc-panel: #2f8a5c;
   --fx-row-h: 24px;
@@ -514,10 +515,25 @@
 .fx-flow-body:active { cursor: grabbing; }
 .fx-flow-world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
 .fx-flow-edges { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }
-.fx-flow-edges path:first-child { fill: none; stroke: var(--text-muted); stroke-width: 1.2; }
-.fx-flow-edges path:last-child { fill: var(--text-muted); stroke: none; }
-.fx-flow-edges g.is-back path:first-child { stroke: var(--fx-flow-back); }
-.fx-flow-edges g.is-back path:last-child { fill: var(--fx-flow-back); }
+.fx-flow-edges g > path:nth-child(1) { fill: none; stroke: var(--text-muted); stroke-width: 1.2; }
+.fx-flow-edges g > path:nth-child(2) { fill: var(--text-muted); stroke: none; }
+.fx-flow-edges g.is-parent > path:nth-child(1) { stroke: var(--accent-color); stroke-dasharray: 5 4; }
+.fx-flow-edges g.is-parent > path:nth-child(2) { fill: var(--accent-color); }
+.fx-flow-edges g.is-matte > path:nth-child(1) { stroke: var(--fx-flow-matte); }
+.fx-flow-edges g.is-matte > path:nth-child(2) { fill: var(--fx-flow-matte); }
+.fx-flow-hit { fill: none; stroke: transparent; stroke-width: 12; pointer-events: none; }
+.fx-flow-edges g.is-parent > .fx-flow-hit, .fx-flow-edges g.is-matte > .fx-flow-hit { pointer-events: stroke; cursor: pointer; }
+.fx-flow-wire { fill: none; stroke: var(--accent-color); stroke-width: 1.6; stroke-dasharray: 4 3; pointer-events: none; }
+.fx-flow-wire.is-matte { stroke: var(--fx-flow-matte); }
+.fx-flow-text { display: grid; min-width: 0; flex: 1; }
+.fx-flow-fx { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: rgba(255, 255, 255, 0.62); font-size: var(--fs-10); }
+.fx-flow-fx:empty { display: none; }
+.has-fx .fx-flow-node { height: 50px; }
+.fx-flow-ports { display: none; flex: none; gap: 2px; }
+.fx-flow-node[data-kind="layer"] .fx-flow-ports { display: inline-flex; }
+.fx-flow-port { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 4px; color: rgba(255, 255, 255, 0.7); cursor: crosshair; }
+.fx-flow-port:hover { background: rgba(255, 255, 255, 0.14); color: #ffffff; }
+.fx-flow-node.is-target { box-shadow: 0 0 0 2px var(--accent-color), 0 0 0 5px var(--accent-soft); }
 .fx-flow-nodes { position: absolute; left: 0; top: 0; }
 .fx-flow-node { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 8px; width: 168px; height: 34px; padding: 0 10px; box-sizing: border-box; border: 1px solid rgba(0, 0, 0, 0.45); border-radius: 6px; background: var(--fx-flow-layer); color: #ffffff; font-size: var(--fs-12); cursor: pointer; user-select: none; }
 .fx-flow-node[data-kind="comp"] { background: var(--fx-flow-comp); }

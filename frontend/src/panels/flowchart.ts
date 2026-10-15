@@ -3,23 +3,70 @@ import type { UiState } from '../engine/types';
 import type { Panel } from '../ui/dock';
 import { el, patchList, q, setClass, setHidden, setHtml, setText, setTitle } from '../ui/dom';
 import { icon } from '../ui/icons';
-import type { PopupEntry } from '../ui/popup';
+import { contextMenu, type PopupEntry } from '../ui/popup';
+
+interface RawNode {
+  id: string;
+  kind: 'comp' | 'footage' | 'solid' | 'layer' | 'effect';
+  name: string;
+  item?: number | null;
+  comp?: number | null;
+  layer?: number | null;
+  type?: string;
+  effects?: string[];
+}
 
 interface FlowNode {
   id: string;
-  kind: 'comp' | 'footage' | 'solid' | 'layer' | 'effect';
+  kind: RawNode['kind'];
   label: string;
   item: number | null;
   comp: number | null;
   layer: number | null;
+  effects: string[];
   depth: number;
+}
+
+interface FlowEdge {
+  from: string;
+  to: string;
+  kind?: 'parent' | 'matte';
+  label?: string;
 }
 
 interface FlowGraph {
   root: number;
   nodes: FlowNode[];
-  edges: Array<[string, string]>;
+  edges: FlowEdge[];
 }
+
+function normalize(raw: { root: number; nodes: RawNode[]; edges: FlowEdge[] }): FlowGraph {
+  const depth = new Map<string, number>([[`i${raw.root}`, 0]]);
+  const flow = raw.edges.filter((e) => !e.kind);
+  const queue = [`i${raw.root}`];
+  while (queue.length) {
+    const at = queue.shift() as string;
+    const d = depth.get(at) ?? 0;
+    for (const e of flow) {
+      if (e.to !== at || depth.has(e.from)) continue;
+      depth.set(e.from, d + 1);
+      queue.push(e.from);
+    }
+  }
+  const nodes = raw.nodes.map((n): FlowNode => ({
+    id: n.id,
+    kind: n.kind,
+    label: n.name,
+    item: n.item ?? null,
+    comp: n.comp ?? null,
+    layer: n.layer ?? null,
+    effects: n.effects ?? [],
+    depth: depth.get(n.id) ?? 1,
+  }));
+  return { root: raw.root, nodes, edges: raw.edges };
+}
+
+type Wire = { from: FlowNode; kind: 'parent' | 'matte'; start: [number, number] };
 
 interface Placed {
   node: FlowNode;
@@ -29,6 +76,7 @@ interface Placed {
 
 const NODE_W = 168;
 const NODE_H = 34;
+const NODE_H_FX = 50;
 const ICON: Record<string, string> = { comp: 'iComp', footage: 'iFootage', solid: 'iSolid', layer: 'layers', effect: 'sFx' };
 const SVG = 'http://www.w3.org/2000/svg';
 const MOD = /Mac|iPhone|iPad/.test(navigator.platform) ? 'Cmd' : 'Ctrl';
@@ -51,6 +99,9 @@ export class FlowchartPanel implements Panel {
   private dirty = false;
   private key = '';
   private drag: { x: number; y: number; px: number; py: number } | null = null;
+  private readonly wire: SVGPathElement;
+  private wiring: Wire | null = null;
+  private hover: HTMLElement | null = null;
 
   constructor(private readonly ctx: Ctx) {
     this.el = el(`<div class="fx-flow">
@@ -71,6 +122,10 @@ export class FlowchartPanel implements Panel {
     this.world = q(this.el, '.fx-flow-world');
     this.nodesEl = q(this.el, '.fx-flow-nodes');
     this.edgesEl = q<SVGSVGElement>(this.el, '.fx-flow-edges');
+    this.wire = document.createElementNS(SVG, 'path');
+    this.wire.setAttribute('class', 'fx-flow-wire');
+    this.wire.style.display = 'none';
+    this.edgesEl.append(this.wire);
     for (const b of Array.from(this.el.querySelectorAll<HTMLButtonElement>('[data-o]'))) {
       b.addEventListener('click', () => {
         const k = b.dataset.o as keyof FlowchartPanel['opts'];
@@ -139,7 +194,8 @@ export class FlowchartPanel implements Panel {
     this.loading = true;
     try {
       const comp = this.ctx.store.comp;
-      this.graph = comp ? await this.ctx.client.call<FlowGraph>('ui.flowchart', { comp: comp.id, solids: this.opts.solids, layers: this.opts.layers, effects: this.opts.effects }) : null;
+      const raw = comp ? await this.ctx.client.call<{ root: number; nodes: RawNode[]; edges: FlowEdge[] }>('ui.flowchart', { comp: comp.id, solids: this.opts.solids, layers: this.opts.layers, effects: this.opts.effects }) : null;
+      this.graph = raw ? normalize(raw) : null;
     } catch {
       this.graph = null;
     }
@@ -158,16 +214,20 @@ export class FlowchartPanel implements Panel {
     setHidden(q(this.el, '.fx-flow-empty'), !!g);
     const slot = new Map<number, number>();
     this.placed.clear();
+    const maxDepth = Math.max(0, ...(g?.nodes ?? []).map((n) => n.depth));
+    const h = this.nodeH();
+    setClass(this.world, 'has-fx', this.opts.effects);
     for (const n of g?.nodes ?? []) {
-      const i = slot.get(n.depth) ?? 0;
-      slot.set(n.depth, i + 1);
-      const p = this.opts.vertical ? { x: i * (NODE_W + 24), y: n.depth * (NODE_H + 46) } : { x: n.depth * (NODE_W + 60), y: i * (NODE_H + 14) };
+      const col = maxDepth - n.depth;
+      const i = slot.get(col) ?? 0;
+      slot.set(col, i + 1);
+      const p = this.opts.vertical ? { x: i * (NODE_W + 24), y: col * (h + 46) } : { x: col * (NODE_W + 84), y: i * (h + 14) };
       this.placed.set(n.id, { node: n, ...p });
     }
     patchList(this.nodesEl, [...this.placed.values()], {
       key: (p) => p.node.id,
       create: (p) => {
-        const n = el(`<div class="fx-flow-node" role="button" tabindex="-1"><span class="fx-flow-icon"></span><span class="fx-flow-label"></span></div>`);
+        const n = el(`<div class="fx-flow-node" role="button" tabindex="-1"><span class="fx-flow-icon"></span><span class="fx-flow-text"><span class="fx-flow-label"></span><span class="fx-flow-fx"></span></span><span class="fx-flow-ports"><span class="fx-flow-port" data-port="parent" title="Drag to a layer to parent this layer to it">${icon('link', 11)}</span><span class="fx-flow-port" data-port="matte" title="Drag to a layer to use it as this layer's track matte">${icon('mask', 11)}</span></span></div>`);
         n.dataset.automationId = `flowchart.node.${p.node.id}`;
         return n;
       },
@@ -176,7 +236,8 @@ export class FlowchartPanel implements Panel {
         n.style.transform = `translate(${p.x}px, ${p.y}px)`;
         setHtml(q(n, '.fx-flow-icon'), icon(ICON[p.node.kind] ?? 'iNull', 14), p.node.kind);
         setText(q(n, '.fx-flow-label'), p.node.label);
-        setTitle(n, `${p.node.label}: double-click to open, ${MOD}-click to reveal`);
+        setText(q(n, '.fx-flow-fx'), p.node.effects.join(' · '));
+        setTitle(n, p.node.kind === 'layer' ? `${p.node.label}: drag a port to wire a parent or a track matte, right-click for more` : `${p.node.label}: double-click to open, ${MOD}-click to reveal`);
         setClass(n, 'is-selected', this.selected === p.node.id);
       },
     });
@@ -184,45 +245,69 @@ export class FlowchartPanel implements Panel {
     this.applyPan();
   }
 
+  private nodeH(): number {
+    return this.opts.effects ? NODE_H_FX : NODE_H;
+  }
+
   private drawEdges(): void {
     const edges = this.graph?.edges ?? [];
+    const H = this.nodeH();
     let w = 0;
     let h = 0;
     for (const p of this.placed.values()) {
       w = Math.max(w, p.x + NODE_W);
-      h = Math.max(h, p.y + NODE_H);
+      h = Math.max(h, p.y + H);
     }
-    this.edgesEl.setAttribute('width', String(w + 20));
-    this.edgesEl.setAttribute('height', String(h + 20));
+    this.edgesEl.setAttribute('width', String(w + 120));
+    this.edgesEl.setAttribute('height', String(h + 40));
     const have = new Map<string, SVGGElement>();
-    for (const c of Array.from(this.edgesEl.children) as SVGGElement[]) have.set(c.dataset.key ?? '', c);
+    for (const c of Array.from(this.edgesEl.children) as SVGGElement[]) if (c.dataset.key) have.set(c.dataset.key, c);
     const keep = new Set<string>();
-    for (const [a, b] of edges) {
-      const pa = this.placed.get(a);
-      const pb = this.placed.get(b);
+    const v = this.opts.vertical;
+    for (const edge of edges) {
+      const pa = this.placed.get(edge.from);
+      const pb = this.placed.get(edge.to);
       if (!pa || !pb) continue;
-      const key = `${a}>${b}`;
+      const key = `${edge.kind ?? 'flow'}:${edge.from}>${edge.to}`;
       keep.add(key);
       let gEl = have.get(key);
       if (!gEl) {
         gEl = document.createElementNS(SVG, 'g');
         gEl.dataset.key = key;
-        gEl.append(document.createElementNS(SVG, 'path'), document.createElementNS(SVG, 'path'));
-        this.edgesEl.append(gEl);
+        const hit = document.createElementNS(SVG, 'path');
+        hit.setAttribute('class', 'fx-flow-hit');
+        gEl.append(document.createElementNS(SVG, 'path'), document.createElementNS(SVG, 'path'), hit, document.createElementNS(SVG, 'title'));
+        this.edgesEl.insertBefore(gEl, this.wire);
       }
-      const v = this.opts.vertical;
-      const back = pb.node.depth < pa.node.depth;
-      const d = back ? -1 : 1;
-      const s = v ? [pa.x + NODE_W / 2, back ? pa.y : pa.y + NODE_H] : [back ? pa.x : pa.x + NODE_W, pa.y + NODE_H / 2];
-      const e = v ? [pb.x + NODE_W / 2, back ? pb.y + NODE_H : pb.y] : [back ? pb.x + NODE_W : pb.x, pb.y + NODE_H / 2];
-      const k = Math.max(30, Math.abs(v ? e[1] - s[1] : e[0] - s[0]) * 0.5);
-      const c1 = v ? [s[0], s[1] + d * k] : [s[0] + d * k, s[1]];
-      const c2 = v ? [e[0], e[1] - d * k] : [e[0] - d * k, e[1]];
-      const head = v ? `M${e[0]} ${e[1]}l-4 ${-7 * d}h8z` : `M${e[0]} ${e[1]}l${-7 * d} -4v8z`;
-      const [curve, arrow] = Array.from(gEl.children);
-      curve.setAttribute('d', `M${s[0]} ${s[1]}C${c1[0]} ${c1[1]} ${c2[0]} ${c2[1]} ${e[0]} ${e[1]}`);
-      arrow.setAttribute('d', head);
-      gEl.setAttribute('class', pb.node.depth <= pa.node.depth ? 'is-back' : '');
+      const [curve, arrow, hit, tip] = Array.from(gEl.children);
+      let d: string;
+      let head: string;
+      if (edge.kind) {
+        const side = edge.kind === 'parent' ? 1 : -1;
+        const s = v ? [pa.x + NODE_W / 2 + side * 30, pa.y + (side > 0 ? H : 0)] : [pa.x + (side > 0 ? NODE_W : 0), pa.y + H / 2];
+        const e = v ? [pb.x + NODE_W / 2 + side * 30, pb.y + (side > 0 ? H : 0)] : [pb.x + (side > 0 ? NODE_W : 0), pb.y + H / 2];
+        const bow = 36 + Math.min(80, Math.abs(v ? e[0] - s[0] : e[1] - s[1]) * 0.25);
+        const c1 = v ? [s[0], s[1] + side * bow] : [s[0] + side * bow, s[1]];
+        const c2 = v ? [e[0], e[1] + side * bow] : [e[0] + side * bow, e[1]];
+        d = `M${s[0]} ${s[1]}C${c1[0]} ${c1[1]} ${c2[0]} ${c2[1]} ${e[0]} ${e[1]}`;
+        head = v ? `M${e[0]} ${e[1]}l-4 ${7 * side}h8z` : `M${e[0]} ${e[1]}l${7 * side} -4v8z`;
+      } else {
+        const s = v ? [pa.x + NODE_W / 2, pa.y + H] : [pa.x + NODE_W, pa.y + H / 2];
+        const e = v ? [pb.x + NODE_W / 2, pb.y] : [pb.x, pb.y + H / 2];
+        const k = Math.max(30, Math.abs(v ? e[1] - s[1] : e[0] - s[0]) * 0.5);
+        const c1 = v ? [s[0], s[1] + k] : [s[0] + k, s[1]];
+        const c2 = v ? [e[0], e[1] - k] : [e[0] - k, e[1]];
+        d = `M${s[0]} ${s[1]}C${c1[0]} ${c1[1]} ${c2[0]} ${c2[1]} ${e[0]} ${e[1]}`;
+        head = v ? `M${e[0]} ${e[1]}l-4 -7h8z` : `M${e[0]} ${e[1]}l-7 -4v8z`;
+      }
+      if (curve.getAttribute('d') !== d) {
+        curve.setAttribute('d', d);
+        hit.setAttribute('d', d);
+        arrow.setAttribute('d', head);
+      }
+      gEl.setAttribute('class', edge.kind ? `is-${edge.kind}` : '');
+      const text = edge.kind === 'parent' ? `${pb.node.label} is parented to ${pa.node.label}. Click to remove.` : edge.kind === 'matte' ? `${pa.node.label} is the ${edge.label ?? 'track matte'} of ${pb.node.label}. Click to change.` : '';
+      if (tip.textContent !== text) tip.textContent = text;
     }
     for (const [k, n] of have) if (!keep.has(k)) n.remove();
   }
@@ -236,18 +321,139 @@ export class FlowchartPanel implements Panel {
     this.applyPan();
   }
 
+  private worldPoint(e: PointerEvent | MouseEvent): [number, number] {
+    const r = this.world.getBoundingClientRect();
+    return [e.clientX - r.left, e.clientY - r.top];
+  }
+
+  private nodeAt(e: PointerEvent): FlowNode | null {
+    const hit = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
+    const n = hit?.closest<HTMLElement>('.fx-flow-node');
+    return n ? this.placed.get(n.dataset.key ?? '')?.node ?? null : null;
+  }
+
+  private canWire(from: FlowNode, to: FlowNode | null): to is FlowNode {
+    return !!to && to.kind === 'layer' && to.id !== from.id && to.comp === from.comp && to.layer !== null;
+  }
+
+  private startWire(e: PointerEvent, port: HTMLElement): void {
+    const n = port.closest<HTMLElement>('.fx-flow-node');
+    const node = n ? this.placed.get(n.dataset.key ?? '')?.node : undefined;
+    if (!node || node.kind !== 'layer') return;
+    e.preventDefault();
+    e.stopPropagation();
+    const r = port.getBoundingClientRect();
+    const w = this.world.getBoundingClientRect();
+    this.wiring = { from: node, kind: port.dataset.port === 'matte' ? 'matte' : 'parent', start: [r.left + r.width / 2 - w.left, r.top + r.height / 2 - w.top] };
+    this.wire.setAttribute('class', `fx-flow-wire is-${this.wiring.kind}`);
+    this.body.setPointerCapture(e.pointerId);
+    this.moveWire(e);
+    this.wire.style.display = '';
+  }
+
+  private moveWire(e: PointerEvent): void {
+    const w = this.wiring;
+    if (!w) return;
+    const [x, y] = this.worldPoint(e);
+    const [sx, sy] = w.start;
+    this.wire.setAttribute('d', `M${sx} ${sy}C${sx + 40} ${sy} ${x - 40} ${y} ${x} ${y}`);
+    const target = this.nodeAt(e);
+    const el2 = target && this.canWire(w.from, target) ? (this.nodesEl.querySelector<HTMLElement>(`[data-key="${CSS.escape(target.id)}"]`) ?? null) : null;
+    if (el2 !== this.hover) {
+      if (this.hover) setClass(this.hover, 'is-target', false);
+      this.hover = el2;
+      if (el2) setClass(el2, 'is-target', true);
+    }
+  }
+
+  private async endWire(e: PointerEvent): Promise<void> {
+    const w = this.wiring;
+    this.wiring = null;
+    this.wire.style.display = 'none';
+    if (this.hover) setClass(this.hover, 'is-target', false);
+    this.hover = null;
+    if (!w) return;
+    const target = this.nodeAt(e);
+    if (!this.canWire(w.from, target)) return;
+    if (w.kind === 'parent') await this.ctx.run('layer.setParent', { layers: [w.from.layer], parent: target.layer });
+    else await this.ctx.run('layer.setTrackMatte', { layer: w.from.layer, matte: target.layer, kind: 'alpha' });
+  }
+
+  private edgeMenu(e: MouseEvent, key: string): void {
+    const edge = (this.graph?.edges ?? []).find((x) => `${x.kind ?? 'flow'}:${x.from}>${x.to}` === key);
+    const child = edge ? this.placed.get(edge.to)?.node : undefined;
+    if (!edge?.kind || !child || child.layer === null) return;
+    const layer = child.layer;
+    const items: PopupEntry[] = edge.kind === 'parent'
+      ? [{ label: 'Remove Parent', run: () => void this.ctx.run('layer.setParent', { layers: [layer], parent: null }) }]
+      : [
+          { label: 'Alpha Matte', checked: edge.label === 'Alpha Matte', run: () => void this.ctx.run('layer.setTrackMatte', { layer, matte: this.placed.get(edge.from)?.node.layer, kind: 'alpha' }) },
+          { label: 'Alpha Inverted Matte', checked: edge.label === 'Alpha Inverted Matte', run: () => void this.ctx.run('layer.setTrackMatte', { layer, matte: this.placed.get(edge.from)?.node.layer, kind: 'alphaInverted' }) },
+          { label: 'Luma Matte', checked: edge.label === 'Luma Matte', run: () => void this.ctx.run('layer.setTrackMatte', { layer, matte: this.placed.get(edge.from)?.node.layer, kind: 'luma' }) },
+          { label: 'Luma Inverted Matte', checked: edge.label === 'Luma Inverted Matte', run: () => void this.ctx.run('layer.setTrackMatte', { layer, matte: this.placed.get(edge.from)?.node.layer, kind: 'lumaInverted' }) },
+          '-',
+          { label: 'Remove Track Matte', run: () => void this.ctx.run('layer.setTrackMatte', { layer, matte: null }) },
+        ];
+    contextMenu(e.clientX, e.clientY, items);
+  }
+
+  private nodeMenu(e: MouseEvent, node: FlowNode): void {
+    const comp = node.kind === 'comp' ? node.item : node.comp;
+    const items: PopupEntry[] = [];
+    if (comp !== null) items.push({ label: 'Open Composition', run: () => void this.ctx.run('comp.open', { comp }) });
+    items.push({ label: 'Reveal', run: () => void this.reveal(node) });
+    if (node.kind === 'layer' && node.layer !== null) {
+      const layer = node.layer;
+      const edges = this.graph?.edges ?? [];
+      items.push('-', { label: 'Effect Controls', run: () => void this.reveal(node).then(() => this.ctx.ui.emit('showPanel', 'effectControls')) });
+      items.push({ label: 'Remove Parent', enabled: edges.some((x) => x.kind === 'parent' && x.to === node.id), run: () => void this.ctx.run('layer.setParent', { layers: [layer], parent: null }) });
+      items.push({ label: 'Remove Track Matte', enabled: edges.some((x) => x.kind === 'matte' && x.to === node.id), run: () => void this.ctx.run('layer.setTrackMatte', { layer, matte: null }) });
+    }
+    contextMenu(e.clientX, e.clientY, items);
+  }
+
   private bindBody(): void {
+    this.nodesEl.addEventListener('pointerdown', (e) => {
+      const port = (e.target as HTMLElement).closest<HTMLElement>('.fx-flow-port');
+      if (port && e.button === 0) this.startWire(e, port);
+    });
+    this.nodesEl.addEventListener('contextmenu', (e) => {
+      const n = (e.target as HTMLElement).closest<HTMLElement>('.fx-flow-node');
+      const p = n ? this.placed.get(n.dataset.key ?? '') : undefined;
+      if (!p) return;
+      e.preventDefault();
+      this.select(p.node.id);
+      this.nodeMenu(e, p.node);
+    });
+    this.edgesEl.addEventListener('click', (e) => {
+      const g = (e.target as Element).closest<SVGGElement>('g[data-key]');
+      if (g?.dataset.key) this.edgeMenu(e, g.dataset.key);
+    });
+    this.edgesEl.addEventListener('contextmenu', (e) => {
+      const g = (e.target as Element).closest<SVGGElement>('g[data-key]');
+      if (!g?.dataset.key) return;
+      e.preventDefault();
+      this.edgeMenu(e, g.dataset.key);
+    });
     this.body.addEventListener('pointerdown', (e) => {
-      if (e.button !== 0 || (e.target as HTMLElement).closest('.fx-flow-node')) return;
+      if (e.button !== 0 || this.wiring || (e.target as Element).closest('.fx-flow-node, .fx-flow-hit')) return;
       this.drag = { x: e.clientX, y: e.clientY, px: this.pan[0], py: this.pan[1] };
       this.body.setPointerCapture(e.pointerId);
     });
     this.body.addEventListener('pointermove', (e) => {
+      if (this.wiring) {
+        this.moveWire(e);
+        return;
+      }
       if (!this.drag) return;
       this.pan = [this.drag.px + e.clientX - this.drag.x, this.drag.py + e.clientY - this.drag.y];
       this.applyPan();
     });
-    const end = (): void => {
+    const end = (e: PointerEvent): void => {
+      if (this.wiring) {
+        void this.endWire(e);
+        return;
+      }
       if (this.drag && Math.abs(this.pan[0] - this.drag.px) + Math.abs(this.pan[1] - this.drag.py) < 3) this.select(null);
       this.drag = null;
     };

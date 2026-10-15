@@ -1,4 +1,8 @@
 {
+"Drag to a layer to parent this layer to it": "Dra till ett lager för att göra det överordnat detta lager",
+"Drag to a layer to use it as this layer's track matte": "Dra till ett lager för att använda det som spårmatte för detta lager",
+"Remove Parent": "Ta bort överordnad",
+"Remove Track Matte": "Ta bort spårmatte",
 "Background tasks": "Bakgrundsuppgifter",
 "Cancel All": "Avbryt alla",
 "Histogram": "Histogram",
