@@ -15,7 +15,7 @@ Needs Node 20.19+ or 22.12+, Python 3.12+, and Rust 1.95+ (`https://rustup.rs`).
 
 The GPU compositor is part of the default build and is used when the engine finds a working adapter (Settings > Memory & CPU shows which; `FORMVFX_GPU=0` keeps everything on the CPU). Windows: `formvfx.bat install`, then `formvfx.bat`. One process serving the built interface: `./formvfx serve` (http://127.0.0.1:8230).
 
-Open http://localhost:5230, choose **Open the demo project** on the start screen, and work as in After Effects: Project, Effect Controls, Composition viewer, Timeline, Effects and Presets, Preview, Character, Render Queue. Cmd or Ctrl+K searches every command and effect. The interface comes in 26 languages (Settings > Interface > Language), English by default. The Flowchart (Composition > Composition Flowchart) is also a node editor: turn on Layers, then drag a layer's link or matte port onto another layer to parent it or set its track matte.
+Open http://localhost:5230, choose **Open the demo project** on the start screen, and work as in After Effects: Project, Effect Controls, Composition viewer, Timeline, Effects and Presets, Preview, Character, Render Queue. Cmd or Ctrl+K searches every command and effect. The interface comes in 26 languages (Settings > Interface > Language), English by default. The Flowchart (Composition > Composition Flowchart) is also a node editor: turn on Layers, then drag a layer's link or matte port onto another layer to parent it or set its track matte. While you work, the work area renders into the preview cache on its own (a green strip on the time ruler marks what is ready), scrubbing shows cached frames at once, and View > Fast Previews > Adaptive Resolution keeps scrubbing light on heavy comps.
 
 ## The engine
 
@@ -70,11 +70,11 @@ Tagging `vX.Y.Z` builds macOS, Linux and Windows bundles in GitHub Actions and o
 | --- | ---: | ---: |
 | Compositing engine (Rust, fvx-core) | 166 | 81,371 |
 | Engine service (Python) | 37 | 2,913 |
-| Interface (TypeScript) | 58 | 12,969 |
-| Interface styles (CSS) | 8 | 1,950 |
+| Interface (TypeScript) | 58 | 13,116 |
+| Interface styles (CSS) | 8 | 1,951 |
 | Desktop shell (Rust, Tauri) | 1 | 141 |
 | Setup and CLI | 35 | 1,078 |
 | Agent skill (Markdown, hand-written) | 16 | 786 |
-| Total | 321 | 101,208 |
+| Total | 321 | 101,356 |
 
 Non-blank lines in tracked files; generated skill references excluded. `./formvfx counts` prints this table.
