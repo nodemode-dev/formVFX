@@ -574,6 +574,7 @@ pub fn material_options(ids: &mut Ids, model: bool) -> Group {
         p(ids.prop("metal", "Metal", Value::Num(100.0), Ui::slider(0.0, 100.0, 0.0, 100.0, 0))),
         p(ids.prop("reflectionIntensity", "Reflection Intensity", Value::Num(0.0), Ui::slider(0.0, 100.0, 0.0, 100.0, 0))),
     ];
+    children.extend(material_extras(ids).into_iter().map(p));
     if model {
         children.push(p(ids.prop("overrideMaterial", "Override Material", Value::Bool(false), Ui::Checkbox)));
         children.push(p(ids.prop("baseColor", "Base Color", Value::Color([1.0, 1.0, 1.0, 1.0]), Ui::Color)));
@@ -584,17 +585,68 @@ pub fn material_options(ids: &mut Ids, model: bool) -> Group {
     ids.group("materialOptions", "Material Options", GroupKind::Plain, children)
 }
 
+pub fn material_extras(ids: &mut Ids) -> Vec<Prop> {
+    vec![
+        ids.prop("reflectionSharpness", "Reflection Sharpness", Value::Num(100.0), Ui::slider(0.0, 100.0, 0.0, 100.0, 0)),
+        ids.prop("reflectionRolloff", "Reflection Rolloff", Value::Num(0.0), Ui::slider(0.0, 100.0, 0.0, 100.0, 0)),
+        ids.prop("transparency", "Transparency", Value::Num(0.0), Ui::slider(0.0, 100.0, 0.0, 100.0, 0)),
+        ids.prop("transparencyRolloff", "Transparency Rolloff", Value::Num(0.0), Ui::slider(0.0, 100.0, 0.0, 100.0, 0)),
+        ids.prop("indexOfRefraction", "Index of Refraction", Value::Num(1.0), Ui::slider(1.0, 5.0, 1.0, 3.0, 2)),
+    ]
+}
+
+fn geometry_extras(ids: &mut Ids) -> Vec<Prop> {
+    vec![
+        ids.prop("bevelColor", "Bevel Color", Value::Color([0.5, 0.5, 0.5, 1.0]), Ui::Color),
+        ids.prop("bevelUsesFront", "Bevel Uses Front Color", Value::Bool(true), Ui::Checkbox),
+    ]
+}
+
+fn add_missing(g: &mut Group, after: &str, extras: Vec<Prop>) {
+    let mut at = g.children.iter().position(|c| c.id() == after).map(|i| i + 1).unwrap_or(g.children.len());
+    for pr in extras {
+        if g.get(&pr.id).is_none() {
+            g.children.insert(at.min(g.children.len()), Node::Prop(pr));
+            at += 1;
+        } else if let Some(i) = g.children.iter().position(|c| c.id() == pr.id) {
+            at = i + 1;
+        }
+    }
+}
+
+pub fn upgrade_3d_options(l: &mut crate::model::Layer, ids: &mut Ids) {
+    if let Some(g) = l.props.sub_mut("materialOptions")
+        && g.get("indexOfRefraction").is_none()
+    {
+        let shininess = g.get("specularShininess").map(|p| p.value.num());
+        let extras = material_extras(ids);
+        add_missing(g, "reflectionIntensity", extras);
+        if let (Some(s), Some(pr)) = (shininess, g.get_mut("reflectionSharpness")) {
+            pr.value = Value::Num(s.clamp(0.0, 100.0));
+        }
+    }
+    if let Some(g) = l.props.sub_mut("geometryOptions")
+        && g.get("bevelUsesFront").is_none()
+    {
+        let extras = geometry_extras(ids);
+        add_missing(g, "holeBevelDepth", extras);
+    }
+}
+
 pub const BEVEL_STYLES: [&str; 4] = ["None", "Angular", "Concave", "Convex"];
 
 pub fn geometry_options(ids: &mut Ids) -> Group {
-    let children = vec![
+    let mut children = vec![
         p(ids.prop("bevelStyle", "Bevel Style", Value::Enum(0), Ui::popup(&BEVEL_STYLES))),
         p(ids.prop("bevelDepth", "Bevel Depth", Value::Num(2.0), Ui::slider(0.0, 1000.0, 0.0, 50.0, 1))),
         p(ids.prop("holeBevelDepth", "Hole Bevel Depth", Value::Num(100.0), Ui::slider(0.0, 100.0, 0.0, 100.0, 0))),
+    ];
+    children.extend(geometry_extras(ids).into_iter().map(p));
+    children.extend([
         p(ids.prop("extrusionDepth", "Extrusion Depth", Value::Num(0.0), Ui::slider(0.0, 10_000.0, 0.0, 500.0, 1))),
         p(ids.prop("sideColor", "Side Color", Value::Color([0.5, 0.5, 0.5, 1.0]), Ui::Color)),
         p(ids.prop("sidesUseFill", "Sides Use Fill Color", Value::Bool(true), Ui::Checkbox)),
-    ];
+    ]);
     ids.group("geometryOptions", "Geometry Options", GroupKind::Plain, children)
 }
 
@@ -726,7 +778,7 @@ pub fn text_selector(ids: &mut Ids, kind: &str, name: &str) -> Option<Group> {
     })
 }
 
-pub const TEXT_ANIMATOR_KINDS: [(&str, &str); 25] = [
+pub const TEXT_ANIMATOR_KINDS: [(&str, &str); 28] = [
     ("anchor", "Anchor Point"),
     ("position", "Position"),
     ("scale", "Scale"),
@@ -750,6 +802,9 @@ pub const TEXT_ANIMATOR_KINDS: [(&str, &str); 25] = [
     ("strokeBrightness", "Stroke Color: Brightness"),
     ("strokeOpacity", "Stroke Color: Opacity"),
     ("strokeWidth", "Stroke Width"),
+    ("frontColor", "Front Color"),
+    ("bevelColor", "Bevel Color"),
+    ("sideColor", "Side Color"),
     ("tracking", "Tracking"),
     ("fontAxis", "Variable Font Axis"),
 ];
@@ -810,6 +865,9 @@ pub fn text_anim_props(ids: &mut Ids, kind: &str, three_d: bool) -> Vec<Prop> {
         "strokeBrightness" => vec![pct(ids, "strokeBrightness", "Stroke Brightness", 0.0, -100.0)],
         "strokeOpacity" => vec![pct(ids, "strokeOpacity", "Stroke Opacity", 100.0, 0.0)],
         "strokeWidth" => vec![ids.prop("strokeWidth", "Stroke Width", Value::Num(0.0), Ui::Pixels)],
+        "frontColor" => vec![ids.prop("frontColor", "Front Color", Value::Color([1.0, 0.0, 0.0, 1.0]), Ui::Color)],
+        "bevelColor" => vec![ids.prop("bevelColor", "Bevel Color", Value::Color([1.0, 0.0, 0.0, 1.0]), Ui::Color)],
+        "sideColor" => vec![ids.prop("sideColor", "Side Color", Value::Color([1.0, 0.0, 0.0, 1.0]), Ui::Color)],
         "tracking" => vec![ids.prop("trackingType", "Tracking Type", Value::Enum(0), Ui::popup(&["Before & After", "Before", "After"])).fixed(), ids.prop("tracking", "Tracking Amount", Value::Num(0.0), Ui::slider(-10_000.0, 10_000.0, -200.0, 200.0, 0))],
         _ => vec![],
     }

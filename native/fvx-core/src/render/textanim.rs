@@ -13,10 +13,34 @@ pub struct Glyph3d {
     pub anchor: [f64; 3],
 }
 
+pub type Tint = Option<([f64; 3], f64)>;
+
 pub struct TextRender {
     pub ops: Vec<DrawOp>,
     pub blurred: Vec<(Vec<DrawOp>, [f64; 2])>,
     pub glyphs3d: Option<Vec<Glyph3d>>,
+    pub parts: Option<Vec<(Vec<DrawOp>, [Tint; 3])>>,
+}
+
+pub fn tint(base: [f64; 4], t: Tint) -> [f64; 4] {
+    match t {
+        Some((c, w)) => [base[0] + (c[0] - base[0]) * w, base[1] + (c[1] - base[1]) * w, base[2] + (c[2] - base[2]) * w, base[3]],
+        None => base,
+    }
+}
+
+fn add_tint(t: &mut Tint, c: [f64; 3], k: f64) {
+    let k = k.clamp(0.0, 1.0);
+    if k <= 0.0 {
+        return;
+    }
+    *t = Some(match *t {
+        None => (c, k),
+        Some((c0, w)) => {
+            let nw = 1.0 - (1.0 - w) * (1.0 - k);
+            ([0, 1, 2].map(|d| (c0[d] * w * (1.0 - k) + c[d] * k) / nw.max(1e-9)), nw)
+        }
+    });
 }
 
 struct Anim<'a> {
@@ -38,6 +62,7 @@ struct Acc {
     blur: [f64; 2],
     line_spacing: [f64; 2],
     axes: Vec<(String, f64)>,
+    parts: [Tint; 3],
 }
 
 fn v<'a>(ev: &Eval, l: &Layer, g: &'a Group, id: &str) -> Option<Value> {
@@ -397,6 +422,7 @@ fn base_acc(g: &Glyph) -> Acc {
         blur: [0.0; 2],
         line_spacing: [0.0; 2],
         axes: vec![],
+        parts: [None; 3],
     }
 }
 
@@ -448,6 +474,15 @@ fn apply_prop(a: &mut Acc, id: &str, val: &Value, s: [f64; 3], axis_defaults: &d
             }
             let rgb = hsv_to_rgb(hsv);
             a.paint[o..o + 3].copy_from_slice(&rgb);
+        }
+        "frontColor" | "bevelColor" | "sideColor" => {
+            let c = val.color();
+            let i = match id {
+                "frontColor" => 0,
+                "bevelColor" => 1,
+                _ => 2,
+            };
+            add_tint(&mut a.parts[i], [c[0], c[1], c[2]], s0 * c[3]);
         }
         "fillOpacity" => a.paint[3] *= (1.0 + (val.num() / 100.0 - 1.0) * s0).max(0.0),
         "strokeOpacity" => a.paint[7] *= (1.0 + (val.num() / 100.0 - 1.0) * s0).max(0.0),
@@ -611,6 +646,7 @@ pub fn render_text(ev: &Eval, l: &Layer, doc: &TextDoc) -> TextRender {
     let mut per_glyph: Vec<(Vec<DrawOp>, Vec<DrawOp>)> = vec![];
     let mut blurred: Vec<(Vec<DrawOp>, [f64; 2])> = vec![];
     let mut g3: Vec<Glyph3d> = vec![];
+    let mut parts = anims.iter().any(|a| a.props.iter().any(|(p, _)| matches!(p.id.as_str(), "frontColor" | "bevelColor" | "sideColor"))).then(Vec::new);
     let line_glyphs: Vec<Vec<usize>> = (0..lay.lines.len().max(1)).map(|li| (0..lay.glyphs.len()).filter(|i| lay.glyphs[*i].line == li).collect()).collect();
     for (gi, g) in lay.glyphs.iter().enumerate() {
         let a = &accs[gi];
@@ -678,6 +714,9 @@ pub fn render_text(ev: &Eval, l: &Layer, doc: &TextDoc) -> TextRender {
         let paths: Vec<BezPath> = src_paths.iter().map(|p| p.transformed(&m)).collect();
         let (mut fo, mut so) = (vec![], vec![]);
         paint_ops(doc, paths, g, &gp, &mut fo, &mut so);
+        if let Some(pp) = parts.as_mut() {
+            pp.push((fo.clone(), a.parts));
+        }
         if a.blur[0] > 0.05 || a.blur[1] > 0.05 {
             let ops = order_ops(doc, vec![(fo, so)], 0);
             blurred.push((ops, [a.blur[0].max(0.0), a.blur[1].max(0.0)]));
@@ -686,7 +725,7 @@ pub fn render_text(ev: &Eval, l: &Layer, doc: &TextDoc) -> TextRender {
         }
     }
     let ops = order_ops(doc, per_glyph, fill_mode);
-    TextRender { ops, blurred, glyphs3d: if per_char_3d { Some(g3) } else { None } }
+    TextRender { ops, blurred, glyphs3d: if per_char_3d { Some(g3) } else { None }, parts }
 }
 
 pub fn animator_count(l: &Layer) -> usize {

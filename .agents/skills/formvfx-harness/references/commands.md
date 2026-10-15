@@ -366,7 +366,7 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 - `layer.create` Create · Layer > Create
   `{op: shapesFromText|masksFromText|shapesFromVector|editableText, layers?}`
 - `layer.addTextAnimator` Animate Text · Animation
-  `{layer?, properties: [anchor|position|scale|skew|rotation|opacity|transformAll|lineAnchor|lineSpacing|characterOffset|characterValue|blur|fillColor|fillHue|fillSaturation|fillBrightness|fillOpacity|strokeColor|strokeHue|strokeSaturation|strokeBrightness|strokeOpacity|strokeWidth|tracking] | property, name?}`
+  `{layer?, properties: [anchor|position|scale|skew|rotation|opacity|transformAll|lineAnchor|lineSpacing|characterOffset|characterValue|blur|fillColor|fillHue|fillSaturation|fillBrightness|fillOpacity|strokeColor|strokeHue|strokeSaturation|strokeBrightness|strokeOpacity|strokeWidth|frontColor|bevelColor|sideColor|tracking] | property, name?}`
 - `layer.addTextAnimatorProperty` Add Property
   `{layer?, animator?: uid|index, property: (see layer.addTextAnimator)}`
 - `layer.addTextSelector` Add Text Selector
@@ -494,7 +494,7 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 - `layer.sceneEditDetection` Scene Edit Detection · Layer
   `{layer?, mode?: markers|split|splitPrecompose, threshold?: 0..1 (default 0.25), wait?: bool} · finds the cuts in a footage layer (a background job)`
 - `layer.geometryOptions` Geometry Options · Layer
-  `{layers? (text or shape), bevelStyle?: none|angular|concave|convex, bevelDepth? (px), holeBevelDepth? (%), extrusionDepth? (px), sideColor?, sidesUseFill?: bool} · extrudes in the Advanced 3D renderer (turns it on)`
+  `{layers? (text or shape), bevelStyle?: none|angular|concave|convex, bevelDepth? (px), holeBevelDepth? (%), extrusionDepth? (px), sideColor?, sidesUseFill?: bool, bevelColor?, bevelUsesFront?: bool} · extrudes in the Advanced 3D renderer (turns it on)`
 
 ## prop
 
@@ -837,7 +837,7 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 ## material
 
 - `material.set` Material Options
-  `{layers?, castsShadows?: off|on|only, acceptsShadows?: off|on|only, acceptsLights?, appearsInReflections?, lightTransmission?, ambient?, diffuse?, specularIntensity?, specularShininess?, metal?, reflectionIntensity?, overrideMaterial?, baseColor?, metallic?, roughness?, emissive?, time?}`
+  `{layers?, castsShadows?: off|on|only, acceptsShadows?: off|on|only, acceptsLights?, appearsInReflections?, lightTransmission?, ambient?, diffuse?, specularIntensity?, specularShininess?, metal?, reflectionIntensity?, reflectionSharpness?, reflectionRolloff?, transparency?, transparencyRolloff?, indexOfRefraction? (1 to 5), overrideMaterial?, baseColor?, metallic?, roughness?, emissive?, time?}`
 - `material.revealSource` Reveal Material Source in Project · Layer > Material
   `{layer?}`
 - `material.reset` Reset Material · Layer > Material

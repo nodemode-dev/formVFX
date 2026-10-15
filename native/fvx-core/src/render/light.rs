@@ -235,6 +235,22 @@ pub struct Surface {
     pub metal: f32,
     pub shadows: u32,
     pub reflection: f32,
+    pub sharpness: f32,
+    pub refl_rolloff: f32,
+    pub transparency: f32,
+    pub trans_rolloff: f32,
+    pub ior: f32,
+}
+
+impl Surface {
+    pub fn reflection_at(&self, nv: f32) -> f32 {
+        let fresnel = 0.04 + 0.96 * (1.0 - nv.clamp(0.0, 1.0)).powi(5);
+        self.reflection * (1.0 - self.refl_rolloff + self.refl_rolloff * fresnel)
+    }
+
+    pub fn transparency_at(&self, nv: f32) -> f32 {
+        self.transparency * (1.0 - self.trans_rolloff * (1.0 - nv.clamp(0.0, 1.0)))
+    }
 }
 
 impl Surface {
@@ -252,6 +268,11 @@ impl Surface {
             metal: num("metal", 100.0) / 100.0,
             shadows,
             reflection: num("reflectionIntensity", 0.0) / 100.0,
+            sharpness: (num("reflectionSharpness", num("specularShininess", 5.0) as f64) / 100.0).clamp(0.0, 1.0),
+            refl_rolloff: (num("reflectionRolloff", 0.0) / 100.0).clamp(0.0, 1.0),
+            transparency: (num("transparency", 0.0) / 100.0).clamp(0.0, 1.0),
+            trans_rolloff: (num("transparencyRolloff", 0.0) / 100.0).clamp(0.0, 1.0),
+            ior: num("indexOfRefraction", 1.0).clamp(1.0, 5.0),
         };
         (s, accepts_lights, casts, num("lightTransmission", 0.0) / 100.0)
     }
@@ -380,11 +401,12 @@ impl Scene {
                     for k in 0..3 {
                         amb[k] += l.color[k] * irr[k];
                     }
-                    if s.reflection > 0.0 {
+                    let refl = s.reflection_at(dot(n, v) as f32);
+                    if refl > 0.0 {
                         let r = sub(scale(n, 2.0 * dot(n, v)), v);
-                        let c = env.map(|e| e.sample(r, (1.0 - s.shininess / 100.0).clamp(0.0, 1.0))).unwrap_or([1.0; 3]);
+                        let c = env.map(|e| e.sample(r, 1.0 - s.sharpness)).unwrap_or([1.0; 3]);
                         for k in 0..3 {
-                            spe[k] += l.color[k] * c[k] * s.reflection;
+                            spe[k] += l.color[k] * c[k] * refl;
                         }
                     }
                 }

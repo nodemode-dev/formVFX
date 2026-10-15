@@ -328,7 +328,7 @@ pub struct Frag {
     pub z: f64,
 }
 
-pub fn rasterize(tris: &[Tri], proj: &Proj, w: usize, h: usize, ss: usize, shade: &(dyn Fn(&Frag) -> [f32; 4] + Sync)) -> Option<(Tile, Vec<f32>)> {
+pub fn rasterize(tris: &[Tri], proj: &Proj, w: usize, h: usize, ss: usize, shade: &(dyn Fn(&Frag) -> ([f32; 4], [f32; 2]) + Sync)) -> Option<(Tile, Vec<f32>, Vec<[f32; 2]>)> {
     let ss = ss.max(1);
     let clipped: Vec<([SV; 3], u16)> = tris.par_iter().flat_map_iter(|t| clip_tri(proj, t).into_iter().map(move |c| (c, t.mat))).collect();
     if clipped.is_empty() {
@@ -368,7 +368,7 @@ pub fn rasterize(tris: &[Tri], proj: &Proj, w: usize, h: usize, ss: usize, shade
         }
     }
     let ssf = ss as f64;
-    let bands: Vec<(Vec<[f32; 4]>, Vec<f32>)> = (0..nb)
+    let bands: Vec<(Vec<([f32; 4], [f32; 2])>, Vec<f32>)> = (0..nb)
         .into_par_iter()
         .map(|bi| {
             let ry0 = bi * band;
@@ -415,12 +415,12 @@ pub fn rasterize(tris: &[Tri], proj: &Proj, w: usize, h: usize, ss: usize, shade
                     }
                 }
             }
-            let color: Vec<[f32; 4]> = hit
+            let color: Vec<([f32; 4], [f32; 2])> = hit
                 .iter()
                 .zip(&depth)
                 .map(|(&(ti, b1, b2), z)| {
                     if ti == u32::MAX {
-                        return [0.0; 4];
+                        return ([0.0; 4], [0.0; 2]);
                     }
                     let (c, mat) = &clipped[ti as usize];
                     let b0 = 1.0 - b1 - b2;
@@ -436,22 +436,26 @@ pub fn rasterize(tris: &[Tri], proj: &Proj, w: usize, h: usize, ss: usize, shade
         .collect();
     let mut img = Img::new(tw, th);
     let mut zbuf = vec![f32::INFINITY; tw * th];
+    let mut bend = vec![[0.0f32; 2]; tw * th];
     let inv = 1.0 / (ss * ss) as f32;
-    let get = |sx: usize, sy: usize| -> ([f32; 4], f32) {
+    let get = |sx: usize, sy: usize| -> ([f32; 4], [f32; 2], f32) {
         let (b, r) = (sy / band, sy % band);
         let i = r * sw + sx;
-        (bands[b].0[i], bands[b].1[i])
+        (bands[b].0[i].0, bands[b].0[i].1, bands[b].1[i])
     };
     for y in 0..th {
         for x in 0..tw {
             let mut acc = [0.0f32; 4];
+            let mut off = [0.0f32; 2];
             let mut zm = f32::INFINITY;
             for dy in 0..ss {
                 for dx in 0..ss {
-                    let (c, z) = get(x * ss + dx, y * ss + dy);
+                    let (c, o, z) = get(x * ss + dx, y * ss + dy);
                     for k in 0..4 {
                         acc[k] += c[k];
                     }
+                    off[0] += o[0];
+                    off[1] += o[1];
                     zm = zm.min(z);
                 }
             }
@@ -460,9 +464,10 @@ pub fn rasterize(tris: &[Tri], proj: &Proj, w: usize, h: usize, ss: usize, shade
                 img.px[i + k] = acc[k] * inv;
             }
             zbuf[y * tw + x] = zm;
+            bend[y * tw + x] = [off[0] * inv, off[1] * inv];
         }
     }
-    Some((Tile { x0: bx0, y0: by0, img }, zbuf))
+    Some((Tile { x0: bx0, y0: by0, img }, zbuf, bend))
 }
 
 pub fn depth_map(tris: &[Tri], proj: &Proj, size: usize) -> Vec<f32> {

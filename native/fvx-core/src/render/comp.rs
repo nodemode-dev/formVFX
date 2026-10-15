@@ -436,7 +436,7 @@ impl<'a> Renderer<'a> {
         let scene = cam.as_ref().and_then(|c| self.build_scene(&ev, comp, c, depth));
         let any_solo = comp.layers.iter().any(|l| l.switches.solo && self.renders(l, depth));
         let advanced = comp.advanced_3d() && cam.is_some();
-        let mut run: Vec<(Tile, Vec<f32>, f32)> = vec![];
+        let mut run: Vec<super::three::DepthFrag> = vec![];
         for l in self.order(&ev, comp, cam.as_ref()) {
             if !l.switches.video || !l.is_active_at(t) || !self.renders(l, depth) || (any_solo && !l.switches.solo) || super::three::shadow_only(&ev, l) {
                 continue;
@@ -508,10 +508,10 @@ impl<'a> Renderer<'a> {
         }
     }
 
-    fn depth_fragment(&self, ev: &Eval, l: &Layer, s: f64, cam: &Camera, scene: Option<&super::light::Scene>, depth: u32) -> Option<(Tile, Vec<f32>, f32)> {
+    fn depth_fragment(&self, ev: &Eval, l: &Layer, s: f64, cam: &Camera, scene: Option<&super::light::Scene>, depth: u32) -> Option<super::three::DepthFrag> {
         let op = ev.opacity(l) as f32;
         if super::mesh::as_mesh(ev, l) {
-            let (mut tile, d) = self.model_tile(ev, l, s, cam, scene)?;
+            let (mut tile, d, bend) = self.model_tile(ev, l, s, cam, scene)?;
             if cam.dof.is_some() {
                 let before = (tile.x0, tile.y0, tile.img.w);
                 self.dof(cam, s, &mut tile, &d, self.comp_size(ev.comp, s));
@@ -530,13 +530,13 @@ impl<'a> Renderer<'a> {
                         }
                     })
                     .collect();
-                return Some((tile, nd, op));
+                return Some((tile, nd, op, None));
             }
-            return Some((tile, d, op));
+            return Some((tile, d, op, bend));
         }
         let tile = self.layer_tile(ev, l, s, Some(cam), depth, scene)?;
         let d = self.plane_depths(ev, l, cam, s, &tile);
-        Some((tile, d, op))
+        Some((tile, d, op, None))
     }
 
     fn motion_blurred(&self, ev: &Eval, comp: &Comp, l: &Layer, s: f64, depth: u32, scene: Option<&super::light::Scene>) -> Option<Tile> {
@@ -704,7 +704,7 @@ impl<'a> Renderer<'a> {
         }
         if super::mesh::as_mesh(ev, l) {
             let c = cam.copied().unwrap_or_else(|| ev.camera());
-            let (mut tile, d) = self.model_tile(ev, l, s, &c, scene)?;
+            let (mut tile, d, _) = self.model_tile(ev, l, s, &c, scene)?;
             if c.dof.is_some() {
                 self.dof(&c, s, &mut tile, &d, self.comp_size(ev.comp, s));
             }
@@ -717,6 +717,7 @@ impl<'a> Renderer<'a> {
             if let Some(sc) = scene {
                 self.plane_light(ev, l, c, s, sc, &mut tile);
             }
+            self.plane_transparency(ev, l, c, s, &mut tile);
             if c.dof.is_some() {
                 let d = self.plane_depths(ev, l, c, s, &tile);
                 self.dof(c, s, &mut tile, &d, self.comp_size(ev.comp, s));

@@ -130,6 +130,41 @@ impl Renderer<'_> {
         });
     }
 
+    pub(super) fn plane_transparency(&self, ev: &Eval, l: &Layer, cam: &Camera, s: f64, tile: &mut Tile) {
+        let (surf, _, _, _) = Surface::of(ev, l);
+        if surf.transparency <= 0.0 {
+            return;
+        }
+        let w = ev.world_matrix(l);
+        let nm = w.inverse().map(|i| i.transpose()).unwrap_or(w);
+        let n = light::norm(nm.apply_dir([0.0, 0.0, -1.0]));
+        if surf.trans_rolloff <= 0.0 {
+            tile.img.scale_all(1.0 - surf.transparency);
+            return;
+        }
+        let m = Mat3::scale(s, s) * ev.layer_to_screen(l, cam);
+        let Some(inv) = m.inverse() else { return };
+        let (x0, y0, tw) = (tile.x0, tile.y0, tile.img.w);
+        tile.img.px.par_chunks_mut(tw * 4).enumerate().for_each(|(y, row)| {
+            for x in 0..tw {
+                let px = &mut row[x * 4..x * 4 + 4];
+                if px[3] <= 1e-5 {
+                    continue;
+                }
+                let lp = inv.apply((x0 + x as i64) as f64 + 0.5, (y0 + y as i64) as f64 + 0.5);
+                let p = w.apply([lp[0], lp[1], 0.0]);
+                let v = match cam.ortho {
+                    Some(_) => light::scale(cam.forward, -1.0),
+                    None => light::norm(light::sub(cam.eye, p)),
+                };
+                let k = 1.0 - surf.transparency_at(light::dot(n, v).abs() as f32);
+                for c in px.iter_mut() {
+                    *c *= k;
+                }
+            }
+        });
+    }
+
     pub(super) fn plane_depths(&self, ev: &Eval, l: &Layer, cam: &Camera, s: f64, tile: &Tile) -> Vec<f32> {
         let m = Mat3::scale(s, s) * ev.layer_to_screen(l, cam);
         let inv = m.inverse();
@@ -146,7 +181,7 @@ impl Renderer<'_> {
             .collect()
     }
 
-    pub(super) fn model_tile(&self, ev: &Eval, l: &Layer, s: f64, cam: &Camera, scene: Option<&Scene>) -> Option<(Tile, Vec<f32>)> {
+    pub(super) fn model_tile(&self, ev: &Eval, l: &Layer, s: f64, cam: &Camera, scene: Option<&Scene>) -> Option<(Tile, Vec<f32>, Option<Vec<[f32; 2]>>)> {
         let lm = mesh::layer_mesh(ev, l, self.media)?;
         let (cw, ch) = self.comp_size(ev.comp, s);
         let proj = Proj::of(cam, ev.comp.width as f64, ev.comp.height as f64, s);
@@ -160,16 +195,47 @@ impl Renderer<'_> {
         };
         let (surf, accepts, _, _) = Surface::of(ev, l);
         let mats = &lm.mats;
-        let shade = |f: &Frag| -> [f32; 4] {
-            let Some(m) = mats.get(f.mat as usize) else { return [0.0; 4] };
+        let refracts = surf.transparency > 0.0 && surf.ior > 1.001;
+        let thick = super::extrude::thickness(ev, l).unwrap_or(100.0);
+        let view = proj.view;
+        let (zoom, ortho, k) = (proj.zoom, proj.ortho, proj.k);
+        let shade = |f: &Frag| -> ([f32; 4], [f32; 2]) {
+            let Some(m) = mats.get(f.mat as usize) else { return ([0.0; 4], [0.0; 2]) };
             let c = m.color(f.uv);
             let n = light::norm([f.n[0] as f64, f.n[1] as f64, f.n[2] as f64]);
-            let rgb = if accepts { scene.shade_pbr(f.p, n, [c[0], c[1], c[2]], m.metallic, m.roughness, l.id, surf.shadows > 0) } else { [c[0], c[1], c[2]] };
-            let a = c[3];
-            [(rgb[0] + m.emissive[0]) * a, (rgb[1] + m.emissive[1]) * a, (rgb[2] + m.emissive[2]) * a, a]
+            let v = scene.view_dir(f.p);
+            let n = if light::dot(n, v) < 0.0 { light::scale(n, -1.0) } else { n };
+            let nv = light::dot(n, v) as f32;
+            let mut rgb = if accepts { scene.shade_pbr(f.p, n, [c[0], c[1], c[2]], m.metallic, m.roughness, l.id, surf.shadows > 0) } else { [c[0], c[1], c[2]] };
+            let refl = surf.reflection_at(nv);
+            if refl > 0.0
+                && let Some(env) = scene.env.as_ref()
+            {
+                let r = light::sub(light::scale(n, 2.0 * light::dot(n, v)), v);
+                let e = env.sample(r, 1.0 - surf.sharpness);
+                for i in 0..3 {
+                    rgb[i] += (e[i] - rgb[i]) * refl.min(1.0);
+                }
+            }
+            let mut a = c[3];
+            let mut bend = [0.0f32; 2];
+            if surf.transparency > 0.0 {
+                a *= 1.0 - surf.transparency_at(nv);
+                if refracts {
+                    let nvw = view.apply_dir(n);
+                    let px = match ortho {
+                        Some(o) => o * k,
+                        None => zoom / f.z.max(1.0) * k,
+                    };
+                    let amt = (1.0 - 1.0 / surf.ior as f64) * thick * px;
+                    bend = [(-nvw[0] * amt) as f32, (-nvw[1] * amt) as f32];
+                }
+            }
+            ([(rgb[0] + m.emissive[0]) * a, (rgb[1] + m.emissive[1]) * a, (rgb[2] + m.emissive[2]) * a, a], bend)
         };
         let ss = if self.opts.draft || cw * ch > 2_500_000 { 1 } else { 2 };
-        mesh::rasterize(&lm.tris, &proj, cw, ch, ss, &shade)
+        let (tile, depth, bend) = mesh::rasterize(&lm.tris, &proj, cw, ch, ss, &shade)?;
+        Some((tile, depth, refracts.then_some(bend)))
     }
 
     pub(super) fn sky_tile(&self, ev: &Eval, s: f64, cam: &Camera, scene: Option<&Scene>, light_id: u64) -> Option<Tile> {
@@ -261,31 +327,73 @@ impl Renderer<'_> {
     }
 }
 
-pub fn composite_depth(canvas: &mut Img, frags: &[(Tile, Vec<f32>, f32)]) {
+pub type DepthFrag = (Tile, Vec<f32>, f32, Option<Vec<[f32; 2]>>);
+
+fn frag_at(f: &DepthFrag, x: i64, y: i64) -> Option<(f32, [f32; 4], [f32; 2])> {
+    let (t, d, op, bend) = f;
+    let (tx, ty) = (x - t.x0, y - t.y0);
+    if tx < 0 || ty < 0 || tx >= t.img.w as i64 || ty >= t.img.h as i64 {
+        return None;
+    }
+    let i = ty as usize * t.img.w + tx as usize;
+    let a = t.img.px[i * 4 + 3] * op;
+    if a <= 1e-6 {
+        return None;
+    }
+    let p = &t.img.px[i * 4..i * 4 + 4];
+    let b = bend.as_ref().map(|b| b[i]).unwrap_or([0.0; 2]);
+    Some((d[i], [p[0] * op, p[1] * op, p[2] * op, a], b))
+}
+
+fn behind(orig: &Img, frags: &[DepthFrag], x: i64, y: i64, z: f32) -> [f32; 4] {
+    let x = x.clamp(0, orig.w as i64 - 1);
+    let y = y.clamp(0, orig.h as i64 - 1);
+    let i = (y as usize * orig.w + x as usize) * 4;
+    let mut px = [orig.px[i], orig.px[i + 1], orig.px[i + 2], orig.px[i + 3]];
+    let mut st: Vec<(f32, [f32; 4])> = frags.iter().filter_map(|f| frag_at(f, x, y)).filter(|e| e.0 > z).map(|e| (e.0, e.1)).collect();
+    st.sort_by(|a, b| b.0.total_cmp(&a.0));
+    for (_, c) in &st {
+        let k = 1.0 - c[3];
+        for j in 0..4 {
+            px[j] = c[j] + px[j] * k;
+        }
+    }
+    px
+}
+
+pub fn composite_depth(canvas: &mut Img, frags: &[DepthFrag]) {
     let w = canvas.w;
+    let orig = frags.iter().any(|f| f.3.is_some()).then(|| canvas.clone());
     canvas.px.par_chunks_mut(w * 4).enumerate().for_each(|(y, row)| {
-        let mut stack: Vec<(f32, [f32; 4])> = Vec::with_capacity(frags.len());
+        let mut stack: Vec<(f32, [f32; 4], [f32; 2])> = Vec::with_capacity(frags.len());
         for x in 0..w {
             stack.clear();
-            for (t, d, op) in frags {
-                let (tx, ty) = (x as i64 - t.x0, y as i64 - t.y0);
-                if tx < 0 || ty < 0 || tx >= t.img.w as i64 || ty >= t.img.h as i64 {
-                    continue;
-                }
-                let i = ty as usize * t.img.w + tx as usize;
-                let a = t.img.px[i * 4 + 3] * op;
-                if a <= 1e-6 {
-                    continue;
-                }
-                let p = &t.img.px[i * 4..i * 4 + 4];
-                stack.push((d[i], [p[0] * op, p[1] * op, p[2] * op, a]));
-            }
+            stack.extend(frags.iter().filter_map(|f| frag_at(f, x as i64, y as i64)));
             if stack.is_empty() {
                 continue;
             }
             stack.sort_by(|a, b| b.0.total_cmp(&a.0));
             let px = &mut row[x * 4..x * 4 + 4];
-            for (_, c) in &stack {
+            for (z, c, b) in &stack {
+                if let Some(o) = orig.as_ref()
+                    && c[3] < 0.999
+                    && (b[0].abs() > 0.05 || b[1].abs() > 0.05)
+                {
+                    let (fx, fy) = (x as f32 + b[0], y as f32 + b[1]);
+                    let (x0, y0) = (fx.floor(), fy.floor());
+                    let (tx, ty) = (fx - x0, fy - y0);
+                    let mut acc = [0.0f32; 4];
+                    for (dx, dy, wt) in [(0, 0, (1.0 - tx) * (1.0 - ty)), (1, 0, tx * (1.0 - ty)), (0, 1, (1.0 - tx) * ty), (1, 1, tx * ty)] {
+                        if wt <= 0.0 {
+                            continue;
+                        }
+                        let s = behind(o, frags, x0 as i64 + dx, y0 as i64 + dy, *z);
+                        for j in 0..4 {
+                            acc[j] += s[j] * wt;
+                        }
+                    }
+                    px.copy_from_slice(&acc);
+                }
                 let k = 1.0 - c[3];
                 for i in 0..4 {
                     px[i] = c[i] + px[i] * k;

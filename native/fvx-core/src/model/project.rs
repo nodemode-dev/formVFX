@@ -928,6 +928,18 @@ impl Project {
         Ids(&mut self.next_uid)
     }
 
+    pub fn upgrade_3d(&mut self, only: Option<(u64, u64)>) {
+        let Project { items, next_uid, .. } = self;
+        for it in items.iter_mut() {
+            let ItemKind::Comp(c) = &mut it.kind else { continue };
+            for l in c.layers.iter_mut() {
+                if only.is_none_or(|(cid, lid)| cid == it.id && lid == l.id) {
+                    prop::upgrade_3d_options(l, &mut Ids(next_uid));
+                }
+            }
+        }
+    }
+
     pub fn item(&self, id: u64) -> Option<&Item> {
         self.items.iter().find(|i| i.id == id)
     }

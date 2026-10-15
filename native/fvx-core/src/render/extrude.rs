@@ -6,6 +6,7 @@ use i_overlay::float::single::SingleFloatOverlay;
 
 use super::mesh::{MatEval, Tri};
 use super::vector::{DrawOp, OpKind, Paint};
+use super::textanim::{Tint, tint};
 use super::{shapes, text, textanim};
 use crate::eval::Eval;
 use crate::model::{Layer, LayerKind};
@@ -18,6 +19,7 @@ struct Geo {
     hole: f64,
     depth: f64,
     side: Option<[f64; 4]>,
+    bevel_col: Option<[f64; 4]>,
 }
 
 fn geo(ev: &Eval, l: &Layer) -> Option<Geo> {
@@ -31,19 +33,36 @@ fn geo(ev: &Eval, l: &Layer) -> Option<Geo> {
     }
     let fill = g.get("sidesUseFill").map(|p| ev.value(l, p).boolean()).unwrap_or(true);
     let side = (!fill).then(|| g.get("sideColor").map(|p| ev.value(l, p).color()).unwrap_or([0.5, 0.5, 0.5, 1.0]));
-    Some(Geo { style, bevel, hole: num("holeBevelDepth", 100.0).clamp(0.0, 100.0) / 100.0, depth, side })
+    let front = g.get("bevelUsesFront").map(|p| ev.value(l, p).boolean()).unwrap_or(true);
+    let bevel_col = (!front).then(|| g.get("bevelColor").map(|p| ev.value(l, p).color()).unwrap_or([0.5, 0.5, 0.5, 1.0]));
+    Some(Geo { style, bevel, hole: num("holeBevelDepth", 100.0).clamp(0.0, 100.0) / 100.0, depth, side, bevel_col })
+}
+
+pub fn thickness(ev: &Eval, l: &Layer) -> Option<f64> {
+    active(ev, l).then(|| geo(ev, l).map(|g| g.depth.max(g.bevel))).flatten()
 }
 
 pub fn active(ev: &Eval, l: &Layer) -> bool {
     matches!(l.kind, LayerKind::Text | LayerKind::Shape) && l.is_3d() && ev.comp.renderer == "advanced3d" && geo(ev, l).is_some()
 }
 
-fn layer_ops(ev: &Eval, l: &Layer) -> Vec<DrawOp> {
+fn plain(ops: Vec<DrawOp>) -> Vec<(DrawOp, [Tint; 3])> {
+    ops.into_iter().map(|o| (o, [None; 3])).collect()
+}
+
+fn layer_ops(ev: &Eval, l: &Layer) -> Vec<(DrawOp, [Tint; 3])> {
     match l.kind {
-        LayerKind::Shape => shapes::shape_ops(ev, l),
+        LayerKind::Shape => plain(shapes::shape_ops(ev, l)),
         LayerKind::Text => {
             let Some(doc) = l.text_prop().map(|p| ev.value(l, p)).and_then(|v| v.as_text().cloned()) else { return vec![] };
-            if textanim::has_animation(l) { textanim::render_text(ev, l, &doc).ops } else { text::text_ops(&doc) }
+            if !textanim::has_animation(l) {
+                return plain(text::text_ops(&doc));
+            }
+            let r = textanim::render_text(ev, l, &doc);
+            match r.parts {
+                Some(parts) => parts.into_iter().flat_map(|(ops, t)| ops.into_iter().map(move |o| (o, t))).collect(),
+                None => plain(r.ops),
+            }
         }
         _ => vec![],
     }
@@ -260,7 +279,7 @@ fn push_quad(out: &mut Vec<Tri>, q: [[f64; 3]; 4], n: [[f32; 3]; 4], mat: u16) {
     out.push(Tri { v: [q[0], q[2], q[3]], n: [n[0], n[2], n[3]], uv: [uv; 3], mat });
 }
 
-fn shape_mesh(out: &mut Vec<Tri>, g: &Geo, outer: &[P2], holes: &[Vec<P2>], front: u16, side: u16) {
+fn shape_mesh(out: &mut Vec<Tri>, g: &Geo, outer: &[P2], holes: &[Vec<P2>], [front, bevel_mat, side]: [u16; 3]) {
     let total = g.depth.max(g.bevel);
     let bevel = g.bevel.min(total * 0.5).min(if g.depth > 0.0 { g.depth } else { total });
     let steps = match g.style {
@@ -319,7 +338,7 @@ fn shape_mesh(out: &mut Vec<Tri>, g: &Geo, outer: &[P2], holes: &[Vec<P2>], fron
                     nn = [-nn[0], -nn[1], -nn[2]];
                 }
                 let nf = norm3(nn);
-                push_quad(out, q, [nf; 4], front);
+                push_quad(out, q, [nf; 4], bevel_mat);
             }
         }
         let last = &rs[rs.len() - 1];
@@ -351,18 +370,16 @@ pub fn tris(ev: &Eval, l: &Layer) -> Option<(Vec<Tri>, Vec<MatEval>)> {
     let mut mats: Vec<MatEval> = vec![];
     let mut out = vec![];
     let mat = |c: [f64; 4], op: f32| MatEval { base: [c[0] as f32, c[1] as f32, c[2] as f32, c[3] as f32 * op], texture: None, metallic: 0.0, roughness: 0.55, emissive: [0.0; 3] };
-    for op in ops.iter() {
+    for (op, t) in ops.iter() {
         let OpKind::Fill { even_odd } = op.kind else { continue };
-        let c = paint_color(&op.paint);
+        let front_c = tint(paint_color(&op.paint), t[0]);
+        let bevel_c = tint(g.bevel_col.unwrap_or(front_c), t[1]);
+        let side_c = tint(g.side.unwrap_or(front_c), t[2]);
         let front = mats.len() as u16;
-        mats.push(mat(c, op.opacity));
-        let side = match g.side {
-            Some(s) => {
-                mats.push(mat(s, op.opacity));
-                front + 1
-            }
-            None => front,
-        };
+        let ids = [front, front + 1, front + 2];
+        for c in [front_c, bevel_c, side_c] {
+            mats.push(mat(c, op.opacity));
+        }
         let paths: Vec<_> = op.paths.iter().map(|p| p.transformed(&op.transform)).collect();
         let cs = super::shapeops::contours(&paths, 0.35);
         if cs.is_empty() {
@@ -375,7 +392,7 @@ pub fn tris(ev: &Eval, l: &Layer) -> Option<(Vec<Tri>, Vec<MatEval>)> {
             if outer.len() < 3 {
                 continue;
             }
-            shape_mesh(&mut out, &g, outer, holes, front, side);
+            shape_mesh(&mut out, &g, outer, holes, ids);
         }
     }
     (!out.is_empty()).then_some((out, mats))

@@ -197,7 +197,10 @@ fn material_params(g: &mut Group, p: &Json, lt: Option<f64>) -> Result<(), Strin
             set(g, k, Value::Bool(b), lt);
         }
     }
-    for k in ["lightTransmission", "ambient", "diffuse", "specularIntensity", "specularShininess", "metal", "reflectionIntensity"] {
+    if let Some(v) = pf(p, "indexOfRefraction") {
+        set(g, "indexOfRefraction", Value::Num(v.clamp(1.0, 5.0)), lt);
+    }
+    for k in ["lightTransmission", "ambient", "diffuse", "specularIntensity", "specularShininess", "metal", "reflectionIntensity", "reflectionSharpness", "reflectionRolloff", "transparency", "transparencyRolloff"] {
         if let Some(v) = pf(p, k) {
             set(g, k, Value::Num(v), lt);
         }
@@ -284,6 +287,7 @@ pub fn material_set(e: &mut Engine, p: &Json) -> Res {
     let now = e.time_of(cid);
     for id in &ids {
         let lt = pf(p, "time").or_else(|| e.layer_ref(cid, *id).ok().map(|l| l.layer_time(now)));
+        e.proj().upgrade_3d(Some((cid, *id)));
         let l = e.layer_mut(cid, *id)?;
         let g = l.props.sub_mut("materialOptions").ok_or_else(|| format!("{} has no Material Options", l.name))?;
         material_params(g, p, lt)?;
@@ -615,6 +619,7 @@ pub fn geometry_options(e: &mut Engine, p: &Json) -> Res {
         None => None,
     };
     let side = p.get("sideColor").and_then(parse_color);
+    let bevel_col = p.get("bevelColor").and_then(parse_color);
     let mut done = vec![];
     for lid in ids {
         let kind = e.layer_ref(cid, lid)?.kind;
@@ -631,6 +636,8 @@ pub fn geometry_options(e: &mut Engine, p: &Json) -> Res {
         if l.props.sub("geometryOptions").is_none() {
             l.props.children.push(Node::Group(g));
         }
+        e.proj().upgrade_3d(Some((cid, lid)));
+        let l = e.proj().comp_mut(cid).and_then(|c| c.layer_mut(lid)).ok_or("no such layer")?;
         let go = l.props.sub_mut("geometryOptions").ok_or("no Geometry Options")?;
         let mut set = |id: &str, v: Value| {
             if let Some(pr) = go.get_mut(id) {
@@ -651,6 +658,13 @@ pub fn geometry_options(e: &mut Engine, p: &Json) -> Res {
         }
         if let Some(b) = pb(p, "sidesUseFill") {
             set("sidesUseFill", Value::Bool(b));
+        }
+        if let Some(c) = bevel_col {
+            set("bevelColor", Value::Color(c));
+            set("bevelUsesFront", Value::Bool(false));
+        }
+        if let Some(b) = pb(p, "bevelUsesFront") {
+            set("bevelUsesFront", Value::Bool(b));
         }
         done.push(lid);
     }
