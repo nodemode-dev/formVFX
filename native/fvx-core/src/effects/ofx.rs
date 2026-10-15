@@ -24,6 +24,15 @@ const ERR_BAD_INDEX: Status = 10;
 const ERR_VALUE: Status = 11;
 const REPLY_DEFAULT: Status = 14;
 
+macro_rules! guard {
+    ($e:expr) => {
+        match $e {
+            Some(v) => v,
+            None => return ERR_BAD_HANDLE,
+        }
+    };
+}
+
 #[derive(Clone)]
 enum Pv {
     Ptr(Vec<usize>),
@@ -155,7 +164,15 @@ pub struct Plugin {
     unsafe_render: Option<Mutex<()>>,
     pool: Mutex<Vec<Pooled>>,
     rendered: std::sync::atomic::AtomicBool,
+    overlay: Option<Entry>,
+    sessions: Mutex<HashMap<u64, Session>>,
     pub spec: &'static EffectSpec,
+}
+
+impl Plugin {
+    pub fn has_overlay(&self) -> bool {
+        self.overlay.is_some()
+    }
 }
 
 impl Drop for Plugin {
@@ -164,7 +181,263 @@ impl Drop for Plugin {
         for p in all {
             destroy(self, p);
         }
+        let sessions: Vec<Session> = self.sessions.lock().drain().map(|x| x.1).collect();
+        for s in sessions {
+            if let Some(ov) = self.overlay {
+                call(ov, "OfxActionDestroyInstance", &*s.interact as *const Interact as *const c_void, None, None);
+            }
+            destroy(self, s.pooled);
+        }
     }
+}
+
+struct Interact {
+    props: Props,
+}
+
+struct Session {
+    pooled: Pooled,
+    interact: Box<Interact>,
+}
+
+struct DrawCtx {
+    color: Mutex<[f32; 4]>,
+    width: Mutex<f32>,
+    stipple: Mutex<c_int>,
+    prims: Mutex<Vec<serde_json::Value>>,
+    h: f64,
+}
+
+#[repr(C)]
+struct PointD {
+    x: f64,
+    y: f64,
+}
+
+unsafe extern "C" fn interact_swap(_h: *mut Interact) -> Status {
+    OK
+}
+
+unsafe extern "C" fn interact_redraw(_h: *mut Interact) -> Status {
+    OK
+}
+
+unsafe extern "C" fn interact_props(h: *mut Interact, out: *mut *mut Props) -> Status {
+    let i = guard!(unsafe { h.as_ref() });
+    if !out.is_null() {
+        unsafe { *out = &i.props as *const Props as *mut Props };
+    }
+    OK
+}
+
+#[repr(C)]
+struct InteractSuite {
+    f: [usize; 3],
+}
+
+fn interact_suite() -> &'static InteractSuite {
+    static S: OnceLock<InteractSuite> = OnceLock::new();
+    S.get_or_init(|| InteractSuite { f: [interact_swap as *const (), interact_redraw as *const (), interact_props as *const ()].map(fp) })
+}
+
+const STANDARD: [[f32; 4]; 7] = [[0.0, 0.0, 0.0, 1.0], [1.0, 0.85, 0.2, 1.0], [0.98, 0.45, 0.09, 1.0], [0.9, 0.9, 0.9, 1.0], [1.0, 1.0, 1.0, 1.0], [0.0, 0.0, 0.0, 1.0], [1.0, 1.0, 1.0, 1.0]];
+
+unsafe extern "C" fn draw_get_colour(_d: *mut DrawCtx, which: c_int, out: *mut [f32; 4]) -> Status {
+    let Some(c) = STANDARD.get(which.max(0) as usize) else { return ERR_VALUE };
+    if !out.is_null() {
+        unsafe { *out = *c };
+    }
+    OK
+}
+
+unsafe extern "C" fn draw_set_colour(d: *mut DrawCtx, c: *const [f32; 4]) -> Status {
+    let d = guard!(unsafe { d.as_ref() });
+    if let Some(c) = unsafe { c.as_ref() } {
+        *d.color.lock() = *c;
+    }
+    OK
+}
+
+unsafe extern "C" fn draw_set_width(d: *mut DrawCtx, w: f32) -> Status {
+    let d = guard!(unsafe { d.as_ref() });
+    *d.width.lock() = w.max(0.0);
+    OK
+}
+
+unsafe extern "C" fn draw_set_stipple(d: *mut DrawCtx, s: c_int) -> Status {
+    let d = guard!(unsafe { d.as_ref() });
+    *d.stipple.lock() = s;
+    OK
+}
+
+const PRIMS: [&str; 6] = ["lines", "strip", "loop", "rect", "polygon", "ellipse"];
+
+unsafe extern "C" fn draw_prim(d: *mut DrawCtx, kind: c_int, pts: *const PointD, n: c_int) -> Status {
+    let d = guard!(unsafe { d.as_ref() });
+    let Some(kind) = PRIMS.get(kind.max(0) as usize) else { return ERR_VALUE };
+    if pts.is_null() || n <= 0 {
+        return ERR_VALUE;
+    }
+    let pts: Vec<[f64; 2]> = (0..n.min(100_000) as usize).map(|i| unsafe { &*pts.add(i) }).map(|p| [p.x, d.h - p.y]).collect();
+    let mut v = d.prims.lock();
+    if v.len() < 10_000 {
+        v.push(serde_json::json!({"kind": kind, "pts": pts, "color": *d.color.lock(), "width": *d.width.lock(), "dash": *d.stipple.lock()}));
+    }
+    OK
+}
+
+unsafe extern "C" fn draw_text(d: *mut DrawCtx, text: *const c_char, pos: *const PointD, align: c_int) -> Status {
+    let d = guard!(unsafe { d.as_ref() });
+    let Some(p) = (unsafe { pos.as_ref() }) else { return ERR_VALUE };
+    let t = unsafe { key(text) }.unwrap_or("").chars().take(200).collect::<String>();
+    let mut v = d.prims.lock();
+    if v.len() < 10_000 {
+        v.push(serde_json::json!({"kind": "text", "pts": [[p.x, d.h - p.y]], "text": t, "align": align, "color": *d.color.lock()}));
+    }
+    OK
+}
+
+#[repr(C)]
+struct DrawSuite {
+    f: [usize; 6],
+}
+
+fn draw_suite() -> &'static DrawSuite {
+    static S: OnceLock<DrawSuite> = OnceLock::new();
+    S.get_or_init(|| DrawSuite { f: [draw_get_colour as *const (), draw_set_colour as *const (), draw_set_width as *const (), draw_set_stipple as *const (), draw_prim as *const (), draw_text as *const ()].map(fp) })
+}
+
+fn from_ofx(m: &ParamMap, v: &[f64], w: f64, h: f64) -> Option<Value> {
+    let g = |i: usize| v.get(i).copied().unwrap_or(0.0);
+    Some(match m.kind.as_str() {
+        "OfxParamTypeDouble" | "OfxParamTypeInteger" => Value::Num(g(0)),
+        "OfxParamTypeBoolean" => Value::Bool(g(0) != 0.0),
+        "OfxParamTypeChoice" => Value::Enum(g(0).max(0.0) as u32),
+        "OfxParamTypeRGB" => Value::Color([g(0), g(1), g(2), 1.0]),
+        "OfxParamTypeRGBA" => Value::Color([g(0), g(1), g(2), g(3)]),
+        "OfxParamTypeDouble2D" if m.point => {
+            if m.norm {
+                Value::Vec2([g(0) * w, h - g(1) * h])
+            } else {
+                Value::Vec2([g(0), h - g(1)])
+            }
+        }
+        "OfxParamTypeDouble2D" | "OfxParamTypeInteger2D" => Value::Vec2([g(0), g(1)]),
+        "OfxParamTypeDouble3D" | "OfxParamTypeInteger3D" => Value::Vec3([g(0), g(1), g(2)]),
+        _ => return None,
+    })
+}
+
+pub struct Overlay {
+    pub captured: bool,
+    pub prims: Vec<serde_json::Value>,
+    pub changed: Vec<(&'static str, Value)>,
+}
+
+pub fn interact(plug: &Plugin, uid: u64, c: &FxCtx, action: &str, pen: Option<[f64; 2]>, pixel_scale: f64) -> Result<Overlay, String> {
+    let ov = plug.overlay.ok_or("this plug-in draws no overlay")?;
+    let (w, h) = (c.size[0].max(1.0).round() as usize, c.size[1].max(1.0).round() as usize);
+    let (wf, hf) = (w as f64, h as f64);
+    let live = live_for(plug, c, w, h);
+    let prev = RENDER.with(|r| r.replace(Some(&live as *const Live as usize)));
+    let out = (|| {
+        let mut sessions = plug.sessions.lock();
+        if !sessions.contains_key(&uid) {
+            let pooled = Pooled { inst: instance(plug), last: HashMap::new() };
+            prepare(&pooled.inst, plug, c, w, h, 0, 0);
+            let s = call(plug.main, "OfxActionCreateInstance", handle_of(&pooled.inst), None, None);
+            if !ok(s) {
+                return Err(format!("create instance failed ({s})"));
+            }
+            let interact = Box::new(Interact { props: Props::default() });
+            let ip = &interact.props;
+            ip.s("OfxPropType", "OfxTypeInteract");
+            ip.p("OfxPropEffectInstance", handle_of(&pooled.inst) as usize);
+            ip.p("OfxPropInstanceData", 0);
+            ip.d("OfxInteractPropPixelScale", &[pixel_scale, pixel_scale]);
+            ip.d("OfxInteractPropBackgroundColour", &[0.0, 0.0, 0.0]);
+            ip.d("OfxInteractPropSuggestedColour", &[1.0, 1.0, 1.0]);
+            ip.i("OfxInteractPropBitDepth", &[8]);
+            ip.i("OfxInteractPropHasAlpha", &[1]);
+            ip.set("OfxInteractPropSlaveToParam", Pv::Str(vec![]));
+            let s = call(ov, "OfxActionCreateInstance", &*interact as *const Interact as *const c_void, None, None);
+            if !ok(s) {
+                destroy(plug, pooled);
+                return Err(format!("overlay create instance failed ({s})"));
+            }
+            sessions.insert(uid, Session { pooled, interact });
+        }
+        let sess = sessions.get_mut(&uid).ok_or("no overlay session")?;
+        prepare(&sess.pooled.inst, plug, c, w, h, 0, 0);
+        let changed = apply_values(&mut sess.pooled, plug, c, &live);
+        let handle = handle_of(&sess.pooled.inst);
+        let frame = c.t * c.fps;
+        if !changed.is_empty() {
+            let args = Props::default();
+            args.s("OfxPropChangeReason", "OfxChangeUserEdited");
+            call(plug.main, "OfxActionBeginInstanceChanged", handle, Some(&args), None);
+            for name in &changed {
+                let a = Props::default();
+                a.s("OfxPropType", "OfxTypeParameter");
+                a.s("OfxPropName", name);
+                a.s("OfxPropChangeReason", "OfxChangeUserEdited");
+                a.d("OfxPropTime", &[frame]);
+                a.d("OfxImageEffectPropRenderScale", &[1.0, 1.0]);
+                call(plug.main, "OfxActionInstanceChanged", handle, Some(&a), None);
+            }
+            call(plug.main, "OfxActionEndInstanceChanged", handle, Some(&args), None);
+        }
+        let ih = &*sess.interact as *const Interact as *const c_void;
+        sess.interact.props.d("OfxInteractPropPixelScale", &[pixel_scale, pixel_scale]);
+        let base = |a: &Props| {
+            a.p("OfxPropEffectInstance", handle as usize);
+            a.d("OfxInteractPropPixelScale", &[pixel_scale, pixel_scale]);
+            a.d("OfxInteractPropBackgroundColour", &[0.0, 0.0, 0.0]);
+            a.d("OfxPropTime", &[frame]);
+            a.d("OfxImageEffectPropRenderScale", &[1.0, 1.0]);
+            a.d("OfxInteractPropViewportSize", &[wf, hf]);
+        };
+        let snapshot: Vec<(String, Vec<f64>)> = sess.pooled.inst.params.params.lock().iter().map(|p| (p.name.clone(), p.val.lock().clone())).collect();
+        let mut captured = false;
+        if let Some(pt) = pen {
+            let a = Props::default();
+            base(&a);
+            a.d("OfxInteractPropPenPosition", &[pt[0], hf - pt[1]]);
+            a.i("OfxInteractPropPenViewportPosition", &[(pt[0] / pixel_scale) as c_int, ((hf - pt[1]) / pixel_scale) as c_int]);
+            a.d("OfxInteractPropPenPressure", &[1.0]);
+            let name = match action {
+                "down" => "OfxInteractActionPenDown",
+                "up" => "OfxInteractActionPenUp",
+                _ => "OfxInteractActionPenMotion",
+            };
+            captured = call(ov, name, ih, Some(&a), None) == OK;
+        }
+        let mut out_changed = vec![];
+        {
+            let ps = sess.pooled.inst.params.params.lock();
+            for (name, before) in &snapshot {
+                let Some(p) = ps.iter().find(|p| &p.name == name) else { continue };
+                let now = p.val.lock().clone();
+                if now == *before {
+                    continue;
+                }
+                let Some(m) = plug.map.iter().find(|m| &m.ofx == name) else { continue };
+                if let Some(v) = from_ofx(m, &now, wf, hf) {
+                    out_changed.push((m.id, v));
+                }
+                sess.pooled.last.insert(name.clone(), (now, String::new()));
+            }
+        }
+        let dc = Box::new(DrawCtx { color: Mutex::new([1.0; 4]), width: Mutex::new(1.0), stipple: Mutex::new(0), prims: Mutex::new(vec![]), h: hf });
+        let a = Props::default();
+        base(&a);
+        a.p("OfxInteractPropDrawContext", &*dc as *const DrawCtx as usize);
+        call(ov, "OfxInteractActionDraw", ih, Some(&a), None);
+        let prims = std::mem::take(&mut *dc.prims.lock());
+        Ok(Overlay { captured, prims, changed: out_changed })
+    })();
+    RENDER.with(|x| x.set(prev));
+    out
 }
 
 unsafe impl Send for Plugin {}
@@ -211,14 +484,6 @@ unsafe fn props<'a>(h: *mut Props) -> Option<&'a Props> {
     unsafe { h.as_ref() }
 }
 
-macro_rules! guard {
-    ($e:expr) => {
-        match $e {
-            Some(v) => v,
-            None => return ERR_BAD_HANDLE,
-        }
-    };
-}
 
 unsafe extern "C" fn set_ptr(h: *mut Props, k: *const c_char, i: c_int, v: *mut c_void) -> Status {
     unsafe { set_one(h, k, i, |e| if let Pv::Ptr(x) = e { Some(x) } else { None }, || Pv::Ptr(vec![]), v as usize) }
@@ -1202,7 +1467,7 @@ fn host_props() -> *mut Props {
         p.s("OfxPropVersionLabel", version);
         p.i("OfxPropAPIVersion", &[1, 4]);
         p.i("OfxImageEffectHostPropIsBackground", &[0]);
-        p.i("OfxImageEffectPropSupportsOverlays", &[0]);
+        p.i("OfxImageEffectPropSupportsOverlays", &[1]);
         p.i("OfxImageEffectPropSupportsMultiResolution", &[1]);
         p.i("OfxImageEffectPropSupportsTiles", &[0]);
         p.i("OfxImageEffectPropTemporalClipAccess", &[1]);
@@ -1245,6 +1510,8 @@ unsafe extern "C" fn fetch_suite(_host: *mut Props, name: *const c_char, version
         ("OfxMemorySuite", 1) => memory_suite() as *const MemorySuite as *const c_void,
         ("OfxMultiThreadSuite", 1) => multi_thread_suite() as *const MultiThreadSuite as *const c_void,
         ("OfxMessageSuite", 1) | ("OfxMessageSuite", 2) => message_suite() as *const MessageSuite as *const c_void,
+        ("OfxInteractSuite", 1) => interact_suite() as *const InteractSuite as *const c_void,
+        ("OfxDrawSuite", 1) => draw_suite() as *const DrawSuite as *const c_void,
         _ => std::ptr::null(),
     }
 }
@@ -1574,6 +1841,18 @@ unsafe fn describe(path: &str, raw: &RawPlugin, ident: &str) -> Result<Arc<Plugi
     let safety = ctx.props.get_s("OfxImageEffectPluginRenderThreadSafety").into_iter().next().unwrap_or_default();
     let spec: &'static EffectSpec = Box::leak(Box::new(EffectSpec { id: leak(&id), name: leak(&name), category: leak(&category), params, render, pad }));
     let single = ctx.props.get_i("OfxImageEffectPluginPropSingleInstance").first().copied().unwrap_or(0) != 0;
+    let ov_ptr = match ctx.props.map.lock().get("OfxImageEffectPluginPropOverlayInteractV2") {
+        Some(Pv::Ptr(v)) => v.first().copied().unwrap_or(0),
+        _ => 0,
+    };
+    let overlay: Option<Entry> = (ov_ptr != 0).then(|| unsafe { std::mem::transmute::<usize, Entry>(ov_ptr) });
+    if let Some(ov) = overlay {
+        let d = Box::new(Interact { props: Props::default() });
+        d.props.s("OfxPropType", "OfxTypeInteract");
+        d.props.i("OfxInteractPropHasAlpha", &[1]);
+        d.props.i("OfxInteractPropBitDepth", &[8]);
+        call(ov, "OfxActionDescribe", &*d as *const Interact as *const c_void, None, None);
+    }
     Ok(Arc::new(Plugin {
         id,
         name,
@@ -1589,6 +1868,8 @@ unsafe fn describe(path: &str, raw: &RawPlugin, ident: &str) -> Result<Arc<Plugi
         unsafe_render: (safety == "OfxImageEffectRenderUnsafe" || single).then(|| Mutex::new(())),
         pool: Mutex::new(vec![]),
         rendered: std::sync::atomic::AtomicBool::new(false),
+        overlay,
+        sessions: Mutex::new(HashMap::new()),
         spec,
     }))
 }

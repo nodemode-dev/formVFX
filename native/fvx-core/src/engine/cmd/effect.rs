@@ -243,6 +243,67 @@ pub fn plugins_list(_: &mut Engine, _: &Json) -> Res {
     Ok(json!({"folder": effects::plugin::folder().to_string_lossy(), "abi": effects::plugin::ABI, "plugins": rows, "ofx": ofx, "ofxFolders": folders, "ofxArch": effects::ofx::arch_dir(), "ofxMessages": effects::ofx::messages().lock().clone(), "errors": errors}))
 }
 
+pub fn ofx_overlay(e: &mut Engine, p: &Json) -> Res {
+    let (cid, lid) = e.layer_param(p)?;
+    let action = ps(p, "action").unwrap_or("draw").to_string();
+    if !matches!(action.as_str(), "draw" | "down" | "motion" | "up") {
+        return Err("action is draw, down, motion or up".into());
+    }
+    let only = p.get("effect").and_then(Json::as_u64);
+    let pen = match (p.get("x").and_then(Json::as_f64), p.get("y").and_then(Json::as_f64)) {
+        (Some(x), Some(y)) => Some([x, y]),
+        _ => None,
+    };
+    if action != "draw" && pen.is_none() {
+        return Err("pass `x` and `y` (layer pixels) with a pen action".into());
+    }
+    let scale = p.get("pixelScale").and_then(Json::as_f64).filter(|s| *s > 0.0).unwrap_or(1.0);
+    let t = e.time_of(cid);
+    let mut out = vec![];
+    let mut writes: Vec<(u64, &'static str, crate::model::Value)> = vec![];
+    let lt;
+    {
+        let pj = &e.project;
+        let comp = pj.comp(cid).ok_or("no composition")?;
+        let l = comp.layer(lid).ok_or("no such layer")?;
+        lt = l.layer_time(t);
+        let ev = crate::eval::Eval::new(pj, cid, comp, t);
+        let (sw, sh) = pj.source_size(l, comp);
+        if let Some(fx) = l.effects() {
+            for g in fx.groups().filter(|g| g.enabled) {
+                let GroupKind::Effect { effect } = &g.kind else { continue };
+                if !effect.starts_with("ofx.") || only.is_some_and(|u| u != g.uid) {
+                    continue;
+                }
+                let Some(plug) = effects::ofx::find(effect) else { continue };
+                if !plug.has_overlay() {
+                    continue;
+                }
+                let params = effects::params_at(&ev, l, g);
+                let c = effects::FxCtx { p: &params, t: lt, r: 1.0, origin: [0.0; 2], size: [sw, sh], fps: comp.frame_rate, host: None, cconv: None, settings: None };
+                let act = if only.is_some() { action.as_str() } else { "draw" };
+                let o = effects::ofx::interact(&plug, g.uid, &c, act, if act == "draw" { None } else { pen }, scale)?;
+                for (id, v) in o.changed {
+                    writes.push((g.uid, id, v));
+                }
+                out.push(json!({"effect": g.uid, "name": g.name, "captured": o.captured, "prims": o.prims}));
+            }
+        }
+    }
+    if !writes.is_empty() {
+        let l = e.layer_mut(cid, lid)?;
+        for (uid, id, v) in writes {
+            if let Some(g) = l.props.find_group_mut(uid)
+                && let Some(pr) = g.get_mut(id)
+            {
+                super::prop::set_value_at(pr, v, Some(lt));
+            }
+        }
+        e.set_label("OpenFX Overlay".to_string());
+    }
+    Ok(json!({"layer": lid, "overlays": out}))
+}
+
 fn copy_tree(from: &std::path::Path, to: &std::path::Path) -> std::io::Result<()> {
     if from.is_dir() {
         std::fs::create_dir_all(to)?;

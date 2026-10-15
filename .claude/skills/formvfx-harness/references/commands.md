@@ -2,11 +2,11 @@
 
 Generated from the formvfx engine by `./formvfx agents sync`; do not edit by hand.
 
-696 commands in 62 namespaces. Every menu item, button and drag in formvfx is one of these. Run one with `execute {command, params}` over MCP, inside `batch` for several as one undo step, or `formvfx exec ID 'JSON'` from a shell. `describe_command ID` returns the JSON Schema. In the parameter summaries `?` marks an optional parameter, `a|b` lists the accepted values, and `layers?`/`layer?` default to the selected layers. Times are composition seconds unless the summary says layer seconds.
+697 commands in 62 namespaces. Every menu item, button and drag in formvfx is one of these. Run one with `execute {command, params}` over MCP, inside `batch` for several as one undo step, or `formvfx exec ID 'JSON'` from a shell. `describe_command ID` returns the JSON Schema. In the parameter summaries `?` marks an optional parameter, `a|b` lists the accepted values, and `layers?`/`layer?` default to the selected layers. Times are composition seconds unless the summary says layer seconds.
 
 ## Contents
 
-`file` (59) `edit` (26) `project` (11) `item` (1) `footage` (9) `comp` (26) `layer` (113) `prop` (17) `keys` (34) `anim` (8) `time` (13) `markers` (5) `effect` (17) `mask` (17) `path` (6) `paths` (3) `shape` (6) `text` (15) `camera` (19) `light` (3) `material` (4) `track` (22) `warp` (3) `roto` (14) `paint` (6) `puppet` (10) `liquify` (2) `contentFill` (2) `face` (5) `essential` (27) `expr` (2) `script` (1) `scriptui` (7) `render` (4) `renderQueue` (22) `playback` (6) `view` (61) `window` (8) `editor` (1) `scopes` (1) `cache` (2) `jobs` (3) `mediaBrowser` (7) `templates` (5) `prefs` (5) `shortcuts` (7) `storage` (3) `app` (12) `engine` (1) `command` (2) `motion` (1) `learn` (5) `help` (6) `behavior` (4) `clipboard` (1) `cloner` (2) `color` (2) `data` (3) `export` (1) `extensions` (5) `physics` (1) `rig` (2)
+`file` (59) `edit` (26) `project` (11) `item` (1) `footage` (9) `comp` (26) `layer` (113) `prop` (17) `keys` (34) `anim` (8) `time` (13) `markers` (5) `effect` (18) `mask` (17) `path` (6) `paths` (3) `shape` (6) `text` (15) `camera` (19) `light` (3) `material` (4) `track` (22) `warp` (3) `roto` (14) `paint` (6) `puppet` (10) `liquify` (2) `contentFill` (2) `face` (5) `essential` (27) `expr` (2) `script` (1) `scriptui` (7) `render` (4) `renderQueue` (22) `playback` (6) `view` (61) `window` (8) `editor` (1) `scopes` (1) `cache` (2) `jobs` (3) `mediaBrowser` (7) `templates` (5) `prefs` (5) `shortcuts` (7) `storage` (3) `app` (12) `engine` (1) `command` (2) `motion` (1) `learn` (5) `help` (6) `behavior` (4) `clipboard` (1) `cloner` (2) `color` (2) `data` (3) `export` (1) `extensions` (5) `physics` (1) `rig` (2)
 
 ## file
 
@@ -656,6 +656,8 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `{path (.wasm or .wat, or an OpenFX .ofx.bundle or the .ofx inside one), install?: bool (copy it into the Plug-ins folder so it loads at every start)} · a WebAssembly effect plug-in (ABI in docs/PLUGINS.md), sandboxed, or an OpenFX image effect (filter, general or generator context), which runs native code in the engine; its effects appear in the Effect menu and Effects & Presets`
 - `effect.plugins.reload` Reload Plug-ins
   `{} · loads the Plug-ins folder again, and OpenFX bundles from OFX_PLUGIN_PATH and the system OpenFX folder (a bundle that stopped formvfx while loading is skipped until Load Plug-in loads it on purpose)`
+- `effect.ofxOverlay` OpenFX Overlay
+  `{layer?, action?: draw|down|motion|up, effect? (uid; required for pen actions), x?, y? (layer pixels), pixelScale? (layer pixels per screen pixel), merge?} -> {overlays: [{effect, name, captured, prims: [{kind: lines|strip|loop|rect|polygon|ellipse|text, pts (layer pixels), color, width?, dash?, text?, align?}]}]} · draws the overlays of the layer's OpenFX effects that offer one (draw suite) and passes pen events to them; values a plug-in changes are set on the effect (undoable, `merge` joins a drag)`
 - `effect.remove` Remove Effect
   `{layer?, effect: uid|index|name}`
 - `effect.removeAll` Remove All · Effect · Cmd+Shift+E
