@@ -55,6 +55,14 @@ Living context for the engine service. Code carries almost no comments; the reas
 
 - `routers/extensions.py` serves an installed CEP extension's files at `/api/extensions/[folder]/[path]`. The folder must be one `extensions.list` reports, and the resolved path must stay inside it. HTML pages get the `__adobe_cep__` and `CSInterface` shim injected after `head`, so a panel that ships its own `CSInterface.js` still finds the bridge it calls; `/api/extensions/_csinterface.js` serves the fallback alone for panels that load it by path.
 
+## Embedded Claude Code and Chat (0.30.0)
+
+- `app/agent/claude_code.py`: finds the Claude Code CLI the way a packaged app must, since a GUI app gets a minimal PATH: `FORMVFX_CLAUDE_BIN`, PATH, `~/.claude/local`, `~/.local/bin`, npm, bun and volta folders, Homebrew and `/usr/local/bin`, then `$SHELL -l -c 'command -v claude'`. `argv` (terminal) and `headless` (Chat) pass the formvfx MCP server inline over HTTP with the per-boot `x-formvfx-agent-token`, so Claude Code connects with no project approval step and is trusted; `--allowedTools mcp__formvfx ToolSearch` and the system note `NOTE`. On POSIX the command runs through `$SHELL -l -c exec ...` so the person's PATH applies. `child_env` drops `CLAUDE*` variables except the four credential and config ones.
+- The note names ToolSearch with the exact `select:` query because Claude Code defers MCP tools: without it the agent fell back to Bash and the `formvfx` shim.
+- `routers/terminal.py`: `Session` takes an optional argv; the socket's `agent=claude` (with `prompt`, `resume`) spawns Claude Code as the PTY's process instead of typing `claude` into a shell, which failed whenever `claude` was not on the GUI PATH. `status` reports `claude` from `claude_code.info()`. Codex and Cursor still launch by name in the shell.
+- `app/agent/chat.py` and `routers/chat.py` (`/api/chat/state|claude|send|cancel|reset`): one headless `claude -p --output-format stream-json --verbose --include-partial-messages` turn at a time on a daemon thread, `--resume` with the session from `system/init`; publishes `{"type": "chat", "kind": user|start|init|delta|tool|toolDone|usage|done|reset}` to windows over the bus. Subagent events (`parent_tool_use_id`) and the ToolSearch chip are skipped; 200 messages kept in memory.
+- `routers/mcp.py`: `tools/list` and `prompts/list` carry `LIST_CACHE` (`ttlMs`, `cacheScope`) under protocol 2026-07-28. Claude Code 2.1.300 rejects a 2026-07-28 list result without them (`Invalid result for tools/list: ttlMs expected number`) and then shows no formvfx tools at all: this was why Claude Code did not connect, over HTTP and over the stdio relay alike.
+
 ## Known gaps
 
 - None recorded at 0.3.0; the desktop sidecar freeze and the Tauri shell shipped in 0.2.0.
