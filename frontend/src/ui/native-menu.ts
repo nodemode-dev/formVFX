@@ -1,6 +1,6 @@
 import type { Ctx } from '../app/ctx';
 import type { MenuNode } from '../engine/types';
-import { t } from './i18n';
+import { onLanguage, t } from './i18n';
 import type { MenuExtras } from './menubar';
 import type { PopupEntry } from './popup';
 
@@ -51,6 +51,7 @@ export class NativeMenus {
   start(): void {
     document.documentElement.classList.add('has-native-menus');
     this.ctx.client.events.on('open', () => this.schedule(0));
+    onLanguage(() => this.schedule(0));
     this.ctx.store.events.on('state', (st) => {
       if (st.revision === this.revision) return;
       this.revision = st.revision;
