@@ -437,6 +437,12 @@ impl Engine {
                     let fx: Vec<String> = if with_fx { l.effects().map(|g| g.groups().map(|e| e.name.clone()).collect()).unwrap_or_default() } else { vec![] };
                     nodes.push(json!({"id": lid, "kind": "layer", "layer": l.id, "comp": cid, "name": l.name, "type": l.type_name(), "effects": fx}));
                     edges.push(json!({"from": lid, "to": format!("i{cid}")}));
+                    if let Some(p) = l.parent {
+                        edges.push(json!({"from": format!("l{p}"), "to": lid, "kind": "parent"}));
+                    }
+                    if let Some(m) = &l.track_matte {
+                        edges.push(json!({"from": format!("l{}", m.layer), "to": lid, "kind": "matte", "label": m.kind.label()}));
+                    }
                     lid
                 } else {
                     format!("i{cid}")
