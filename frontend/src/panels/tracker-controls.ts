@@ -1,7 +1,7 @@
 import type { Ctx } from '../app/ctx';
 import type { GroupNode } from '../engine/types';
 import { Dialog } from '../ui/dialogs';
-import { el, q, setDisabled, setHidden, setText } from '../ui/dom';
+import { el, q, setClass, setDisabled, setHidden, setText } from '../ui/dom';
 import { icon } from '../ui/icons';
 import { toast } from '../ui/toast';
 import { field, select } from './assistants';
@@ -161,6 +161,7 @@ export class MotionTracker {
   private readonly rot = check('rotation', 'Rotation');
   private readonly scl = check('scale', 'Scale');
   private readonly status = el('<div class="fx-assist-status" data-automation-id="tracker.motion.status"></div>');
+  private readonly meter = el('<div class="fx-tracker-meter" data-automation-id="tracker.motion.meter"><div class="fx-tracker-meter-fill"></div></div>');
   private readonly trackerRows: HTMLElement[];
   private readonly methodRow: HTMLElement;
   private readonly analyze: HTMLButtonElement[];
@@ -209,7 +210,7 @@ export class MotionTracker {
     rowBtns.append(this.options, this.reset, this.apply);
     this.trackerRows = [field('Current Track', this.current), field('Track Type', this.kind), checks, field('Motion Target', this.target), rowBtns];
     this.methodRow = field('Mask Method', this.method);
-    this.el.append(field('Motion Source', this.source), ...this.trackerRows, this.methodRow, bar, this.status);
+    this.el.append(field('Motion Source', this.source), ...this.trackerRows, this.methodRow, bar, this.status, this.meter);
     this.source.addEventListener('change', () => {
       this.layer = Number(this.source.value) || 0;
       this.refresh(0);
@@ -316,6 +317,10 @@ export class MotionTracker {
       text = `${t.name}: ${t.points.length} track point${t.points.length === 1 ? '' : 's'}, ${keys} frame${keys === 1 ? '' : 's'} analyzed${tgt ? `; target ${tgt}` : ''}. Move the points in the viewer, then Analyze.`;
     } else text = 'Track Motion or Stabilize Motion adds a tracker to the source layer.';
     setText(this.status, text);
+    const meterFill = this.meter.firstElementChild as HTMLElement;
+    const width = running && p && p.total > 0 ? `${((100 * p.done) / p.total).toFixed(1)}%` : '0%';
+    if (meterFill.style.width !== width) meterFill.style.width = width;
+    setClass(this.meter, 'is-running', running);
   }
 
   private async act(cmd: string, params: Record<string, unknown>): Promise<void> {

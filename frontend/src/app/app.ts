@@ -14,6 +14,7 @@ import { AlignPanel, CharacterPanel, CommandPanel, HistoryPanel, InfoPanel, Para
 import { TerminalPanel } from '../panels/terminal';
 import { ChatPanel } from '../panels/chat';
 import { LumetriScopesPanel, ProgressPanel } from '../panels/scopes';
+import { LearnPanel } from '../panels/learn';
 import { TimelinePanel } from '../panels/timeline';
 import { TrackerPanel } from '../panels/tracker';
 import { editTarget, trackerOptions } from '../panels/tracker-controls';
@@ -208,6 +209,7 @@ class App {
     this.dock.register('renderQueue', 'Render Queue', () => new RenderQueuePanel(ctx));
     this.dock.register('history', 'History', () => new HistoryPanel(ctx));
     this.dock.register('terminal', 'Terminal', () => this.terminal);
+    this.dock.register('learn', 'Learn', () => new LearnPanel(ctx));
     this.dock.register('chat', 'Chat', () => new ChatPanel(ctx, (session) => this.terminal.launch('claude', undefined, session ?? undefined)));
     this.dock.register('agents', 'Agents', () => new AgentsPanel(ctx));
     this.dock.register('flowchart', 'Flowchart', () => new FlowchartPanel(ctx));
