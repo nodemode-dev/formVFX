@@ -1,4 +1,12 @@
 {
+"Dynamic Link": "Dynamic Link",
+"Export Link for Active Comp": "Link für aktive Komposition exportieren",
+"No link requests yet.": "Noch keine Link-Anfragen.",
+"Only the open project is being served.": "Es wird nur das geöffnete Projekt bereitgestellt.",
+"Projects being served": "Bereitgestellte Projekte",
+"Recent link requests": "Letzte Link-Anfragen",
+"An editor such as formcut plays a linked composition live, with no render.": "Ein Editor wie formcut spielt eine verknüpfte Komposition live ab, ohne Rendering.",
+"Links keep working when a project is moved or renamed: formvfx finds it again beside the .fvxlink, in its old folder or among recent projects.": "Links funktionieren weiter, wenn ein Projekt verschoben oder umbenannt wird: formvfx findet es neben der .fvxlink, in seinem alten Ordner oder unter den letzten Projekten wieder.",
 "Cache Frames When Idle is on": "Frames im Leerlauf zwischenspeichern ist aktiviert",
 "Cache Frames When Idle is off": "Frames im Leerlauf zwischenspeichern ist deaktiviert",
 "Drag to a layer to parent this layer to it": "Auf eine Ebene ziehen, um sie dieser Ebene als übergeordnete Ebene zuzuweisen",

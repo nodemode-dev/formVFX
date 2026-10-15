@@ -410,6 +410,21 @@
 .fx-lp-row-meta { color: var(--text-muted); font-family: var(--font-mono); font-size: var(--fs-10); }
 .fx-lp-row-summary { grid-column: 1 / -1; color: var(--text-muted); font-size: var(--fs-11, 11px); line-height: 1.45; }
 .fx-learn-docked [data-automation-id="learn.coach"] { display: none; }
+.fx-dl { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; background: var(--bg-primary); }
+.fx-dl > .fx-term-bar { flex: none; min-height: 34px; }
+.fx-dl-version { color: var(--text-muted); font-family: var(--font-mono); font-size: var(--fs-10); }
+.fx-dl-note { margin: 8px 12px 4px; color: var(--text-muted); font-size: var(--fs-11, 11px); line-height: 1.5; }
+.fx-dl-h { margin: 10px 12px 4px; color: var(--text-secondary); font-size: var(--fs-11, 11px); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.fx-dl-served, .fx-dl-recent { display: flex; flex-direction: column; gap: 2px; padding: 0 8px; }
+.fx-dl-row { display: grid; grid-template-columns: 7ch 6ch minmax(0, 14ch) minmax(0, 1fr); gap: 8px; align-items: center; min-height: 22px; padding: 2px 4px; border-radius: 4px; color: var(--text-primary); font-size: var(--fs-11, 11px); }
+.fx-dl-served .fx-dl-row { grid-template-columns: minmax(0, 16ch) minmax(0, 1fr); }
+.fx-dl-when, .fx-dl-kind { color: var(--text-muted); font-family: var(--font-mono); font-size: var(--fs-10); font-variant-numeric: tabular-nums; }
+.fx-dl-name, .fx-dl-path, .fx-dl-msg { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fx-dl-path, .fx-dl-msg { color: var(--text-muted); }
+.fx-dl-row.is-relinked .fx-dl-msg { color: var(--accent-color); }
+.fx-dl-row.is-error .fx-dl-msg, .fx-dl-row.is-error .fx-dl-path { color: var(--danger, #e5484d); }
+.fx-dl-empty { margin: 0 12px; color: var(--text-muted); font-size: var(--fs-11, 11px); }
+.fx-dl-empty[hidden] { display: none; }
 .fx-scopes { flex: 1; min-height: 0; display: grid; grid-template-rows: 34px minmax(0, 1fr); background: var(--bg-primary); }
 .fx-scopes-stats { color: var(--text-muted); font-family: var(--font-mono); font-size: var(--fs-10); font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; }
 .fx-scopes-stage { position: relative; min-height: 0; overflow: hidden; }

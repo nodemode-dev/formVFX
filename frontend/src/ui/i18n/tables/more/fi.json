@@ -1,4 +1,12 @@
 {
+"Dynamic Link": "Dynamic Link",
+"Export Link for Active Comp": "Vie aktiivisen sommitelman linkki",
+"No link requests yet.": "Ei vielä linkkipyyntöjä.",
+"Only the open project is being served.": "Vain avoin projekti tarjotaan.",
+"Projects being served": "Tarjotut projektit",
+"Recent link requests": "Viimeisimmät linkkipyynnöt",
+"An editor such as formcut plays a linked composition live, with no render.": "Muokkausohjelma, kuten formcut, toistaa linkitetyn sommitelman suoraan ilman renderöintiä.",
+"Links keep working when a project is moved or renamed: formvfx finds it again beside the .fvxlink, in its old folder or among recent projects.": "Linkit toimivat edelleen, kun projekti siirretään tai nimetään uudelleen: formvfx löytää sen uudelleen .fvxlink-tiedoston vierestä, vanhasta kansiostaan tai viimeisimpien projektien joukosta.",
 "Cache Frames When Idle is on": "Tallenna ruutuja välimuistiin joutilaana: päällä",
 "Cache Frames When Idle is off": "Tallenna ruutuja välimuistiin joutilaana: pois päältä",
 "Drag to a layer to parent this layer to it": "Vedä tasolle asettaaksesi sen tämän tason ylätasoksi",

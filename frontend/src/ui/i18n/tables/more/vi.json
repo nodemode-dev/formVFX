@@ -1,4 +1,12 @@
 {
+"Dynamic Link": "Dynamic Link",
+"Export Link for Active Comp": "Xuất liên kết cho hợp phần đang dùng",
+"No link requests yet.": "Chưa có yêu cầu liên kết nào.",
+"Only the open project is being served.": "Chỉ dự án đang mở được cung cấp.",
+"Projects being served": "Dự án đang được cung cấp",
+"Recent link requests": "Yêu cầu liên kết gần đây",
+"An editor such as formcut plays a linked composition live, with no render.": "Một trình biên tập như formcut phát trực tiếp hợp phần được liên kết, không cần kết xuất.",
+"Links keep working when a project is moved or renamed: formvfx finds it again beside the .fvxlink, in its old folder or among recent projects.": "Liên kết vẫn hoạt động khi dự án bị di chuyển hoặc đổi tên: formvfx tìm lại dự án bên cạnh .fvxlink, trong thư mục cũ hoặc trong các dự án gần đây.",
 "Cache Frames When Idle is on": "Lưu đệm khung hình khi rảnh: bật",
 "Cache Frames When Idle is off": "Lưu đệm khung hình khi rảnh: tắt",
 "Drag to a layer to parent this layer to it": "Kéo tới một lớp để đặt lớp đó làm cha của lớp này",

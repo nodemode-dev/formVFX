@@ -1,4 +1,12 @@
 {
+"Dynamic Link": "Dynamic Link",
+"Export Link for Active Comp": "Експортувати посилання на активну композицію",
+"No link requests yet.": "Запитів за посиланнями ще немає.",
+"Only the open project is being served.": "Надається лише відкритий проєкт.",
+"Projects being served": "Проєкти, що надаються",
+"Recent link requests": "Нещодавні запити за посиланнями",
+"An editor such as formcut plays a linked composition live, with no render.": "Редактор, наприклад formcut, відтворює пов'язану композицію наживо, без рендерингу.",
+"Links keep working when a project is moved or renamed: formvfx finds it again beside the .fvxlink, in its old folder or among recent projects.": "Посилання працюють, навіть якщо проєкт переміщено або перейменовано: formvfx знову знаходить його поруч із .fvxlink, у попередній теці або серед нещодавніх проєктів.",
 "Cache Frames When Idle is on": "Кешувати кадри під час простою: увімкнено",
 "Cache Frames When Idle is off": "Кешувати кадри під час простою: вимкнено",
 "Drag to a layer to parent this layer to it": "Перетягніть на шар, щоб призначити його батьківським для цього шару",

@@ -1,4 +1,12 @@
 {
+"Dynamic Link": "Dynamic Link",
+"Export Link for Active Comp": "활성 컴포지션 링크 내보내기",
+"No link requests yet.": "아직 링크 요청이 없습니다.",
+"Only the open project is being served.": "열려 있는 프로젝트만 제공됩니다.",
+"Projects being served": "제공 중인 프로젝트",
+"Recent link requests": "최근 링크 요청",
+"An editor such as formcut plays a linked composition live, with no render.": "formcut 같은 편집기는 링크된 컴포지션을 렌더링 없이 실시간으로 재생합니다.",
+"Links keep working when a project is moved or renamed: formvfx finds it again beside the .fvxlink, in its old folder or among recent projects.": "프로젝트를 이동하거나 이름을 바꿔도 링크는 계속 작동합니다. formvfx는 .fvxlink 옆, 이전 폴더 또는 최근 프로젝트에서 프로젝트를 다시 찾습니다.",
 "Cache Frames When Idle is on": "유휴 시 프레임 캐시: 켜짐",
 "Cache Frames When Idle is off": "유휴 시 프레임 캐시: 꺼짐",
 "Drag to a layer to parent this layer to it": "레이어로 드래그하면 해당 레이어가 이 레이어의 부모가 됩니다",

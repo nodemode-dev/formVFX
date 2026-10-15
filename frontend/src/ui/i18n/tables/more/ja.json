@@ -1,4 +1,12 @@
 {
+"Dynamic Link": "Dynamic Link",
+"Export Link for Active Comp": "アクティブなコンポジションのリンクを書き出し",
+"No link requests yet.": "リンクリクエストはまだありません。",
+"Only the open project is being served.": "開いているプロジェクトのみが提供されています。",
+"Projects being served": "提供中のプロジェクト",
+"Recent link requests": "最近のリンクリクエスト",
+"An editor such as formcut plays a linked composition live, with no render.": "formcut などのエディターは、リンクされたコンポジションをレンダーせずにライブで再生します。",
+"Links keep working when a project is moved or renamed: formvfx finds it again beside the .fvxlink, in its old folder or among recent projects.": "プロジェクトを移動または名前変更してもリンクは機能し続けます。formvfx は .fvxlink の隣、元のフォルダー、または最近のプロジェクトから再び見つけます。",
 "Cache Frames When Idle is on": "アイドル時にフレームをキャッシュ: オン",
 "Cache Frames When Idle is off": "アイドル時にフレームをキャッシュ: オフ",
 "Drag to a layer to parent this layer to it": "レイヤーにドラッグすると、そのレイヤーがこのレイヤーの親になります",

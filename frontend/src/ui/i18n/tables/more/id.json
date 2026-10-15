@@ -1,4 +1,12 @@
 {
+"Dynamic Link": "Dynamic Link",
+"Export Link for Active Comp": "Ekspor Tautan untuk Komposisi Aktif",
+"No link requests yet.": "Belum ada permintaan tautan.",
+"Only the open project is being served.": "Hanya proyek yang terbuka yang disajikan.",
+"Projects being served": "Proyek yang disajikan",
+"Recent link requests": "Permintaan tautan terbaru",
+"An editor such as formcut plays a linked composition live, with no render.": "Editor seperti formcut memutar komposisi yang tertaut secara langsung, tanpa render.",
+"Links keep working when a project is moved or renamed: formvfx finds it again beside the .fvxlink, in its old folder or among recent projects.": "Tautan tetap berfungsi saat proyek dipindahkan atau diganti namanya: formvfx menemukannya kembali di samping .fvxlink, di folder lamanya, atau di antara proyek terbaru.",
 "Cache Frames When Idle is on": "Cache Bingkai Saat Menganggur: aktif",
 "Cache Frames When Idle is off": "Cache Bingkai Saat Menganggur: nonaktif",
 "Drag to a layer to parent this layer to it": "Seret ke sebuah layer untuk menjadikannya induk dari layer ini",

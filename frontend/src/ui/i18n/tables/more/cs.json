@@ -1,4 +1,12 @@
 {
+"Dynamic Link": "Dynamic Link",
+"Export Link for Active Comp": "Exportovat odkaz aktivní kompozice",
+"No link requests yet.": "Zatím žádné požadavky na odkaz.",
+"Only the open project is being served.": "Poskytuje se pouze otevřený projekt.",
+"Projects being served": "Poskytované projekty",
+"Recent link requests": "Nedávné požadavky na odkaz",
+"An editor such as formcut plays a linked composition live, with no render.": "Editor, například formcut, přehrává propojenou kompozici naživo, bez vykreslování.",
+"Links keep working when a project is moved or renamed: formvfx finds it again beside the .fvxlink, in its old folder or among recent projects.": "Odkazy fungují i po přesunutí nebo přejmenování projektu: formvfx jej znovu najde vedle souboru .fvxlink, ve staré složce nebo mezi nedávnými projekty.",
 "Cache Frames When Idle is on": "Ukládat snímky do mezipaměti při nečinnosti: zapnuto",
 "Cache Frames When Idle is off": "Ukládat snímky do mezipaměti při nečinnosti: vypnuto",
 "Drag to a layer to parent this layer to it": "Přetáhněte na vrstvu, aby se stala nadřazenou této vrstvě",

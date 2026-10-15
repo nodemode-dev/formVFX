@@ -1,4 +1,12 @@
 {
+"Dynamic Link": "Dynamic Link",
+"Export Link for Active Comp": "导出活动合成的链接",
+"No link requests yet.": "暂无链接请求。",
+"Only the open project is being served.": "仅提供已打开的项目。",
+"Projects being served": "正在提供的项目",
+"Recent link requests": "最近的链接请求",
+"An editor such as formcut plays a linked composition live, with no render.": "formcut 等编辑器可实时播放已链接的合成，无需渲染。",
+"Links keep working when a project is moved or renamed: formvfx finds it again beside the .fvxlink, in its old folder or among recent projects.": "项目被移动或重命名后，链接仍然有效：formvfx 会在 .fvxlink 旁边、原文件夹或最近项目中重新找到它。",
 "Cache Frames When Idle is on": "空闲时缓存帧已开启",
 "Cache Frames When Idle is off": "空闲时缓存帧已关闭",
 "Drag to a layer to parent this layer to it": "拖到某个图层上，将其设为此图层的父级",

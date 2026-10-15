@@ -1,4 +1,12 @@
 {
+"Dynamic Link": "Dynamic Link",
+"Export Link for Active Comp": "Az aktív kompozíció hivatkozásának exportálása",
+"No link requests yet.": "Még nincs hivatkozáskérés.",
+"Only the open project is being served.": "Csak a megnyitott projekt van kiszolgálva.",
+"Projects being served": "Kiszolgált projektek",
+"Recent link requests": "Legutóbbi hivatkozáskérések",
+"An editor such as formcut plays a linked composition live, with no render.": "Egy szerkesztő, például a formcut, élőben játssza le a csatolt kompozíciót, renderelés nélkül.",
+"Links keep working when a project is moved or renamed: formvfx finds it again beside the .fvxlink, in its old folder or among recent projects.": "A hivatkozások akkor is működnek, ha a projektet áthelyezik vagy átnevezik: a formvfx újra megtalálja a .fvxlink mellett, a régi mappájában vagy a legutóbbi projektek között.",
 "Cache Frames When Idle is on": "Képkockák gyorsítótárazása tétlenség esetén: bekapcsolva",
 "Cache Frames When Idle is off": "Képkockák gyorsítótárazása tétlenség esetén: kikapcsolva",
 "Drag to a layer to parent this layer to it": "Húzza egy rétegre, hogy az legyen ennek a rétegnek a szülője",

@@ -1,4 +1,12 @@
 {
+"Dynamic Link": "Dynamic Link",
+"Export Link for Active Comp": "Etkin Kompozisyonun Bağlantısını Dışa Aktar",
+"No link requests yet.": "Henüz bağlantı isteği yok.",
+"Only the open project is being served.": "Yalnızca açık proje sunuluyor.",
+"Projects being served": "Sunulan projeler",
+"Recent link requests": "Son bağlantı istekleri",
+"An editor such as formcut plays a linked composition live, with no render.": "formcut gibi bir düzenleyici, bağlantılı bir kompozisyonu render almadan canlı oynatır.",
+"Links keep working when a project is moved or renamed: formvfx finds it again beside the .fvxlink, in its old folder or among recent projects.": "Bir proje taşınsa veya yeniden adlandırılsa da bağlantılar çalışmaya devam eder: formvfx onu .fvxlink dosyasının yanında, eski klasöründe veya son projeler arasında yeniden bulur.",
 "Cache Frames When Idle is on": "Boştayken Kareleri Önbelleğe Al: açık",
 "Cache Frames When Idle is off": "Boştayken Kareleri Önbelleğe Al: kapalı",
 "Drag to a layer to parent this layer to it": "Bu katmanı bir katmana bağlamak için o katmanın üzerine sürükleyin",

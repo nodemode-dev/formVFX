@@ -15,6 +15,7 @@ import { TerminalPanel } from '../panels/terminal';
 import { ChatPanel } from '../panels/chat';
 import { LumetriScopesPanel, ProgressPanel } from '../panels/scopes';
 import { LearnPanel } from '../panels/learn';
+import { DynamicLinkPanel } from '../panels/dynamic-link';
 import { TimelinePanel } from '../panels/timeline';
 import { TrackerPanel } from '../panels/tracker';
 import { editTarget, trackerOptions } from '../panels/tracker-controls';
@@ -126,6 +127,7 @@ class App {
           { label: 'Start Claude Code', shortcut: 'Shift+Cmd+J', run: () => this.terminal.launch('claude') },
           { label: 'Chat with Claude', shortcut: 'Alt+Cmd+J', run: () => this.dock.show('chat') },
           { label: 'Agents', run: () => this.dock.show('agents') },
+          { label: 'Dynamic Link', run: () => this.dock.show('dynamicLink') },
           { label: 'Command Palette...', shortcut: 'Cmd+K', run: () => void this.palette.open() },
           { label: 'Maximize Panel', shortcut: '`', run: () => this.dock.toggleMaximizeFocused() },
         ],
@@ -219,6 +221,7 @@ class App {
     this.dock.register('history', 'History', () => new HistoryPanel(ctx));
     this.dock.register('terminal', 'Terminal', () => this.terminal);
     this.dock.register('learn', 'Learn', () => new LearnPanel(ctx));
+    this.dock.register('dynamicLink', 'Dynamic Link', () => new DynamicLinkPanel(ctx));
     this.dock.register('chat', 'Chat', () => new ChatPanel(ctx, (session) => this.terminal.launch('claude', undefined, session ?? undefined)));
     this.dock.register('agents', 'Agents', () => new AgentsPanel(ctx));
     this.dock.register('flowchart', 'Flowchart', () => new FlowchartPanel(ctx));

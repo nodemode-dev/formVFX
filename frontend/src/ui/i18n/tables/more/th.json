@@ -1,4 +1,12 @@
 {
+"Dynamic Link": "Dynamic Link",
+"Export Link for Active Comp": "ส่งออกลิงก์สำหรับคอมโพสิชันที่ใช้งานอยู่",
+"No link requests yet.": "ยังไม่มีคำขอลิงก์",
+"Only the open project is being served.": "ให้บริการเฉพาะโปรเจกต์ที่เปิดอยู่เท่านั้น",
+"Projects being served": "โปรเจกต์ที่กำลังให้บริการ",
+"Recent link requests": "คำขอลิงก์ล่าสุด",
+"An editor such as formcut plays a linked composition live, with no render.": "ตัวตัดต่ออย่าง formcut เล่นคอมโพสิชันที่เชื่อมโยงได้แบบสดโดยไม่ต้องเรนเดอร์",
+"Links keep working when a project is moved or renamed: formvfx finds it again beside the .fvxlink, in its old folder or among recent projects.": "ลิงก์ยังใช้งานได้เมื่อย้ายหรือเปลี่ยนชื่อโปรเจกต์ โดย formvfx จะหาโปรเจกต์พบอีกครั้งข้างไฟล์ .fvxlink ในโฟลเดอร์เดิม หรือในโปรเจกต์ล่าสุด",
 "Cache Frames When Idle is on": "แคชเฟรมเมื่อว่าง: เปิด",
 "Cache Frames When Idle is off": "แคชเฟรมเมื่อว่าง: ปิด",
 "Drag to a layer to parent this layer to it": "ลากไปยังเลเยอร์เพื่อตั้งให้เป็นพาเรนต์ของเลเยอร์นี้",
