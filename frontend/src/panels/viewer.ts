@@ -35,7 +35,26 @@ type Drag =
   | { kind: 'paint'; layer: number; toLocal: number[][] | null; points: P[]; t0: number }
   | { kind: 'penPull'; layer: number; mask: number; index: number; vertex: P; toLocal: number[][] | null; merge: string }
   | { kind: 'pin'; layer: number; pin: number; toLocal: number[][] | null; merge: string }
-  | { kind: 'trackPoint'; layer: number; index: number; part: 'move' | 'feature' | 'search' | 'attach'; start: P; point: TrackPt; toLocal: number[][] | null };
+  | { kind: 'trackPoint'; layer: number; index: number; part: 'move' | 'feature' | 'search' | 'attach'; start: P; point: TrackPt; toLocal: number[][] | null }
+  | { kind: 'ofx'; layer: number; effect: number; toLocal: number[][] | null; merge: string; busy: boolean; next: P | null };
+
+interface OfxPrim {
+  kind: 'lines' | 'strip' | 'loop' | 'rect' | 'polygon' | 'ellipse' | 'text';
+  pts: P[];
+  color: number[];
+  width?: number;
+  dash?: number;
+  text?: string;
+  align?: number;
+}
+
+interface OfxOverlay {
+  effect: number;
+  captured: boolean;
+  prims: OfxPrim[];
+}
+
+const OFX_DASH: number[][] = [[], [1, 3], [6, 4], [0, 4, 6, 0], [1, 3, 6, 3]];
 
 interface TrackPt {
   name: string;
@@ -52,6 +71,7 @@ interface Extras {
   toComp: number[][] | null;
   points: TrackPt[];
   pins: Array<{ pin: number; position: P; kind: string }>;
+  ofx: OfxOverlay[];
 }
 
 const SHAPE_TOOLS: Partial<Record<ToolId, string>> = { rect: 'rect', rounded: 'rounded', ellipse: 'ellipse', polygon: 'polygon', star: 'star' };
@@ -469,14 +489,108 @@ export class ViewerPanel implements Panel {
     if (!id || this.ctx.store.playing) return null;
     const l = this.ovLayer(id);
     if (!l) return null;
-    const [tr, pp] = await Promise.all([
+    const toComp = invert(l.toLocal);
+    const [tr, pp, ox] = await Promise.all([
       this.ctx.client.exec<{ tracker?: { points?: TrackPt[] } | null }>('track.status', { layer: id }).catch(() => null),
       this.ctx.client.exec<{ meshes?: Array<{ pins?: Array<{ pin: number; position: P; kind: string }> }> }>('puppet.info', { layer: id }).catch(() => null),
+      this.hasOfx(id) ? this.ctx.client.exec<{ overlays?: OfxOverlay[] }>('effect.ofxOverlay', { layer: id, pixelScale: this.ofxScale(toComp) }).catch(() => null) : Promise.resolve(null),
     ]);
     const points = tr?.tracker?.points ?? [];
     const pins = (pp?.meshes ?? []).flatMap((m) => m.pins ?? []);
-    if (!points.length && !pins.length) return null;
-    return { layer: id, toLocal: l.toLocal, toComp: invert(l.toLocal), points, pins };
+    const ofx = (ox?.overlays ?? []).filter((o) => o.prims.length);
+    if (!points.length && !pins.length && !ofx.length) return null;
+    return { layer: id, toLocal: l.toLocal, toComp, points, pins, ofx };
+  }
+
+  private hasOfx(layer: number): boolean {
+    return (this.ctx.store.layer(layer)?.effects ?? []).some((f) => f.enabled && f.effect.startsWith('ofx.'));
+  }
+
+  private ofxScale(toComp: number[][] | null): number {
+    const a = apply(toComp, [0, 0]);
+    const b = apply(toComp, [1, 0]);
+    return 1 / Math.max(1e-6, dist(a, b) * this.zoom);
+  }
+
+  private drawOfx(g: CanvasRenderingContext2D, x: Extras): void {
+    const toS = (q: P): P => this.toScreen(apply(x.toComp, q));
+    for (const o of x.ofx) {
+      for (const p of o.prims) {
+        const [r, gr, b, a] = p.color.map((v, i) => (i < 3 ? Math.round(Math.min(1, Math.max(0, v)) * 255) : Math.min(1, Math.max(0, v))));
+        const col = `rgba(${r},${gr},${b},${a ?? 1})`;
+        const pts = p.pts.map(toS);
+        g.strokeStyle = col;
+        g.fillStyle = col;
+        g.lineWidth = Math.max(1, p.width ?? 1);
+        g.setLineDash(OFX_DASH[p.dash ?? 0] ?? []);
+        if (p.kind === 'text') {
+          if (!pts[0]) continue;
+          const al = p.align ?? 1;
+          g.font = '11px system-ui, sans-serif';
+          g.textAlign = (al & 3) === 3 ? 'center' : al & 2 ? 'right' : 'left';
+          g.textBaseline = al & 4 ? 'top' : al & 8 ? 'bottom' : 'alphabetic';
+          g.fillText(p.text ?? '', pts[0][0], pts[0][1]);
+          continue;
+        }
+        g.beginPath();
+        if (p.kind === 'lines') {
+          for (let i = 0; i + 1 < pts.length; i += 2) {
+            g.moveTo(pts[i][0], pts[i][1]);
+            g.lineTo(pts[i + 1][0], pts[i + 1][1]);
+          }
+        } else if (p.kind === 'rect' || p.kind === 'ellipse') {
+          const q0 = p.pts[0];
+          const q1 = p.pts[1];
+          if (!q0 || !q1) continue;
+          const corners = [[q0[0], q0[1]], [q1[0], q0[1]], [q1[0], q1[1]], [q0[0], q1[1]]].map((q) => toS(q as P));
+          if (p.kind === 'rect') {
+            corners.forEach((c, i) => (i ? g.lineTo(c[0], c[1]) : g.moveTo(c[0], c[1])));
+            g.closePath();
+          } else {
+            const cx = (corners[0][0] + corners[2][0]) / 2;
+            const cy = (corners[0][1] + corners[2][1]) / 2;
+            g.ellipse(cx, cy, Math.abs(corners[1][0] - corners[0][0]) / 2, Math.abs(corners[3][1] - corners[0][1]) / 2, 0, 0, Math.PI * 2);
+          }
+        } else {
+          pts.forEach((c, i) => (i ? g.lineTo(c[0], c[1]) : g.moveTo(c[0], c[1])));
+          if (p.kind !== 'strip') g.closePath();
+        }
+        if (p.kind === 'polygon') g.fill();
+        else g.stroke();
+      }
+    }
+    g.setLineDash([]);
+    g.lineWidth = 1;
+    g.textAlign = 'left';
+    g.textBaseline = 'alphabetic';
+  }
+
+  private async ofxPen(d: Extract<Drag, { kind: 'ofx' }>, action: 'down' | 'motion' | 'up', at: P): Promise<boolean> {
+    const x = this.extras;
+    const r = await this.ctx.client
+      .exec<{ overlays?: OfxOverlay[] }>('effect.ofxOverlay', { layer: d.layer, effect: d.effect, action, x: at[0], y: at[1], pixelScale: this.ofxScale(x?.toComp ?? null), merge: d.merge })
+      .catch(() => null);
+    const o = r?.overlays?.[0];
+    if (o && x && x.layer === d.layer) {
+      x.ofx = x.ofx.map((v) => (v.effect === d.effect ? { ...v, prims: o.prims } : v));
+      this.schedule();
+    }
+    return !!o?.captured;
+  }
+
+  private async ofxDrag(d: Extract<Drag, { kind: 'ofx' }>, at: P): Promise<void> {
+    if (d.busy) {
+      d.next = at;
+      return;
+    }
+    d.busy = true;
+    let p: P | null = at;
+    while (p) {
+      d.next = null;
+      await this.ofxPen(d, 'motion', p);
+      p = d.next;
+    }
+    d.busy = false;
   }
 
   private trackBoxes(p: TrackPt): { feature: P[]; search: P[]; attach: P; center: P } {
@@ -529,6 +643,7 @@ export class ViewerPanel implements Panel {
       g.lineWidth = 1;
       g.stroke();
     }
+    if (x.ofx.length) this.drawOfx(g, x);
   }
 
   private async hitExtras(s: P, c: P): Promise<Drag | null> {
@@ -546,6 +661,14 @@ export class ViewerPanel implements Panel {
       if (b.feature.some((q) => dist(q, s) <= 6)) return { ...base, part: 'feature' };
       if (b.search.some((q) => dist(q, s) <= 6)) return { ...base, part: 'search' };
       if (inQuad(s, b.feature)) return { ...base, part: 'move' };
+    }
+    if (x.ofx.length) {
+      const at = apply(x.toLocal, c);
+      const merge = await this.ctx.gesture();
+      for (const o of x.ofx) {
+        const d: Extract<Drag, { kind: 'ofx' }> = { kind: 'ofx', layer: x.layer, effect: o.effect, toLocal: x.toLocal, merge, busy: false, next: null };
+        if (await this.ofxPen(d, 'down', at)) return d;
+      }
     }
     return null;
   }
@@ -1614,6 +1737,10 @@ export class ViewerPanel implements Panel {
         void this.ctx.run('puppet.movePin', { layer: d.layer, pin: d.pin, position: apply(d.toLocal, c), merge: d.merge }, true);
         return;
       }
+      case 'ofx': {
+        void this.ofxDrag(d, apply(d.toLocal, c));
+        return;
+      }
       case 'trackPoint': {
         const o = this.extras?.points[d.index];
         if (!o) return;
@@ -1646,6 +1773,11 @@ export class ViewerPanel implements Panel {
     this.drag = null;
     if (!d) return;
     const s = this.local(e);
+    if (d.kind === 'ofx') {
+      while (d.busy) await new Promise((r) => setTimeout(r, 16));
+      await this.ofxPen(d, 'up', apply(d.toLocal, this.toComp(s)));
+      return;
+    }
     if (d.kind === 'newGuide') {
       this.draw();
       if (s[0] > RULER && s[1] > RULER) await this.ctx.run('view.addGuide', { orientation: d.vertical ? 'vertical' : 'horizontal', position: Math.round(d.pos) });
