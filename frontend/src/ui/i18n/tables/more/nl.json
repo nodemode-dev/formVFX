@@ -1,4 +1,6 @@
 {
+"Cache Frames When Idle is on": "Frames cachen bij inactiviteit staat aan",
+"Cache Frames When Idle is off": "Frames cachen bij inactiviteit staat uit",
 "Drag to a layer to parent this layer to it": "Sleep naar een laag om die als bovenliggende laag van deze laag in te stellen",
 "Drag to a layer to use it as this layer's track matte": "Sleep naar een laag om die als trackmatte van deze laag te gebruiken",
 "Remove Parent": "Bovenliggende verwijderen",

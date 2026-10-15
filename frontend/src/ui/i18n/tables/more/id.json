@@ -1,4 +1,6 @@
 {
+"Cache Frames When Idle is on": "Cache Bingkai Saat Menganggur: aktif",
+"Cache Frames When Idle is off": "Cache Bingkai Saat Menganggur: nonaktif",
 "Drag to a layer to parent this layer to it": "Seret ke sebuah layer untuk menjadikannya induk dari layer ini",
 "Drag to a layer to use it as this layer's track matte": "Seret ke sebuah layer untuk menggunakannya sebagai track matte layer ini",
 "Remove Parent": "Hapus Induk",

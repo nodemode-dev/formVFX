@@ -15,6 +15,16 @@ interface Cached {
 }
 
 const MAX_CACHED = 600;
+const IDLE_MS = 2000;
+const IDLE_KEY = 'formvfx_cache_idle';
+
+function readIdle(): boolean {
+  try {
+    return localStorage.getItem(IDLE_KEY) !== '0';
+  } catch {
+    return true;
+  }
+}
 
 export class Playback {
   readonly events = new Emitter<PlaybackEvents>();
@@ -32,6 +42,9 @@ export class Playback {
   loop = true;
   includeAudio = true;
   maxSide = 960;
+  cacheWhenIdle = readIdle();
+  private idleTimer = 0;
+  private shown: ImageBitmap | null = null;
 
   constructor(private readonly client: Client, private readonly store: Store, private readonly frames: FrameStream) {
     frames.onRange = (f) => {
@@ -40,21 +53,83 @@ export class Playback {
     };
     client.events.on('changed', (ev) => {
       if (ev.edited) {
+        if (!this.playing && this.rangeId) {
+          this.frames.cancel();
+          this.rangeId = 0;
+        }
         this.purge(true);
         this.cacheRev = Number(ev.revision ?? -1);
       }
+      this.idleSoon();
     });
     client.events.on('purgeCaches', () => this.purge(true));
+    store.events.on('state', () => this.idleSoon());
+    document.addEventListener('visibilitychange', () => this.idleSoon());
+  }
+
+  setCacheWhenIdle(on: boolean): void {
+    this.cacheWhenIdle = on;
+    try {
+      localStorage.setItem(IDLE_KEY, on ? '1' : '0');
+    } catch {
+      void 0;
+    }
+    if (on) this.idleSoon();
+    else if (!this.playing && this.rangeId) {
+      this.frames.cancel();
+      this.rangeId = 0;
+    }
+  }
+
+  private idleSoon(): void {
+    window.clearTimeout(this.idleTimer);
+    if (this.cacheWhenIdle) this.idleTimer = window.setTimeout(() => this.idleFill(), IDLE_MS);
+  }
+
+  private idleFill(): void {
+    const comp = this.store.comp;
+    if (!this.cacheWhenIdle || this.playing || document.hidden || !comp) return;
+    const rev = this.store.state?.revision ?? -1;
+    if (rev !== this.cacheRev || this.cacheSide !== this.maxSide) {
+      this.purge(true);
+      this.cacheRev = rev;
+      this.cacheSide = this.maxSide;
+    }
+    const fps = comp.frameRate || 30;
+    const [wa0, wa1] = comp.workArea;
+    const n = Math.min(MAX_CACHED, Math.max(1, Math.round((wa1 - wa0) * fps)));
+    const t0 = Math.max(wa0, Math.min(this.store.time, wa1));
+    const all = Array.from({ length: n }, (_, i) => Math.round((wa0 + i / fps) * fps) / fps);
+    const ordered = [...all.filter((t) => t >= t0), ...all.filter((t) => t < t0)];
+    const missing = ordered.filter((t) => !this.cache.has(this.key(t)));
+    if (!missing.length) return;
+    this.times = all;
+    this.rangeId = this.frames.range(missing, { comp: comp.id, maxSide: this.maxSide });
+    this.emitState();
   }
 
   private key(t: number): string {
     return t.toFixed(5);
   }
 
+  lend(bmp: ImageBitmap): void {
+    this.shown = bmp;
+  }
+
+  release(bmp: ImageBitmap): void {
+    if (this.shown === bmp) this.shown = null;
+    for (const c of this.cache.values()) if (c.bitmap === bmp) return;
+    bmp.close();
+  }
+
+  private drop(bmp: ImageBitmap): void {
+    if (bmp !== this.shown) bmp.close();
+  }
+
   private purge(force = false): void {
     const rev = this.store.state?.revision ?? -1;
     if (force || rev !== this.cacheRev) {
-      for (const c of this.cache.values()) c.bitmap.close();
+      for (const c of this.cache.values()) this.drop(c.bitmap);
       this.cache.clear();
       this.cacheRev = rev;
       this.emitState();
@@ -69,8 +144,9 @@ export class Playback {
     if (this.cache.size >= MAX_CACHED) {
       const first = this.cache.keys().next().value as string | undefined;
       if (first) {
-        this.cache.get(first)?.bitmap.close();
+        const old = this.cache.get(first)?.bitmap;
         this.cache.delete(first);
+        if (old) this.drop(old);
       }
     }
     const img = new ImageData(new Uint8ClampedArray(f.pixels), f.width, f.height);
@@ -178,6 +254,7 @@ export class Playback {
     this.frames.cancel();
     this.rangeId = 0;
     this.emitState();
+    this.idleSoon();
     if (commit) {
       const comp = this.store.comp;
       const fps = comp?.frameRate || 30;

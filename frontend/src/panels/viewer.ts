@@ -12,6 +12,7 @@ import { AuxViews } from './viewer-aux';
 
 type Res = 'auto' | 'full' | 'half' | 'third' | 'quarter';
 const RES_SCALE: Record<Res, number> = { auto: 0, full: 1, half: 0.5, third: 1 / 3, quarter: 0.25 };
+const ADAPTIVE_LIMIT = 0.25;
 const ZOOMS = [0.015, 0.03125, 0.0625, 0.125, 0.25, 0.333, 0.5, 0.75, 1, 1.5, 2, 3, 4, 8, 16, 32];
 const RULER = 18;
 
@@ -69,6 +70,8 @@ export class ViewerPanel implements Panel {
   private frame: ImageBitmap | null = null;
   private frameW = 0;
   private frameH = 0;
+  private frameOwned = true;
+  private holding = false;
   private frameKey = '';
   private requestedKey = '';
   private ov: Overlays | null = null;
@@ -137,9 +140,26 @@ export class ViewerPanel implements Panel {
     this.bind();
     ctx.store.watch((st) => this.onState(st));
     ctx.frames.onFrame = (f) => void this.onFrame(f);
+    document.addEventListener(
+      'pointerdown',
+      (e) => {
+        if (e.button === 0 && (e.target as Element | null)?.closest?.('.fx-tl-ruler, .fx-tl-tracks, .fx-viewer-stage')) this.holding = true;
+      },
+      true,
+    );
+    const release = (): void => {
+      if (!this.holding) return;
+      this.holding = false;
+      this.requestFrame(true);
+    };
+    window.addEventListener('pointerup', release, true);
+    window.addEventListener('pointercancel', release, true);
     ctx.frames.onError = (m) => console.warn('[formvfx] frame', m);
     ctx.playback.events.on('frame', ({ frame }) => {
       if (frame instanceof ImageBitmap) {
+        this.letGo();
+        this.frameOwned = false;
+        ctx.playback.lend(frame);
         this.frame = frame;
         this.frameW = frame.width;
         this.frameH = frame.height;
@@ -308,7 +328,9 @@ export class ViewerPanel implements Panel {
     this.aux.update();
     void this.loadSnapshot(st);
     if (!comp) {
+      this.letGo();
       this.frame = null;
+      this.frameOwned = true;
       this.ov = null;
       this.draw();
       this.refreshBar();
@@ -351,8 +373,14 @@ export class ViewerPanel implements Panel {
     if (!comp) return 1;
     if (this.res !== 'auto') return RES_SCALE[this.res];
     const want = Math.min(1, (this.zoom || 1) * this.dpr);
-    for (const s of [1, 0.5, 0.25, 0.125]) if (want > s * 0.75) return s;
-    return 0.125;
+    let s = 0.125;
+    for (const c of [1, 0.5, 0.25, 0.125]) {
+      if (want > c * 0.75) {
+        s = c;
+        break;
+      }
+    }
+    return this.adaptive() ? Math.min(s, ADAPTIVE_LIMIT) : s;
   }
 
   private requestFrame(force = false): void {
@@ -363,6 +391,11 @@ export class ViewerPanel implements Panel {
     const key = `${st.revision}|${comp.id}|${st.time}|${scale}|${this.checker}|${JSON.stringify(st.viewer)}|${JSON.stringify(st.roi)}`;
     if (!force && (key === this.requestedKey || key === this.frameKey)) return;
     this.requestedKey = key;
+    const cached = this.holding && !this.checker && !st.roi ? this.ctx.playback.cachedFrame(st.time ?? 0) : null;
+    if (cached) {
+      this.showCached(cached, key);
+      return;
+    }
     this.ctx.frames.request({ comp: comp.id, time: st.time ?? 0, scale, transparent: this.checker });
   }
 
@@ -370,12 +403,39 @@ export class ViewerPanel implements Panel {
     if (this.ctx.store.playing) return;
     const img = new ImageData(new Uint8ClampedArray(f.pixels), f.width, f.height);
     const bmp = await createImageBitmap(img);
-    this.frame?.close?.();
+    this.letGo();
+    this.frameOwned = true;
     this.frame = bmp;
     this.frameW = f.width;
     this.frameH = f.height;
     this.frameKey = this.requestedKey;
     this.schedule();
+  }
+
+  private letGo(): void {
+    const f = this.frame;
+    if (!f) return;
+    if (this.frameOwned) f.close?.();
+    else if (f instanceof ImageBitmap) this.ctx.playback.release(f);
+  }
+
+  private showCached(bmp: ImageBitmap, key: string): void {
+    if (bmp === this.frame) {
+      this.frameKey = key;
+      return;
+    }
+    this.letGo();
+    this.frameOwned = false;
+    this.ctx.playback.lend(bmp);
+    this.frame = bmp;
+    this.frameW = bmp.width;
+    this.frameH = bmp.height;
+    this.frameKey = key;
+    this.schedule();
+  }
+
+  private adaptive(): boolean {
+    return this.holding && this.res === 'auto' && this.ctx.store.state?.viewer?.fast_previews === 'adaptive';
   }
 
   private async requestOverlays(): Promise<void> {

@@ -1,4 +1,6 @@
 {
+"Cache Frames When Idle is on": "Cache billeder, når inaktiv: til",
+"Cache Frames When Idle is off": "Cache billeder, når inaktiv: fra",
 "Drag to a layer to parent this layer to it": "Træk til et lag for at gøre det overordnet til dette lag",
 "Drag to a layer to use it as this layer's track matte": "Træk til et lag for at bruge det som sporstatte for dette lag",
 "Remove Parent": "Fjern overordnet",

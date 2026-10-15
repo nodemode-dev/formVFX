@@ -105,6 +105,13 @@ export class TimelinePanel implements Panel {
     this.bind();
     ctx.store.watch((st) => this.onState(st));
     ctx.playback.events.on('time', (t) => this.drawTime(t));
+    ctx.playback.events.on('state', () => {
+      if (this.rulerRaf) return;
+      this.rulerRaf = requestAnimationFrame(() => {
+        this.rulerRaf = 0;
+        if (!this.raf) this.drawRuler();
+      });
+    });
     ctx.ui.on('reveal', (r) => this.applyRevealEvent(r));
     new ResizeObserver(() => this.resized()).observe(this.right);
   }
@@ -838,6 +845,7 @@ export class TimelinePanel implements Panel {
   }
 
   private playT: number | null = null;
+  private rulerRaf = 0;
 
   private css(name: string, fb: string): string {
     return getComputedStyle(this.el).getPropertyValue(name).trim() || fb;
@@ -869,6 +877,12 @@ export class TimelinePanel implements Panel {
     g.fillRect(this.tToX(wa0) - 1, H - 11, 3, 10);
     g.fillRect(this.tToX(wa1) - 2, H - 11, 3, 10);
     const fps = comp.frameRate || 30;
+    const cached = this.ctx.playback.cachedTimes();
+    if (cached.length) {
+      g.fillStyle = this.css('--fx-cache', '#3fbf5f');
+      const fw = Math.max(1, this.pps / fps);
+      for (const t of cached) g.fillRect(this.tToX(t), H - 3, fw + 0.5, 3);
+    }
     const minPx = 70;
     const steps = [1 / fps, 2 / fps, 5 / fps, 10 / fps, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600];
     const step = steps.find((s) => s * this.pps >= minPx) ?? 600;

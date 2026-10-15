@@ -1,4 +1,6 @@
 {
+"Cache Frames When Idle is on": "Armazenar quadros em cache quando ocioso: ativado",
+"Cache Frames When Idle is off": "Armazenar quadros em cache quando ocioso: desativado",
 "Drag to a layer to parent this layer to it": "Arraste até uma camada para torná-la pai desta camada",
 "Drag to a layer to use it as this layer's track matte": "Arraste até uma camada para usá-la como matte de trilha desta camada",
 "Remove Parent": "Remover pai",

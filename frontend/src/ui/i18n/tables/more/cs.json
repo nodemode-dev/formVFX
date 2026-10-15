@@ -1,4 +1,6 @@
 {
+"Cache Frames When Idle is on": "Ukládat snímky do mezipaměti při nečinnosti: zapnuto",
+"Cache Frames When Idle is off": "Ukládat snímky do mezipaměti při nečinnosti: vypnuto",
 "Drag to a layer to parent this layer to it": "Přetáhněte na vrstvu, aby se stala nadřazenou této vrstvě",
 "Drag to a layer to use it as this layer's track matte": "Přetáhněte na vrstvu, abyste ji použili jako matte stopy této vrstvy",
 "Remove Parent": "Odebrat nadřazenou",

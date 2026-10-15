@@ -517,6 +517,12 @@ class App {
       case 'playback.audio':
         ctx.playback.includeAudio = params.value === undefined ? !ctx.playback.includeAudio : !!params.value;
         return;
+      case 'playback.cacheWhenIdle': {
+        const on = params.value === undefined ? !ctx.playback.cacheWhenIdle : !!params.value;
+        ctx.playback.setCacheWhenIdle(on);
+        toast(on ? 'Cache Frames When Idle is on' : 'Cache Frames When Idle is off');
+        return;
+      }
       case 'window.panel':
         this.dock.show(String(params.panel ?? ''));
         return;
