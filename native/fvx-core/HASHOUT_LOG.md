@@ -258,6 +258,10 @@ fvx-core is formvfx's compositing engine, written for formvfx in Rust and loaded
 - `engine/cmd/slices.rs` (`export.slicesFromGuides`): renders the frame and cuts it at the guides, comp edges included, to `<comp>_r<row>_c<col>.png`.
 - Checked in scratch outside the tree against the release build: each command runs, `expr.errors` stays at 0 at several times, frames render, `rig.ikRemove` undoes in one step.
 
+## Flowchart relationships (0.34.0)
+
+- `engine/state.rs` `flowchart`: with `layers`, each layer's parent and track matte are edges too, `{"from": "l<parent>", "to": "l<child>", "kind": "parent"}` and `{"from": "l<matte>", "to": "l<layer>", "kind": "matte", "label": "Alpha Matte"}`. Flow edges (source into layer, layer into comp) keep no `kind`, so earlier readers of the payload (the MCP flowchart tool) see what they saw before plus the new edges.
+
 ## Not yet
 
 Masks, time remapping and shape path vertices from `.aep` projects (each named in a warning), Premiere Pro's `.prgraphic`, Lottie effects and text animators, Photoshop layer styles and adjustment layers on import, CMYK and Lab Photoshop documents, Illustrator layers as separate composition layers, lens distortion in the camera solve, Liquify brushing in the viewer (the commands exist), lighting on per-character 3D text, blend modes inside an Advanced 3D run, the ACES 2.0 output transforms, white-point simulation output transforms and the camera builtins for Canon and ADX, and GPU kernels for more than the eleven effects listed in `gpu::CAPABLE`.
