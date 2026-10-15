@@ -435,7 +435,27 @@ impl Engine {
                 let from = if with_layers {
                     let lid = format!("l{}", l.id);
                     let fx: Vec<String> = if with_fx { l.effects().map(|g| g.groups().map(|e| e.name.clone()).collect()).unwrap_or_default() } else { vec![] };
-                    nodes.push(json!({"id": lid, "kind": "layer", "layer": l.id, "comp": cid, "name": l.name, "type": l.type_name(), "effects": fx}));
+                    let fx_detail: Vec<Json> = if with_fx {
+                        l.effects()
+                            .map(|g| {
+                                g.groups()
+                                    .map(|e| {
+                                        let mut refs = vec![];
+                                        layer_refs(e, &mut refs);
+                                        for r in &refs {
+                                            if let Some(src) = r["layer"].as_u64() {
+                                                edges.push(json!({"from": format!("l{src}"), "to": lid, "kind": "fxref", "fx": e.uid, "prop": r["prop"], "label": format!("{}: {}", e.name, r["name"].as_str().unwrap_or(""))}));
+                                            }
+                                        }
+                                        json!({"uid": e.uid, "name": e.name, "match": e.id, "enabled": e.enabled, "refs": refs})
+                                    })
+                                    .collect()
+                            })
+                            .unwrap_or_default()
+                    } else {
+                        vec![]
+                    };
+                    nodes.push(json!({"id": lid, "kind": "layer", "layer": l.id, "comp": cid, "name": l.name, "type": l.type_name(), "effects": fx, "fx": fx_detail}));
                     edges.push(json!({"from": lid, "to": format!("i{cid}")}));
                     if let Some(p) = l.parent {
                         edges.push(json!({"from": format!("l{p}"), "to": lid, "kind": "parent"}));
@@ -467,6 +487,22 @@ impl Engine {
 
     pub fn menu_titles(&self) -> Json {
         json!(super::menus::TITLES)
+    }
+}
+
+fn layer_refs(g: &Group, out: &mut Vec<Json>) {
+    for c in &g.children {
+        match c {
+            Node::Prop(p) if matches!(p.ui, Ui::Layer) => {
+                let layer = match &p.value {
+                    crate::model::Value::Layer(l) => *l,
+                    _ => None,
+                };
+                out.push(json!({"prop": p.uid, "name": p.name, "layer": layer}));
+            }
+            Node::Group(sub) => layer_refs(sub, out),
+            _ => {}
+        }
     }
 }
 
