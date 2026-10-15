@@ -262,6 +262,10 @@ fvx-core is formvfx's compositing engine, written for formvfx in Rust and loaded
 
 - `engine/state.rs` `flowchart`: with `layers`, each layer's parent and track matte are edges too, `{"from": "l<parent>", "to": "l<child>", "kind": "parent"}` and `{"from": "l<matte>", "to": "l<layer>", "kind": "matte", "label": "Alpha Matte"}`. Flow edges (source into layer, layer into comp) keep no `kind`, so earlier readers of the payload (the MCP flowchart tool) see what they saw before plus the new edges.
 
+## Flowchart effects (0.37.0)
+
+- `engine/state.rs` `flowchart`: with `effects`, each layer node also carries `fx`: `[{uid, name, match, enabled, refs: [{prop, name, layer}]}]` in render order, and every set layer parameter of an effect adds an edge `{"from": "l<referenced>", "to": "l<layer>", "kind": "fxref", "fx": <effect uid>, "prop": <param uid>, "label": "<effect>: <param>"}`. `layer_refs` walks an effect group recursively for props with `Ui::Layer`. The `effects` name list stays for older readers.
+
 ## Project identity (0.36.0)
 
 - `model/project.rs` `Project.uid` (serde default, skipped when empty) and `new_project_uid()` (hex of the clock in nanoseconds, the process id and a counter; no randomness crate): every new project gets one, and `file::open` gives one to a project read without it, so the next save writes it. `project.summary` reports it. Dynamic Link uses it to find a moved or renamed project. Save As and Save a Copy keep the id, so copies of one project share it; the link resolver prefers the same file name, then the newest file.
