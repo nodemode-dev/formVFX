@@ -36,7 +36,7 @@ Open http://localhost:5230, choose **Open the demo project** on the start screen
 ./formvfx desktop dev       # the app, with the engine frozen as its sidecar
 ```
 
-`./formvfx desktop build` is the same as `./build_app`; on Windows run `build_app.bat`. On macOS the app is copied to Applications and a DMG is packed beside the bundle.
+`./formvfx desktop build` is the same as `./build_app`; on Windows run `build_app.bat`. On macOS the app is copied to Applications and a DMG is packed beside the bundle, and the desktop app puts formvfx's menus in the macOS menu bar.
 
 Tagging `vX.Y.Z` builds macOS, Linux and Windows bundles in GitHub Actions and opens a draft release.
 
@@ -70,11 +70,11 @@ Tagging `vX.Y.Z` builds macOS, Linux and Windows bundles in GitHub Actions and o
 | --- | ---: | ---: |
 | Compositing engine (Rust, fvx-core) | 166 | 81,365 |
 | Engine service (Python) | 37 | 2,913 |
-| Interface (TypeScript) | 57 | 12,614 |
+| Interface (TypeScript) | 58 | 12,775 |
 | Interface styles (CSS) | 8 | 1,934 |
 | Desktop shell (Rust, Tauri) | 1 | 141 |
 | Setup and CLI | 35 | 1,078 |
 | Agent skill (Markdown, hand-written) | 16 | 786 |
-| Total | 320 | 100,831 |
+| Total | 321 | 100,992 |
 
 Non-blank lines in tracked files; generated skill references excluded. `./formvfx counts` prints this table.
