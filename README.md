@@ -2,7 +2,7 @@
 
 Motion graphics and visual effects for the desktop and the browser, in the form family beside formvis and formcut. Compositions, layers, keyframes and the Graph Editor, 306 effects and WebAssembly effect plug-ins, Essential Graphics templates (After Effects `.mogrt` files and `.aep` projects open), text animators with 169 presets, shape layers and SVG paste, masks, Roto Brush, paint, puppet pins, 3D cameras and lights, tracking and stabilizing, expressions, scripts and ScriptUI panels, colour management and a Render Queue, with an agent harness so Claude Code, Codex and Cursor can drive every tool from formvfx's embedded terminal.
 
-Version 0.33.0 · Apache-2.0 · compositing engine: formvfx's own, in Rust (`native/fvx-core`)
+Version 0.33.1 · Apache-2.0 · compositing engine: formvfx's own, in Rust (`native/fvx-core`)
 
 ## Quick start
 
@@ -70,11 +70,11 @@ Tagging `vX.Y.Z` builds macOS, Linux and Windows bundles in GitHub Actions and o
 | --- | ---: | ---: |
 | Compositing engine (Rust, fvx-core) | 166 | 81,365 |
 | Engine service (Python) | 37 | 2,913 |
-| Interface (TypeScript) | 58 | 12,775 |
+| Interface (TypeScript) | 58 | 12,776 |
 | Interface styles (CSS) | 8 | 1,934 |
 | Desktop shell (Rust, Tauri) | 1 | 141 |
 | Setup and CLI | 35 | 1,078 |
 | Agent skill (Markdown, hand-written) | 16 | 786 |
-| Total | 321 | 100,992 |
+| Total | 321 | 100,993 |
 
 Non-blank lines in tracked files; generated skill references excluded. `./formvfx counts` prints this table.

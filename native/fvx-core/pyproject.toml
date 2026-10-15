@@ -4,7 +4,7 @@ build-backend = "maturin"
 
 [project]
 name = "fvx-core"
-version = "0.33.0"
+version = "0.33.1"
 description = "formvfx's own compositing engine for the formvfx engine service"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.10"

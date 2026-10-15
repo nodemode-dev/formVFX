@@ -1,7 +1,7 @@
 {
   "name": "formvfx",
   "private": true,
-  "version": "0.33.0",
+  "version": "0.33.1",
   "description": "formvfx · motion graphics and visual effects in the form family",
   "license": "Apache-2.0",
   "type": "module",
