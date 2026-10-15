@@ -2,6 +2,7 @@ import type { Ctx } from '../app/ctx';
 import { Dialog } from './dialogs';
 import { el, escapeHtml, patchList, q, setClass, setText } from './dom';
 import { readChoice, setAccent, setIntensity, setTheme, THEMES } from './themes';
+import { isLang, language, languages, setLanguage } from './i18n';
 import { colorToHex, hexToRgb } from './widgets';
 
 interface PrefItem {
@@ -226,6 +227,15 @@ export class Preferences {
 
   private interfacePage(pane: HTMLElement): void {
     const choice = readChoice();
+    pane.appendChild(el('<div class="fx-prefs-section">Language</div>'));
+    const langRow = el<HTMLLabelElement>('<label class="fx-prefs-row"><span class="fx-prefs-label">Language</span><span class="fx-prefs-ctl"><select class="fx-select" data-no-i18n data-automation-id="preferences.language"></select></span></label>');
+    const langSel = q<HTMLSelectElement>(langRow, 'select');
+    for (const [code, name] of languages()) langSel.appendChild(Object.assign(document.createElement('option'), { value: code, textContent: name }));
+    langSel.value = language();
+    langSel.addEventListener('change', () => {
+      if (isLang(langSel.value)) void setLanguage(langSel.value);
+    });
+    pane.appendChild(langRow);
     pane.appendChild(el('<div class="fx-prefs-section">Theme</div>'));
     const grid = el('<div class="fx-prefs-themes"></div>');
     for (const [id, th] of Object.entries(THEMES)) {
