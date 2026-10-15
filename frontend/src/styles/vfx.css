@@ -16,6 +16,7 @@
   --fx-flow-layer: #444852;
   --fx-flow-back: #d08040;
   --fx-flow-matte: #4fb3d9;
+  --fx-flow-ref: #c48ae0;
   --fx-sc-app: #6c4fb0;
   --fx-sc-panel: #2f8a5c;
   --fx-row-h: 24px;
@@ -544,12 +545,21 @@
 .fx-flow-text { display: grid; min-width: 0; flex: 1; }
 .fx-flow-fx { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: rgba(255, 255, 255, 0.62); font-size: var(--fs-10); }
 .fx-flow-fx:empty { display: none; }
-.has-fx .fx-flow-node { height: 50px; }
 .fx-flow-ports { display: none; flex: none; gap: 2px; }
 .fx-flow-node[data-kind="layer"] .fx-flow-ports { display: inline-flex; }
 .fx-flow-port { display: inline-grid; place-items: center; width: 18px; height: 18px; border-radius: 4px; color: rgba(255, 255, 255, 0.7); cursor: crosshair; }
 .fx-flow-port:hover { background: rgba(255, 255, 255, 0.14); color: #ffffff; }
 .fx-flow-node.is-target { box-shadow: 0 0 0 2px var(--accent-color), 0 0 0 5px var(--accent-soft); }
+.fx-flow-node[data-kind="effect"] { cursor: grab; }
+.fx-flow-node[data-kind="effect"].has-refs .fx-flow-ports { display: inline-flex; }
+.fx-flow-node[data-kind="effect"] .fx-flow-port:not([data-port="ref"]), .fx-flow-node[data-kind="layer"] .fx-flow-port[data-port="ref"] { display: none; }
+.fx-flow-node.is-off { opacity: 0.5; }
+.fx-flow-node.is-off .fx-flow-label { text-decoration: line-through; }
+.fx-flow-node.is-moving { cursor: grabbing; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45); }
+.fx-flow-edges g.is-fxref > path:nth-child(1) { stroke: var(--fx-flow-ref); stroke-dasharray: 3 3; }
+.fx-flow-edges g.is-fxref > path:nth-child(2) { fill: var(--fx-flow-ref); }
+.fx-flow-edges g.is-fxref > .fx-flow-hit { pointer-events: stroke; cursor: pointer; }
+.fx-flow-wire.is-ref { stroke: var(--fx-flow-ref); }
 .fx-flow-nodes { position: absolute; left: 0; top: 0; }
 .fx-flow-node { position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 8px; width: 168px; height: 34px; padding: 0 10px; box-sizing: border-box; border: 1px solid rgba(0, 0, 0, 0.45); border-radius: 6px; background: var(--fx-flow-layer); color: #ffffff; font-size: var(--fs-12); cursor: pointer; user-select: none; }
 .fx-flow-node[data-kind="comp"] { background: var(--fx-flow-comp); }

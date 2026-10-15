@@ -14,6 +14,13 @@ interface RawNode {
   layer?: number | null;
   type?: string;
   effects?: string[];
+  fx?: Array<{ uid: number; name: string; enabled: boolean; refs: FxRef[] }>;
+}
+
+interface FxRef {
+  prop: number;
+  name: string;
+  layer: number | null;
 }
 
 interface FlowNode {
@@ -25,13 +32,16 @@ interface FlowNode {
   layer: number | null;
   effects: string[];
   depth: number;
+  fx?: { uid: number; index: number; count: number; enabled: boolean; refs: FxRef[] };
 }
 
 interface FlowEdge {
   from: string;
   to: string;
-  kind?: 'parent' | 'matte';
+  kind?: 'parent' | 'matte' | 'fxref';
   label?: string;
+  fx?: number;
+  prop?: number;
 }
 
 interface FlowGraph {
@@ -41,6 +51,27 @@ interface FlowGraph {
 }
 
 function normalize(raw: { root: number; nodes: RawNode[]; edges: FlowEdge[] }): FlowGraph {
+  const fxNodes: RawNode[] = [];
+  const fxMeta = new Map<string, NonNullable<FlowNode['fx']>>();
+  const edges: FlowEdge[] = [];
+  const chainHead = new Map<string, string>();
+  for (const n of raw.nodes) {
+    if (n.kind !== 'layer' || !n.fx?.length) continue;
+    const ids = n.fx.map((f) => `f${n.layer}:${f.uid}`);
+    n.fx.forEach((f, i) => {
+      fxNodes.push({ id: ids[i], kind: 'effect', name: f.name, comp: n.comp, layer: n.layer });
+      fxMeta.set(ids[i], { uid: f.uid, index: i, count: n.fx?.length ?? 0, enabled: f.enabled, refs: f.refs });
+      edges.push({ from: ids[i], to: i + 1 < ids.length ? ids[i + 1] : n.id });
+    });
+    chainHead.set(n.id, ids[0]);
+    n.effects = [];
+  }
+  for (const e of raw.edges) {
+    if (!e.kind && chainHead.has(e.to)) edges.push({ ...e, to: chainHead.get(e.to) as string });
+    else if (e.kind === 'fxref' && e.fx !== undefined) edges.push({ ...e, to: `f${e.to.slice(1)}:${e.fx}` });
+    else edges.push(e);
+  }
+  raw = { root: raw.root, nodes: [...raw.nodes, ...fxNodes], edges };
   const depth = new Map<string, number>([[`i${raw.root}`, 0]]);
   const flow = raw.edges.filter((e) => !e.kind);
   const queue = [`i${raw.root}`];
@@ -62,11 +93,13 @@ function normalize(raw: { root: number; nodes: RawNode[]; edges: FlowEdge[] }): 
     layer: n.layer ?? null,
     effects: n.effects ?? [],
     depth: depth.get(n.id) ?? 1,
+    fx: fxMeta.get(n.id),
   }));
   return { root: raw.root, nodes, edges: raw.edges };
 }
 
-type Wire = { from: FlowNode; kind: 'parent' | 'matte'; start: [number, number] };
+type Wire = { from: FlowNode; kind: 'parent' | 'matte' | 'ref'; start: [number, number] };
+type Move = { node: FlowNode; el: HTMLElement; x0: number; y0: number; base: string; moved: boolean };
 
 interface Placed {
   node: FlowNode;
@@ -76,7 +109,6 @@ interface Placed {
 
 const NODE_W = 168;
 const NODE_H = 34;
-const NODE_H_FX = 50;
 const ICON: Record<string, string> = { comp: 'iComp', footage: 'iFootage', solid: 'iSolid', layer: 'layers', effect: 'sFx' };
 const SVG = 'http://www.w3.org/2000/svg';
 const MOD = /Mac|iPhone|iPad/.test(navigator.platform) ? 'Cmd' : 'Ctrl';
@@ -101,6 +133,7 @@ export class FlowchartPanel implements Panel {
   private drag: { x: number; y: number; px: number; py: number } | null = null;
   private readonly wire: SVGPathElement;
   private wiring: Wire | null = null;
+  private moving: Move | null = null;
   private hover: HTMLElement | null = null;
 
   constructor(private readonly ctx: Ctx) {
@@ -216,8 +249,21 @@ export class FlowchartPanel implements Panel {
     this.placed.clear();
     const maxDepth = Math.max(0, ...(g?.nodes ?? []).map((n) => n.depth));
     const h = this.nodeH();
-    setClass(this.world, 'has-fx', this.opts.effects);
-    for (const n of g?.nodes ?? []) {
+    const row = new Map<string, number>();
+    const outs = new Map<string, string[]>();
+    for (const e of g?.edges ?? []) if (!e.kind) outs.set(e.from, [...(outs.get(e.from) ?? []), e.to]);
+    const ordered: FlowNode[] = [];
+    for (let d = 0; d <= maxDepth; d++) {
+      const col = (g?.nodes ?? []).filter((n) => n.depth === d);
+      const keyOf = (n: FlowNode): number => Math.min(Infinity, ...(outs.get(n.id) ?? []).map((t) => row.get(t) ?? Infinity));
+      const keyed = col.map((n, i) => ({ n, k: keyOf(n), i }));
+      keyed.sort((a, b) => a.k - b.k || a.i - b.i);
+      keyed.forEach(({ n }, i) => {
+        row.set(n.id, i);
+        ordered.push(n);
+      });
+    }
+    for (const n of ordered) {
       const col = maxDepth - n.depth;
       const i = slot.get(col) ?? 0;
       slot.set(col, i + 1);
@@ -227,7 +273,7 @@ export class FlowchartPanel implements Panel {
     patchList(this.nodesEl, [...this.placed.values()], {
       key: (p) => p.node.id,
       create: (p) => {
-        const n = el(`<div class="fx-flow-node" role="button" tabindex="-1"><span class="fx-flow-icon"></span><span class="fx-flow-text"><span class="fx-flow-label"></span><span class="fx-flow-fx"></span></span><span class="fx-flow-ports"><span class="fx-flow-port" data-port="parent" title="Drag to a layer to parent this layer to it">${icon('link', 11)}</span><span class="fx-flow-port" data-port="matte" title="Drag to a layer to use it as this layer's track matte">${icon('mask', 11)}</span></span></div>`);
+        const n = el(`<div class="fx-flow-node" role="button" tabindex="-1"><span class="fx-flow-icon"></span><span class="fx-flow-text"><span class="fx-flow-label"></span><span class="fx-flow-fx"></span></span><span class="fx-flow-ports"><span class="fx-flow-port" data-port="parent" title="Drag to a layer to parent this layer to it">${icon('link', 11)}</span><span class="fx-flow-port" data-port="matte" title="Drag to a layer to use it as this layer's track matte">${icon('mask', 11)}</span><span class="fx-flow-port" data-port="ref" title="Drag to a layer to use it in this effect">${icon('link', 11)}</span></span></div>`);
         n.dataset.automationId = `flowchart.node.${p.node.id}`;
         return n;
       },
@@ -237,8 +283,10 @@ export class FlowchartPanel implements Panel {
         setHtml(q(n, '.fx-flow-icon'), icon(ICON[p.node.kind] ?? 'iNull', 14), p.node.kind);
         setText(q(n, '.fx-flow-label'), p.node.label);
         setText(q(n, '.fx-flow-fx'), p.node.effects.join(' · '));
-        setTitle(n, p.node.kind === 'layer' ? `${p.node.label}: drag a port to wire a parent or a track matte, right-click for more` : `${p.node.label}: double-click to open, ${MOD}-click to reveal`);
+        setTitle(n, p.node.kind === 'layer' ? `${p.node.label}: drag a port to wire a parent or a track matte, right-click for more` : p.node.kind === 'effect' ? `${p.node.label}: drag onto another effect of this layer to reorder, right-click for more` : `${p.node.label}: double-click to open, ${MOD}-click to reveal`);
         setClass(n, 'is-selected', this.selected === p.node.id);
+        setClass(n, 'is-off', !!p.node.fx && !p.node.fx.enabled);
+        setClass(n, 'has-refs', !!p.node.fx?.refs.length);
       },
     });
     this.drawEdges();
@@ -246,7 +294,7 @@ export class FlowchartPanel implements Panel {
   }
 
   private nodeH(): number {
-    return this.opts.effects ? NODE_H_FX : NODE_H;
+    return NODE_H;
   }
 
   private drawEdges(): void {
@@ -282,7 +330,7 @@ export class FlowchartPanel implements Panel {
       const [curve, arrow, hit, tip] = Array.from(gEl.children);
       let d: string;
       let head: string;
-      if (edge.kind) {
+      if (edge.kind === 'parent' || edge.kind === 'matte') {
         const side = edge.kind === 'parent' ? 1 : -1;
         const s = v ? [pa.x + NODE_W / 2 + side * 30, pa.y + (side > 0 ? H : 0)] : [pa.x + (side > 0 ? NODE_W : 0), pa.y + H / 2];
         const e = v ? [pb.x + NODE_W / 2 + side * 30, pb.y + (side > 0 ? H : 0)] : [pb.x + (side > 0 ? NODE_W : 0), pb.y + H / 2];
@@ -306,7 +354,7 @@ export class FlowchartPanel implements Panel {
         arrow.setAttribute('d', head);
       }
       gEl.setAttribute('class', edge.kind ? `is-${edge.kind}` : '');
-      const text = edge.kind === 'parent' ? `${pb.node.label} is parented to ${pa.node.label}. Click to remove.` : edge.kind === 'matte' ? `${pa.node.label} is the ${edge.label ?? 'track matte'} of ${pb.node.label}. Click to change.` : '';
+      const text = edge.kind === 'parent' ? `${pb.node.label} is parented to ${pa.node.label}. Click to remove.` : edge.kind === 'matte' ? `${pa.node.label} is the ${edge.label ?? 'track matte'} of ${pb.node.label}. Click to change.` : edge.kind === 'fxref' ? `${pa.node.label} is used by ${edge.label ?? pb.node.label}. Click to remove.` : '';
       if (tip.textContent !== text) tip.textContent = text;
     }
     for (const [k, n] of have) if (!keep.has(k)) n.remove();
@@ -339,12 +387,13 @@ export class FlowchartPanel implements Panel {
   private startWire(e: PointerEvent, port: HTMLElement): void {
     const n = port.closest<HTMLElement>('.fx-flow-node');
     const node = n ? this.placed.get(n.dataset.key ?? '')?.node : undefined;
-    if (!node || node.kind !== 'layer') return;
+    const isRef = port.dataset.port === 'ref';
+    if (!node || (isRef ? !node.fx?.refs.length : node.kind !== 'layer')) return;
     e.preventDefault();
     e.stopPropagation();
     const r = port.getBoundingClientRect();
     const w = this.world.getBoundingClientRect();
-    this.wiring = { from: node, kind: port.dataset.port === 'matte' ? 'matte' : 'parent', start: [r.left + r.width / 2 - w.left, r.top + r.height / 2 - w.top] };
+    this.wiring = { from: node, kind: isRef ? 'ref' : port.dataset.port === 'matte' ? 'matte' : 'parent', start: [r.left + r.width / 2 - w.left, r.top + r.height / 2 - w.top] };
     this.wire.setAttribute('class', `fx-flow-wire is-${this.wiring.kind}`);
     this.body.setPointerCapture(e.pointerId);
     this.moveWire(e);
@@ -375,8 +424,75 @@ export class FlowchartPanel implements Panel {
     if (!w) return;
     const target = this.nodeAt(e);
     if (!this.canWire(w.from, target)) return;
+    if (w.kind === 'ref') {
+      const refs = w.from.fx?.refs ?? [];
+      const set = (r: FxRef): void => void this.ctx.run('prop.set', { layer: w.from.layer, prop: r.prop, value: target.layer });
+      if (refs.length === 1) set(refs[0]);
+      else if (refs.length > 1) contextMenu(e.clientX, e.clientY, refs.map((r) => ({ label: r.name, run: () => set(r) })));
+      return;
+    }
     if (w.kind === 'parent') await this.ctx.run('layer.setParent', { layers: [w.from.layer], parent: target.layer });
     else await this.ctx.run('layer.setTrackMatte', { layer: w.from.layer, matte: target.layer, kind: 'alpha' });
+  }
+
+  private startMove(e: PointerEvent, n: HTMLElement, node: FlowNode): void {
+    this.moving = { node, el: n, x0: e.clientX, y0: e.clientY, base: n.style.transform, moved: false };
+    this.body.setPointerCapture(e.pointerId);
+  }
+
+  private moveNode(e: PointerEvent): void {
+    const m = this.moving;
+    if (!m) return;
+    const dx = e.clientX - m.x0;
+    const dy = e.clientY - m.y0;
+    if (!m.moved && Math.abs(dx) + Math.abs(dy) < 4) return;
+    if (!m.moved) {
+      m.moved = true;
+      setClass(m.el, 'is-moving', true);
+    }
+    m.el.style.transform = `${m.base} translate(${dx}px, ${dy}px)`;
+    m.el.style.pointerEvents = 'none';
+    const target = this.nodeAt(e);
+    const ok = target && target.kind === 'effect' && target.layer === m.node.layer && target.id !== m.node.id ? target : null;
+    const tEl = ok ? this.nodesEl.querySelector<HTMLElement>(`[data-key="${CSS.escape(ok.id)}"]`) : null;
+    if (tEl !== this.hover) {
+      if (this.hover) setClass(this.hover, 'is-target', false);
+      this.hover = tEl;
+      if (tEl) setClass(tEl, 'is-target', true);
+    }
+  }
+
+  private async endMove(e: PointerEvent): Promise<void> {
+    const m = this.moving;
+    this.moving = null;
+    if (!m) return;
+    if (this.hover) setClass(this.hover, 'is-target', false);
+    this.hover = null;
+    const target = m.moved ? this.nodeAt(e) : null;
+    m.el.style.transform = m.base;
+    m.el.style.pointerEvents = '';
+    setClass(m.el, 'is-moving', false);
+    if (!m.moved) {
+      this.select(m.node.id);
+      return;
+    }
+    if (target && target.kind === 'effect' && target.layer === m.node.layer && target.fx && m.node.fx && target.id !== m.node.id) {
+      await this.ctx.run('effect.reorder', { layer: m.node.layer, effect: m.node.fx.uid, index: target.fx.index + 1 });
+    }
+  }
+
+  private catalog: Array<{ id: string; name: string; category: string }> | null = null;
+
+  private async effectsByCategory(layer: number): Promise<PopupEntry[]> {
+    this.catalog ??= await this.ctx.client.call<Array<{ id: string; name: string; category: string }>>('effects.catalog', {});
+    const groups = new Map<string, PopupEntry[]>();
+    for (const fx of this.catalog) {
+      if (!fx.category || fx.category === 'Obsolete') continue;
+      const list = groups.get(fx.category) ?? [];
+      list.push({ label: fx.name, run: () => void this.ctx.run('effect.apply', { effect: fx.id, layers: [layer] }) });
+      groups.set(fx.category, list);
+    }
+    return [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([label, children]) => ({ label, children }));
   }
 
   private edgeMenu(e: MouseEvent, key: string): void {
@@ -384,6 +500,10 @@ export class FlowchartPanel implements Panel {
     const child = edge ? this.placed.get(edge.to)?.node : undefined;
     if (!edge?.kind || !child || child.layer === null) return;
     const layer = child.layer;
+    if (edge.kind === 'fxref') {
+      if (edge.prop !== undefined) contextMenu(e.clientX, e.clientY, [{ label: `Remove ${edge.label ?? 'Layer Reference'}`, run: () => void this.ctx.run('prop.set', { layer, prop: edge.prop, value: null }) }]);
+      return;
+    }
     const items: PopupEntry[] = edge.kind === 'parent'
       ? [{ label: 'Remove Parent', run: () => void this.ctx.run('layer.setParent', { layers: [layer], parent: null }) }]
       : [
@@ -408,14 +528,31 @@ export class FlowchartPanel implements Panel {
       items.push('-', { label: 'Effect Controls', run: () => void this.reveal(node).then(() => this.ctx.ui.emit('showPanel', 'effectControls')) });
       items.push({ label: 'Remove Parent', enabled: edges.some((x) => x.kind === 'parent' && x.to === node.id), run: () => void this.ctx.run('layer.setParent', { layers: [layer], parent: null }) });
       items.push({ label: 'Remove Track Matte', enabled: edges.some((x) => x.kind === 'matte' && x.to === node.id), run: () => void this.ctx.run('layer.setTrackMatte', { layer, matte: null }) });
+      items.push('-', { label: 'Add Effect', children: () => this.effectsByCategory(layer) });
+    }
+    if (node.kind === 'effect' && node.fx && node.layer !== null) {
+      const layer = node.layer;
+      const fx = node.fx;
+      items.push('-', { label: 'Effect Enabled', checked: fx.enabled, run: () => void this.ctx.run('effect.toggle', { layer, effect: fx.uid, enabled: !fx.enabled }) });
+      items.push({ label: 'Move Earlier', enabled: fx.index > 0, run: () => void this.ctx.run('effect.reorder', { layer, effect: fx.uid, index: fx.index }) });
+      items.push({ label: 'Move Later', enabled: fx.index + 1 < fx.count, run: () => void this.ctx.run('effect.reorder', { layer, effect: fx.uid, index: fx.index + 2 }) });
+      items.push({ label: 'Duplicate Effect', run: () => void this.ctx.run('effect.duplicate', { layer, effect: fx.uid }) });
+      items.push({ label: 'Remove Effect', run: () => void this.ctx.run('effect.remove', { layer, effect: fx.uid }) });
     }
     contextMenu(e.clientX, e.clientY, items);
   }
 
   private bindBody(): void {
     this.nodesEl.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
       const port = (e.target as HTMLElement).closest<HTMLElement>('.fx-flow-port');
-      if (port && e.button === 0) this.startWire(e, port);
+      if (port) {
+        this.startWire(e, port);
+        return;
+      }
+      const n = (e.target as HTMLElement).closest<HTMLElement>('.fx-flow-node');
+      const node = n ? this.placed.get(n.dataset.key ?? '')?.node : undefined;
+      if (n && node?.kind === 'effect') this.startMove(e, n, node);
     });
     this.nodesEl.addEventListener('contextmenu', (e) => {
       const n = (e.target as HTMLElement).closest<HTMLElement>('.fx-flow-node');
@@ -445,6 +582,10 @@ export class FlowchartPanel implements Panel {
         this.moveWire(e);
         return;
       }
+      if (this.moving) {
+        this.moveNode(e);
+        return;
+      }
       if (!this.drag) return;
       this.pan = [this.drag.px + e.clientX - this.drag.x, this.drag.py + e.clientY - this.drag.y];
       this.applyPan();
@@ -452,6 +593,10 @@ export class FlowchartPanel implements Panel {
     const end = (e: PointerEvent): void => {
       if (this.wiring) {
         void this.endWire(e);
+        return;
+      }
+      if (this.moving) {
+        void this.endMove(e);
         return;
       }
       if (this.drag && Math.abs(this.pan[0] - this.drag.px) + Math.abs(this.pan[1] - this.drag.py) < 3) this.select(null);
