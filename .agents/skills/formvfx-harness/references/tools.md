@@ -203,12 +203,15 @@ Renders a composition to a file through the Render Queue and waits for it: forma
 
 ## dynamic_link
 
-Dynamic Link: another app (formcut, an editor, a script) uses a composition as a live clip with no render. export writes a .fvxlink descriptor beside the saved project (or at path) naming the project, the comp and the frame and audio URLs; the editor fetches GET /api/link/frame.png?project=&comp=&time= and /api/link/audio with the x-formvfx-local: 1 header, so every saved change shows up on its next frame (the open project serves its unsaved state too). info reads a comp's size, rate and duration from any saved project file, and frame renders one of its frames, both without opening that project in the window.
+Dynamic Link: another app (formcut, an editor, a script) uses a composition as a live clip with no render. export writes a .fvxlink descriptor beside the saved project (or at path) naming the project, the comp and the frame and audio URLs; the editor fetches GET /api/link/frame.png?project=&comp=&time= and /api/link/audio with the x-formvfx-local: 1 header, so every saved change shows up on its next frame (the open project serves its unsaved state too). info reads a comp's size, rate and duration from any saved project file, and frame renders one of its frames, both without opening that project in the window. Links survive a moved or renamed project (found again by its project id or file name beside the .fvxlink, in the project's old folder or among recent projects) and a renumbered comp (found again by name). check reads a .fvxlink (path), reports whether it resolves, was relinked, or was written by a newer formvfx, and with write: true rewrites it to the new location; render renders the linked comp to a movie beside the project (Render and Replace for the editor); status lists the projects being served and the recent link requests.
 
-- `action`: string (export | info | frame); required
+- `action`: string (export | info | frame | check | render | status); required
 - `project`: string; absolute project path, .fvxproj or .ecproj (default the open project)
 - `comp`: id or name; Composition id or name; omit for the active composition.
-- `path`: string
+- `path`: string; export: where to write the .fvxlink; check and render: the .fvxlink to read
+- `write`: boolean; default false
+- `format`: string (prores | h264 | hevc | webm); default "prores"
+- `output`: string
 - `time`: number; Composition time in seconds; omit for the current time.
 - `max_size`: integer; default 960
 

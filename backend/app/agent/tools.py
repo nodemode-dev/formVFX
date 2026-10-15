@@ -5,6 +5,7 @@ import base64
 import json
 import struct
 import zlib
+from pathlib import Path
 from typing import Any
 
 from .. import __version__
@@ -103,8 +104,8 @@ TOOLS = [
           {"comp": _COMP, "start": {"type": "number"}, "end": {"type": "number"}, "count": {"type": "integer", "minimum": 2, "maximum": 24, "default": 8}, "max_size": {"type": "integer", "minimum": 64, "maximum": 640, "default": 320}}, read=True, idempotent=True),
     _tool("render", "Renders a composition to a file through the Render Queue and waits for it: format h264, prores, hevc, av1, webm, gif, png, jpeg, tiff, exr, wav or aiff; output is an absolute path (default: the renders folder).",
           {"comp": _COMP, "format": {"type": "string", "default": "h264"}, "output": {"type": "string"}, "wait": {"type": "boolean", "default": True}}),
-    _tool("dynamic_link", "Dynamic Link: another app (formcut, an editor, a script) uses a composition as a live clip with no render. export writes a .fvxlink descriptor beside the saved project (or at path) naming the project, the comp and the frame and audio URLs; the editor fetches GET /api/link/frame.png?project=&comp=&time= and /api/link/audio with the x-formvfx-local: 1 header, so every saved change shows up on its next frame (the open project serves its unsaved state too). info reads a comp's size, rate and duration from any saved project file, and frame renders one of its frames, both without opening that project in the window.",
-          {"action": {"type": "string", "enum": ["export", "info", "frame"]}, "project": {"type": "string", "description": "absolute project path, .fvxproj or .ecproj (default the open project)"}, "comp": _COMP, "path": {"type": "string"}, "time": _TIME, "max_size": {"type": "integer", "minimum": 64, "maximum": 2048, "default": 960}}, ["action"]),
+    _tool("dynamic_link", "Dynamic Link: another app (formcut, an editor, a script) uses a composition as a live clip with no render. export writes a .fvxlink descriptor beside the saved project (or at path) naming the project, the comp and the frame and audio URLs; the editor fetches GET /api/link/frame.png?project=&comp=&time= and /api/link/audio with the x-formvfx-local: 1 header, so every saved change shows up on its next frame (the open project serves its unsaved state too). info reads a comp's size, rate and duration from any saved project file, and frame renders one of its frames, both without opening that project in the window. Links survive a moved or renamed project (found again by its project id or file name beside the .fvxlink, in the project's old folder or among recent projects) and a renumbered comp (found again by name). check reads a .fvxlink (path), reports whether it resolves, was relinked, or was written by a newer formvfx, and with write: true rewrites it to the new location; render renders the linked comp to a movie beside the project (Render and Replace for the editor); status lists the projects being served and the recent link requests.",
+          {"action": {"type": "string", "enum": ["export", "info", "frame", "check", "render", "status"]}, "project": {"type": "string", "description": "absolute project path, .fvxproj or .ecproj (default the open project)"}, "comp": _COMP, "path": {"type": "string", "description": "export: where to write the .fvxlink; check and render: the .fvxlink to read"}, "write": {"type": "boolean", "default": False}, "format": {"type": "string", "enum": ["prores", "h264", "hevc", "webm"], "default": "prores"}, "output": {"type": "string"}, "time": _TIME, "max_size": {"type": "integer", "minimum": 64, "maximum": 2048, "default": 960}}, ["action"]),
     _tool("project", "Project files: new, open (path), save (path for the first save), saveAs (path), close. formvfx projects are .fvxproj JSON; projects saved as .ecproj by earlier formvfx releases open as imports.",
           {"action": {"type": "string", "enum": ["new", "open", "save", "saveAs", "close", "demo"]}, "path": {"type": "string"}}, ["action"], destructive=True),
     _tool("import_files", "Imports footage, images, audio, PSD, SVG, PDF, Lottie or 3D models (absolute paths) into the project; addToComp also places them in the active composition.",
@@ -359,6 +360,19 @@ async def _call(name: str, a: dict, source: str) -> dict:
             return text(await rpc.dispatch("link.export", {k: a[k] for k in ("comp", "path") if a.get(k) is not None}, source))
         if act == "info":
             return text(await link.info(a.get("project"), a.get("comp")))
+        if act == "status":
+            return text(link.status())
+        if act in ("check", "render"):
+            p = a.get("path")
+            if not p:
+                return fail("pass `path`, the .fvxlink file")
+            try:
+                descriptor = json.loads(Path(p).expanduser().read_text(encoding="utf-8"))
+            except (OSError, ValueError) as exc:
+                return fail(f"{p} is not a readable .fvxlink: {exc}")
+            if act == "check":
+                return text(await link.check(descriptor, p, bool(a.get("write"))))
+            return text(await link.render(descriptor, a.get("output"), str(a.get("format") or "prores")))
         w, h, png = await link.frame(a.get("project"), a.get("comp"), float(a.get("time") or 0.0), int(a.get("max_size") or 960), False)
         return image(png, f"{w} x {h} at {a.get('time') or 0} s")
     if name == "render_frame":
