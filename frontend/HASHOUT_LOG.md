@@ -8,6 +8,7 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - The engine is the source of truth. `engine/store.ts` pulls `ui.state` from the engine (coalesced, one request in flight) and emits granular events (`items`, `comp`, `layers`, `selection`, `time`, `trees`, `history`, `viewer`, `project`, `state`) by comparing JSON signatures, so a panel only redraws what changed.
 - `store.watch(fn)` subscribes to `state` and replays the current state on the next microtask. Panels are built lazily when a workspace first shows them, so a panel created after the first pull still renders immediately.
 - Every user action is an engine command: `ctx.run(id, params)` for direct calls, `ctx.invoke(id)` when the command may need a form (generated from the command's parameter docs in `ui/forms.ts`) or a file picker (`PICKERS` in `app/ctx.ts`).
+- Load Plug-in's picker also accepts `.ofx` (0.40.0). An OpenFX bundle is a folder, which the in-app file dialog opens rather than picks, so the person goes into the bundle and picks the binary; the engine walks up to the `.ofx.bundle` folder before loading or installing it. OpenFX effects need no other interface code: they arrive as engine effect specs like any other.
 - Drags are gestures: `gesture.begin` before the first write, `gesture.end` after the last, so a whole drag is one undo step (the engine merges by key until the gesture ends).
 
 ## Rendering

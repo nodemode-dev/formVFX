@@ -22,6 +22,8 @@ formvfx is licensed under the Apache License 2.0 (`LICENSE`). It includes or dep
 | MobileSAM weights, by Chaoning Zhang et al. (not bundled: downloaded on request and checked against their SHA-256) | Roto Brush and Object Matte segmentation, run by formvfx's own implementation | Apache-2.0 |
 | MediaPipe Face Landmarker (BlazeFace short-range detector and Face Mesh V2), by Google (not bundled: downloaded on request and checked against its SHA-256) | face tracking, run by formvfx's own TensorFlow Lite interpreter | Apache-2.0 |
 | wasmi, wasmi_core, wasmi_ir, wasmi_collections, wasmparser, wat, wast, wasm-encoder, spin, libm, string-interner, hashbrown, foldhash, bumpalo, leb128fmt, unicode-width | the WebAssembly runtime for effect plug-ins in `native/fvx-core` | MIT OR Apache-2.0, Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT, MIT, Zlib |
+| libloading | loading OpenFX plug-in binaries in `native/fvx-core` | ISC |
+| OpenFX image effect API, by the OpenFX project (the suite layouts and property names from its published headers, declared again in Rust; no header is shipped) | the OpenFX host in `native/fvx-core/src/effects/ofx.rs` | BSD-3-Clause |
 | formvis design system (NodeMode Studio Dark tokens, shell, panel and dialog styles, theme, DOM, dialog and toast helpers) | `frontend/src/styles`, `frontend/src/ui` | Apache-2.0 |
 | Remix Icon paths in `frontend/src/ui/icons.ts` (via formvis) | inline SVG icons | Apache-2.0 |
 | Inter and JetBrains Mono (`@fontsource`) | interface fonts | SIL Open Font License 1.1 |

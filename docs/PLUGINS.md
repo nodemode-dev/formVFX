@@ -1,6 +1,6 @@
 # Effect plug-ins
 
-formvfx loads effect plug-ins written as WebAssembly modules. A plug-in is one `.wasm` (or `.wat`) file that describes its effect and its parameters as JSON and processes the layer's pixels in place. It runs in a sandbox: it can see only the buffers formvfx hands it, has no file or network access, is limited to 2 GB of memory, and is stopped when it runs for too long, so a faulty plug-in cannot hang or crash formvfx. After Effects SDK plug-ins are native code for another host and do not load.
+formvfx loads effect plug-ins written as WebAssembly modules. A plug-in is one `.wasm` (or `.wat`) file that describes its effect and its parameters as JSON and processes the layer's pixels in place. It runs in a sandbox: it can see only the buffers formvfx hands it, has no file or network access, is limited to 2 GB of memory, and is stopped when it runs for too long, so a faulty plug-in cannot hang or crash formvfx. formvfx also loads OpenFX plug-ins (below), the open standard that Resolve, Nuke, Fusion, Vegas and Natron share. After Effects SDK plug-ins are native code built against Adobe's host and do not load.
 
 ## Installing
 
@@ -68,3 +68,16 @@ cargo build --release --target wasm32-unknown-unknown --manifest-path native/plu
 ```
 
 and load `native/plugins/radial-tint/target/wasm32-unknown-unknown/release/radial_tint.wasm`. Any language that compiles to WebAssembly works; a plug-in can also be written by hand in the text format (`.wat`).
+
+## OpenFX plug-ins
+
+formvfx is also an OpenFX host (API 1.4, image effects), so effects built for other OpenFX hosts load as they are.
+
+- **Where it looks.** `.ofx.bundle` folders in the Plug-ins folder, in every folder of `OFX_PLUGIN_PATH`, and in the system OpenFX folder (`/usr/OFX/Plugins` on Linux, `/Library/OFX/Plugins` on macOS, `Common Files\OFX\Plugins` on Windows), each searched two folders deep. The binary is read from `Contents/Linux-x86-64`, `Contents/MacOS` or `Contents/Win64`. Effect > Load Plug-in... takes a bundle (or the `.ofx` inside it); `install: true` copies the whole bundle into the Plug-ins folder.
+- **What loads.** Image effects in the filter, general or generator context, with RGBA images at 32-bit float (16 and 8-bit plug-ins get the image converted, which clips values outside 0 to 1). Each plug-in's effects appear under OpenFX and the plug-in's grouping; ids are `ofx.` followed by the plug-in identifier. A name that repeats a built-in effect gets "(OFX)" after it.
+- **Parameters.** Double, integer, boolean, choice, RGB and RGBA, 2D and 3D, string and XY point parameters become effect properties that keyframe and save like any other. Point parameters follow the layer (OpenFX's origin is the bottom left; formvfx converts both ways, normalised points included). Groups, pages, push buttons, custom and parametric parameters are kept for the plug-in but not shown; secret parameters are not shown.
+- **Suites.** Property, image effect, parameter, memory, multithread (with recursive mutexes) and message suites. Overlays (interact suite), custom parameter interacts, timeline and progress suites, GPU rendering and temporal access to other frames are not offered, and plug-ins are told so through the host properties.
+- **Rendering.** A fresh instance renders each frame (create, begin sequence, render, end sequence, destroy), on the layer's full buffer at the preview scale. A plug-in that declares itself render-unsafe renders one frame at a time.
+- **Safety.** Unlike WebAssembly plug-ins, OpenFX plug-ins are native code inside the engine, as in every OpenFX host: a faulty one can stop formvfx. A bundle that stops formvfx while loading is noted, skipped at the next start and reported by `effect.plugins.list`; loading it with Load Plug-in tries again on purpose. A plug-in that crashes while rendering is not caught; remove it from the folder.
+
+The variadic parameter calls (`paramGetValue` and the rest) are implemented for the System V x86-64, Windows x64 and AArch64 calling conventions, including Apple's, where variadic arguments go on the stack; only Linux x86-64 has been run so far.
