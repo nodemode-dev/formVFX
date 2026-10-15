@@ -2,11 +2,11 @@
 
 Generated from the formvfx engine by `./formvfx agents sync`; do not edit by hand.
 
-683 commands in 56 namespaces. Every menu item, button and drag in formvfx is one of these. Run one with `execute {command, params}` over MCP, inside `batch` for several as one undo step, or `formvfx exec ID 'JSON'` from a shell. `describe_command ID` returns the JSON Schema. In the parameter summaries `?` marks an optional parameter, `a|b` lists the accepted values, and `layers?`/`layer?` default to the selected layers. Times are composition seconds unless the summary says layer seconds.
+696 commands in 62 namespaces. Every menu item, button and drag in formvfx is one of these. Run one with `execute {command, params}` over MCP, inside `batch` for several as one undo step, or `formvfx exec ID 'JSON'` from a shell. `describe_command ID` returns the JSON Schema. In the parameter summaries `?` marks an optional parameter, `a|b` lists the accepted values, and `layers?`/`layer?` default to the selected layers. Times are composition seconds unless the summary says layer seconds.
 
 ## Contents
 
-`file` (59) `edit` (26) `project` (11) `item` (1) `footage` (9) `comp` (26) `layer` (113) `prop` (17) `keys` (34) `anim` (8) `time` (13) `markers` (5) `effect` (17) `mask` (17) `path` (6) `paths` (3) `shape` (6) `text` (15) `camera` (19) `light` (3) `material` (4) `track` (22) `warp` (3) `roto` (14) `paint` (6) `puppet` (10) `liquify` (2) `contentFill` (2) `face` (5) `essential` (27) `expr` (2) `script` (1) `scriptui` (7) `render` (4) `renderQueue` (22) `playback` (6) `view` (61) `window` (8) `editor` (1) `scopes` (1) `cache` (2) `jobs` (3) `mediaBrowser` (7) `templates` (5) `prefs` (5) `shortcuts` (7) `storage` (3) `app` (12) `engine` (1) `command` (2) `motion` (1) `learn` (5) `help` (6) `clipboard` (1) `color` (2) `extensions` (5)
+`file` (59) `edit` (26) `project` (11) `item` (1) `footage` (9) `comp` (26) `layer` (113) `prop` (17) `keys` (34) `anim` (8) `time` (13) `markers` (5) `effect` (17) `mask` (17) `path` (6) `paths` (3) `shape` (6) `text` (15) `camera` (19) `light` (3) `material` (4) `track` (22) `warp` (3) `roto` (14) `paint` (6) `puppet` (10) `liquify` (2) `contentFill` (2) `face` (5) `essential` (27) `expr` (2) `script` (1) `scriptui` (7) `render` (4) `renderQueue` (22) `playback` (6) `view` (61) `window` (8) `editor` (1) `scopes` (1) `cache` (2) `jobs` (3) `mediaBrowser` (7) `templates` (5) `prefs` (5) `shortcuts` (7) `storage` (3) `app` (12) `engine` (1) `command` (2) `motion` (1) `learn` (5) `help` (6) `behavior` (4) `clipboard` (1) `cloner` (2) `color` (2) `data` (3) `export` (1) `extensions` (5) `physics` (1) `rig` (2)
 
 ## file
 
@@ -1428,10 +1428,28 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 - `help.inAppTutorials` In-App Tutorials · Help
   `{} · opens the tutorials; learn.* drives them`
 
+## behavior
+
+- `behavior.add` Add Behavior · Animation > Behaviors
+  `{layer?, property? (a path like transform/position or a uid; default the selected property), kind: wiggle|oscillate|spring|bounce|loopCycle|loopPingPong|loopContinue, params?: {wiggle: frequency=2 amplitude=20 octaves=1 multiplier=0.5 · oscillate: frequency=1 amplitude=50 angle=0 phase=0 decay=0 start=0 waveform=sine|triangle|square|saw · spring: amplitude=0.1 frequency=2 decay=2 · bounce: elasticity=0.7 gravity=4000 maxBounces=8 · loops: direction=out|in|both keyframes=0}} -> {index, behaviors} · a live expression kept on the property; behaviors stack in order and loops run first`
+- `behavior.list` List Behaviors
+  `{layer?, property?} -> [{index, kind, params}]`
+- `behavior.remove` Remove Behavior · Animation > Behaviors
+  `{layer?, property?, index (0-based)} · with none left the plain value returns`
+- `behavior.clear` Clear Behaviors · Animation > Behaviors
+  `{layer?, property?}`
+
 ## clipboard
 
 - `clipboard.pasteSvg` Paste Vector as Shapes
   `{svg (markup), name?, comp?} → {layer, shapes}`
+
+## cloner
+
+- `cloner.create` Create Cloner · Layer > Cloner
+  `{layer?, mode?: linear|grid|radial (default linear), count (copies including the original; 2 to 2000), rows?, columns?, radius? (radial; default 200), offset?: {position: [x, y] (step or grid spacing), rotation (deg per copy), scale (percent factor per copy; default 100), opacity (percent change per copy), time (s per copy when the layer has time remapping)}} -> {controller, layers} · a controller null holds the controls; every copy reads them through expressions`
+- `cloner.remove` Remove Cloner · Layer > Cloner
+  `{controller (the controller layer)} · deletes the copies and the controller and frees the original`
 
 ## color
 
@@ -1439,6 +1457,20 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `{config? (.ocio path; empty for the project's)} · working spaces, profiles, OCIO colour spaces, displays, views, looks and roles`
 - `color.convert` Convert Colours
   `{values: [[r,g,b]...], src?, dst?, display?, view?, looks?, inverse?: bool, config?} · converts through formvfx's profiles or the OCIO config`
+
+## data
+
+- `data.import` Data · File > Import
+  `{path (.csv .tsv or .json; JSON may be an array of objects or arrays or an object of arrays), name?} -> {item, name, columns, rows}`
+- `data.link` Link Data to Property · Animation > Behaviors
+  `{item (id or name), column (name or index; a list of them for point or colour properties), layer?, property?, mode?: keyframes|expression (default keyframes), start? (comp s of the first row; default 0), rate? (rows per second; default the comp frame rate), scale? (default 1), offset? (default 0)} -> {mode, keys|rows} · keyframes bake the rows; expression embeds them in a live expression`
+- `data.list` Data Items
+  `{item?, rows? (preview count)} -> [{item, name, path, columns, rows, preview}]`
+
+## export
+
+- `export.slicesFromGuides` Slices from Guides · File > Export
+  `{comp?, folder, time? (s; default the current time), format?: png} -> {files: [{path, row, column, x, y, width, height}]} · the comp frame cut at the guides (the comp edges count) into comp_r{row}_c{col}.png from 1`
 
 ## extensions
 
@@ -1452,3 +1484,15 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `{id} · docks the extension's HTML panel`
 - `extensions.evalScript` Evaluate Script for an Extension
   `{script, extension?} -> {result (a string, as CSInterface.evalScript gives it)}`
+
+## physics
+
+- `physics.bake` Bake Physics · Animation > Physics
+  `{layers? (default the selection)|layer?, gravity? (px/s2; default 980), bounce?: 0..1 (default 0.6), friction? (default 0.2), floor? (comp y px; default the comp height), walls?: bool (default true), start? (s; default the work area start), end? (s; default the work area end), shape?: auto|circle|box} -> {frames, start, end, bodies} · bakes position (and rotation of circles) keyframes at the frame rate as one undo step; boxes collide with each other as boxes and with circles as circles of equal area`
+
+## rig
+
+- `rig.ikCreate` Create Two-Bone IK · Animation > Rigging
+  `{upper, lower, end (layers in a parent chain upper > lower > end; they are parented when not), goal? (an existing layer; otherwise a null is made at the end layer), bend?: 1|-1 (elbow side; default 1), stretch?: bool (the chain scales to reach a far goal; default false)} -> {goal, upper, lower, end, switch} · live expressions on the rotations; the goal carries an IK Enabled checkbox (unchecked keeps the keyed rotations)`
+- `rig.ikRemove` Remove Two-Bone IK · Animation > Rigging
+  `{upper} · clears the IK expressions and removes the goal null it made`

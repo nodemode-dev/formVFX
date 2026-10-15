@@ -875,12 +875,24 @@ impl Default for OutputModule {
     }
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "camelCase", default)]
+pub struct DataTable {
+    pub id: u64,
+    pub name: String,
+    pub path: String,
+    pub columns: Vec<String>,
+    pub rows: Vec<Vec<String>>,
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Project {
     pub format: String,
     #[serde(default)]
     pub settings: ProjectSettings,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub data: Vec<DataTable>,
     pub items: Vec<Item>,
     pub next_id: u64,
     pub next_uid: u64,
@@ -892,7 +904,7 @@ pub struct Project {
 
 impl Default for Project {
     fn default() -> Self {
-        Project { format: FORMAT.into(), settings: ProjectSettings::default(), items: vec![], next_id: 0, next_uid: 0, render_queue: vec![], saved_by: String::new() }
+        Project { format: FORMAT.into(), settings: ProjectSettings::default(), data: vec![], items: vec![], next_id: 0, next_uid: 0, render_queue: vec![], saved_by: String::new() }
     }
 }
 
