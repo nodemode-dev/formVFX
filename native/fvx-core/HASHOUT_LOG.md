@@ -262,6 +262,15 @@ fvx-core is formvfx's compositing engine, written for formvfx in Rust and loaded
 
 - `engine/state.rs` `flowchart`: with `layers`, each layer's parent and track matte are edges too, `{"from": "l<parent>", "to": "l<child>", "kind": "parent"}` and `{"from": "l<matte>", "to": "l<layer>", "kind": "matte", "label": "Alpha Matte"}`. Flow edges (source into layer, layer into comp) keep no `kind`, so earlier readers of the payload (the MCP flowchart tool) see what they saw before plus the new edges.
 
+## OpenFX instances, region of definition, identity and other frames (0.41.0)
+
+- **Pool.** `Plugin.pool` keeps up to one idle instance per processor core. `instance` builds only what never changes (props copied from the context descriptor, clips, params with defaults); `prepare` sets what changes per call (project size, frame rate and range, render scale, clip buffers). `with_instance` pops or creates (Create Instance only for a new one), writes the effect's values and compares them with `Pooled.last`; differences become Begin Instance Changed, one Instance Changed per parameter (reason user edited, with time and render scale), End Instance Changed, so plug-ins that derive state from parameters stay right when one instance serves several effects. A failed call destroys the instance instead of pooling it; `Drop for Plugin` destroys the pool when a reload replaces the plug-in.
+- **Region of definition.** The spec's `pad` asks Get Region Of Definition (render scale 1, the layer's size as the source's region) and returns the largest overhang in layer pixels, capped at 4096, which `layer_buffer` adds around the layer as for built-in effects. It runs through the same pool, with null buffers (`clip_image` refuses a null buffer).
+- **Identity.** Is Identity before every render; when the plug-in names Source, the render is skipped, and if it names another time that frame is fetched through the effect host instead.
+- **Other frames.** `clipGetImage` on Source at a time other than the current frame calls `FxCtx::frame(dt)` (the layer rendered at that time up to this effect, same buffer size), converts it to the plug-in's depth and keeps it in `Live.arena` until the render returns. The host now says temporal clip access is supported. Only on the render thread (plug-in worker threads get the current frame).
+- **First-render guard.** Until a plug-in has rendered once in this session, `run` writes `Plug-ins/.ofx-rendering` with its bundle path and removes it after; `recover` treats a leftover like a leftover load marker. One file write per plug-in per session, so later crashes are not caught.
+- **Names.** A plug-in whose label repeats another loaded plug-in's gets its identifier in brackets, so `effect.apply` by name stays unambiguous (the first loaded keeps the plain name).
+
 ## OpenFX host (0.40.0)
 
 - **Shape.** `effects/ofx.rs` mirrors `plugin.rs`: each OpenFX image effect becomes a leaked `'static` `EffectSpec` with a hidden `plugin` param holding `ofx.<identifier>`, so apply, keyframes, save, Find Missing Effects and rendering need nothing new; `effects::every()` adds `ofx::specs()`.
