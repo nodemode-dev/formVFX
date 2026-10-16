@@ -1,6 +1,6 @@
 # formvfx against After Effects
 
-formvfx 0.29.0 measured line by line against Adobe After Effects 26.5 (September 2026), the way the form family measures itself: each capability is traced through formvfx's data model and engine command, the interface that exposes it, and the render or export path that applies it.
+formvfx 0.29.0 measured line by line against Adobe After Effects 26.5 (September 2026), each row regraded as later releases changed it through 0.44.0, the way the form family measures itself: each capability is traced through formvfx's data model and engine command, the interface that exposes it, and the render or export path that applies it.
 
 - **Full** · implemented and wired from the interface through to the render or export.
 - **Partial** · present but narrower than After Effects, or reachable only as a command form where After Effects gives direct manipulation.
@@ -16,6 +16,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 | --- | ---: | ---: | ---: | ---: | ---: |
 | formvfx 0.29.0 | 72 | 67 | 4 | 1 | 69 of 72 (96%) |
 | formvfx 0.39.0 | 72 | 68 | 3 | 1 | 69.5 of 72 (97%) |
+| formvfx 0.44.0 | 72 | 68 | 3 | 1 | 69.5 of 72 (97%) |
 
 ## Rows
 
@@ -97,7 +98,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 
 | # | Capability | formvfx | Trace | Verified |
 | ---: | --- | --- | --- | --- |
-| 40 | Effect catalogue breadth (307 effects in 21 categories, including the CC set) | Full | 305 effects: 301 in the Effect menu and Effects and Presets across the 20 categories (`effects.md`), with Face Track Points, Face Measurements, Paint and Roto Brush & Refine Edge added by their tools; the 3D Channel set (3D Channel Extract, Depth Matte, Depth of Field, EXtractoR, Fog 3D, ID Matte, IDentifier, Cryptomatte) reads depth, ids, normals, UVs, coverage and Cryptomatte layers from OpenEXR footage; Camera-Shake Deblur, Rolling Shutter Repair and Pixel Motion Blur on optical flow | all 300 listed applied and rendered, none failed; the 3D Channel set on an EXR with depth, ids, normals, coverage and a Cryptomatte layer (hashing checked against mmh3), the three flow effects on moving footage |
+| 40 | Effect catalogue breadth (307 effects in 21 categories, including the CC set) | Full | 306 effects in the Effect menu and Effects and Presets across 21 categories (`effects.md`), Face Track Points, Face Measurements, Paint and Roto Brush & Refine Edge among them (their tools also add them); the 3D Channel set (3D Channel Extract, Depth Matte, Depth of Field, EXtractoR, Fog 3D, ID Matte, IDentifier, Cryptomatte) reads depth, ids, normals, UVs, coverage and Cryptomatte layers from OpenEXR footage; Camera-Shake Deblur, Rolling Shutter Repair and Pixel Motion Blur on optical flow | all 300 listed applied and rendered, none failed; the 3D Channel set on an EXR with depth, ids, normals, coverage and a Cryptomatte layer (hashing checked against mmh3), the three flow effects on moving footage |
 | 41 | Keying: Keylight, Key Cleaner, Advanced Spill Suppressor | Full | `fx.keying.*`, `fx.matte.*` | rendered |
 | 42 | Colour: Lumetri Color, Curves, Levels, Hue/Saturation, OCIO transforms | Full | `fx.color.*`, the OCIO transforms | OCIO within 0.2% of OpenColorIO 2.6; Lumetri Look and Apply Color LUT |
 | 43 | Distortion: Warp Stabilizer, Liquify, Mesh Warp, Turbulent Displace | Full | `fx.distort.*`, `track.warpStabilizer`, `liquify.*` | Warp Stabilizer 0.00 px against 42.5 px raw; Liquify stroke and clear |
@@ -163,7 +164,7 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 
 ### Platform (not scored)
 
-| Capability | After Effects 26.5 | formvfx 0.25.0 |
+| Capability | After Effects 26.5 | formvfx 0.44.0 |
 | --- | --- | --- |
 | Desktop operating systems | macOS, Windows (x64, ARM) | macOS, Windows, Linux (Tauri) |
 | In a browser | no | yes (`./formvfx serve`) |
@@ -182,8 +183,9 @@ After Effects' side comes from Adobe's own documentation (What's new in After Ef
 
 1. Dynamic Link's editor side (5): formvfx serves linked comps; formcut does not place them yet.
 2. Ecosystem: `.ffx` presets read but not yet checked on real files, Premiere Pro `.mogrt` files (the `.prgraphic` project is closed), UXP plug-ins (in beta in After Effects), After Effects SDK plug-ins and Substance (declined: Adobe's closed host API and engine) (24, 46, 50, 61).
+
 ## Where formvfx leads
 
-Lottie export without a plug-in, editor timelines in four open formats (After Effects exchanges timelines through Premiere Pro projects), Linux and the browser, an Apache-2.0 licence, and an agent surface: every one of its 683 engine commands is reachable from Claude Code, Codex or Cursor through MCP or the command line, with a skill that teaches the workflow.
+Lottie export without a plug-in, editor timelines in four open formats (After Effects exchanges timelines through Premiere Pro projects), OpenFX plug-in hosting and MaterialX materials, an interface in 26 languages, Linux and the browser, an Apache-2.0 licence, and an agent surface: every one of its 699 engine commands is reachable from Claude Code, Codex or Cursor through MCP or the command line, with a skill that teaches the workflow, and Claude Code and a Chat panel run inside the window.
 
 Sources: Adobe, [What's new in After Effects](https://helpx.adobe.com/after-effects/desktop/what-s-new/whats-new.html), read October 7, 2026.

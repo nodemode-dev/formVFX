@@ -6,6 +6,12 @@ formvfx exposes all of its commands to agents. Changes they make appear in the w
 
 The Terminal panel opens a shell in formvfx's agent workspace (`~/Formvfx/agent-workspace`). The Claude Code, Codex and Cursor buttons start those clients there; each finds the `formvfx` MCP server and the `formvfx-harness` skill in the folder. Agents started here are trusted and never see a permission prompt.
 
+Window > Start Claude Code (Shift+Cmd or Ctrl+J) opens the panel and starts Claude Code in one step; the field under the terminal sends it a request in plain words. The title bar's Agent button has the same entries.
+
+## The Chat panel
+
+Window > Chat with Claude (Alt+Cmd or Ctrl+J) opens a chat that answers in place and shows each formvfx tool it uses as it goes, for people who would rather not use a terminal. It needs Claude Code installed and signed in; its changes are undo steps like any other.
+
 ## From this repository or anywhere
 
 - In the repository, `.mcp.json` (Claude Code), `.codex/config.toml` (Codex) and `.cursor/mcp.json` (Cursor) run `./formvfx mcp`.

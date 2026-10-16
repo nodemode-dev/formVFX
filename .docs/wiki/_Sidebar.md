@@ -1,5 +1,6 @@
 - [Home](Home)
 - [Getting Started](Getting-Started)
+- [Manual](Manual)
 - [Agents](Agents)
 - [Architecture](Architecture)
 - [Desktop](Desktop)

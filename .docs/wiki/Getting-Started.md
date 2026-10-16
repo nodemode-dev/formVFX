@@ -28,4 +28,10 @@ Cmd or Ctrl+K searches every command and effect.
 
 ## Workspaces
 
-The title bar's workspace menu switches between Default, Animation, Effects, Text, Motion Tracking, Agent and Minimal. Drag a panel tab onto another group to move it; the backtick key maximises the focused panel and restores it again.
+The title bar's workspace menu switches between Default, Animation, Effects, Text, Motion Tracking, Agent and Minimal. Drag a panel tab onto another group to move it; the backtick key maximises the focused panel and restores it again. Window > Workspace has the same list, and Window > Panels opens any panel.
+
+## Language
+
+Settings > Interface > Language switches the whole interface, effect names included, between 26 languages; English is the default.
+
+The [Manual](Manual) goes through the rest of the application area by area.
