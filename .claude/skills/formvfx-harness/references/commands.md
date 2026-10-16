@@ -2,11 +2,11 @@
 
 Generated from the formvfx engine by `./formvfx agents sync`; do not edit by hand.
 
-697 commands in 62 namespaces. Every menu item, button and drag in formvfx is one of these. Run one with `execute {command, params}` over MCP, inside `batch` for several as one undo step, or `formvfx exec ID 'JSON'` from a shell. `describe_command ID` returns the JSON Schema. In the parameter summaries `?` marks an optional parameter, `a|b` lists the accepted values, and `layers?`/`layer?` default to the selected layers. Times are composition seconds unless the summary says layer seconds.
+699 commands in 62 namespaces. Every menu item, button and drag in formvfx is one of these. Run one with `execute {command, params}` over MCP, inside `batch` for several as one undo step, or `formvfx exec ID 'JSON'` from a shell. `describe_command ID` returns the JSON Schema. In the parameter summaries `?` marks an optional parameter, `a|b` lists the accepted values, and `layers?`/`layer?` default to the selected layers. Times are composition seconds unless the summary says layer seconds.
 
 ## Contents
 
-`file` (59) `edit` (26) `project` (11) `item` (1) `footage` (9) `comp` (26) `layer` (113) `prop` (17) `keys` (34) `anim` (8) `time` (13) `markers` (5) `effect` (18) `mask` (17) `path` (6) `paths` (3) `shape` (6) `text` (15) `camera` (19) `light` (3) `material` (4) `track` (22) `warp` (3) `roto` (14) `paint` (6) `puppet` (10) `liquify` (2) `contentFill` (2) `face` (5) `essential` (27) `expr` (2) `script` (1) `scriptui` (7) `render` (4) `renderQueue` (22) `playback` (6) `view` (61) `window` (8) `editor` (1) `scopes` (1) `cache` (2) `jobs` (3) `mediaBrowser` (7) `templates` (5) `prefs` (5) `shortcuts` (7) `storage` (3) `app` (12) `engine` (1) `command` (2) `motion` (1) `learn` (5) `help` (6) `behavior` (4) `clipboard` (1) `cloner` (2) `color` (2) `data` (3) `export` (1) `extensions` (5) `physics` (1) `rig` (2)
+`file` (59) `edit` (26) `project` (11) `item` (1) `footage` (9) `comp` (26) `layer` (113) `prop` (17) `keys` (34) `anim` (8) `time` (13) `markers` (5) `effect` (18) `mask` (17) `path` (6) `paths` (3) `shape` (6) `text` (15) `camera` (19) `light` (3) `material` (6) `track` (22) `warp` (3) `roto` (14) `paint` (6) `puppet` (10) `liquify` (2) `contentFill` (2) `face` (5) `essential` (27) `expr` (2) `script` (1) `scriptui` (7) `render` (4) `renderQueue` (22) `playback` (6) `view` (61) `window` (8) `editor` (1) `scopes` (1) `cache` (2) `jobs` (3) `mediaBrowser` (7) `templates` (5) `prefs` (5) `shortcuts` (7) `storage` (3) `app` (12) `engine` (1) `command` (2) `motion` (1) `learn` (5) `help` (6) `behavior` (4) `clipboard` (1) `cloner` (2) `color` (2) `data` (3) `export` (1) `extensions` (5) `physics` (1) `rig` (2)
 
 ## file
 
@@ -842,6 +842,10 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `{layers?, castsShadows?: off|on|only, acceptsShadows?: off|on|only, acceptsLights?, appearsInReflections?, lightTransmission?, ambient?, diffuse?, specularIntensity?, specularShininess?, metal?, reflectionIntensity?, reflectionSharpness?, reflectionRolloff?, transparency?, transparencyRolloff?, indexOfRefraction? (1 to 5), overrideMaterial?, baseColor?, metallic?, roughness?, emissive?, time?}`
 - `material.revealSource` Reveal Material Source in Project · Layer > Material
   `{layer?}`
+- `material.importMaterialX` Import MaterialX · Layer > Material
+  `{path (.mtlx), material? (name; the first by default), layers?, time?} · reads a MaterialX material (standard_surface, open_pbr_surface, UsdPreviewSurface or gltf_pbr: base colour or its image with tiling, metalness, roughness, emission, opacity, transmission and IOR) into the layers' Material Options with Override Material on; an input driven by anything but an image is reported in `notes` and left at its default`
+- `material.listMaterialX` MaterialX Materials
+  `{path (.mtlx)} -> {materials: names}`
 - `material.reset` Reset Material · Layer > Material
   `{layers?}`
 - `material.duplicateAssign` Duplicate and Assign Material · Layer > Material

@@ -928,6 +928,14 @@ impl Project {
         Ids(&mut self.next_uid)
     }
 
+    pub fn with_layer_ids<R>(&mut self, cid: u64, lid: u64, f: impl FnOnce(&mut Layer, &mut Ids) -> R) -> Option<R> {
+        let Project { items, next_uid, .. } = self;
+        let it = items.iter_mut().find(|i| i.id == cid)?;
+        let ItemKind::Comp(c) = &mut it.kind else { return None };
+        let l = c.layers.iter_mut().find(|l| l.id == lid)?;
+        Some(f(l, &mut Ids(next_uid)))
+    }
+
     pub fn upgrade_3d(&mut self, only: Option<(u64, u64)>) {
         let Project { items, next_uid, .. } = self;
         for it in items.iter_mut() {

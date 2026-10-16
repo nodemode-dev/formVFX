@@ -313,7 +313,7 @@ fn tree(recent_paths: &[String], projects: &[String], footage: &[String]) -> Vec
                     ],
                 ),
                 Sub("Light", vec![I("layer.lightSettings"), I("light.controlWithCamera"), I("light.fromModel"), I("light.environmentBackground")]),
-                Sub("Material", vec![I("material.revealSource"), I("material.reset"), I("material.duplicateAssign")]),
+                Sub("Material", vec![I("material.revealSource"), I("material.importMaterialX"), I("material.reset"), I("material.duplicateAssign")]),
                 I("layer.environment"),
                 S,
                 Sub(

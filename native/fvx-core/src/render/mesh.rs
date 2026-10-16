@@ -25,14 +25,15 @@ pub struct MatEval {
     pub metallic: f32,
     pub roughness: f32,
     pub emissive: [f32; 3],
+    pub uv_scale: [f32; 2],
 }
 
 impl MatEval {
     pub fn color(&self, uv: [f32; 2]) -> [f32; 4] {
         let mut c = self.base;
         if let Some(t) = &self.texture {
-            let x = (uv[0].rem_euclid(1.0) as f64) * t.w as f64;
-            let y = (uv[1].rem_euclid(1.0) as f64) * t.h as f64;
+            let x = ((uv[0] * self.uv_scale[0]).rem_euclid(1.0) as f64) * t.w as f64;
+            let y = ((uv[1] * self.uv_scale[1]).rem_euclid(1.0) as f64) * t.h as f64;
             let s = t.sample(x, y, true);
             let a = s[3].max(1e-6);
             c = [c[0] * s[0] / a, c[1] * s[1] / a, c[2] * s[2] / a, c[3] * s[3]];
@@ -174,22 +175,53 @@ pub fn model_bounds(ev: &Eval, l: &Layer) -> Option<[f64; 6]> {
     (b[0] <= b[3]).then_some(b)
 }
 
+pub fn overriding(ev: &Eval, l: &Layer) -> bool {
+    l.props.sub("materialOptions").and_then(|g| g.get("overrideMaterial")).map(|p| ev.value(l, p).boolean()).unwrap_or(false)
+}
+
+fn map_image(path: &str) -> Option<Arc<Img>> {
+    static CACHE: std::sync::OnceLock<parking_lot::Mutex<std::collections::HashMap<String, (Option<std::time::SystemTime>, Option<Arc<Img>>)>>> = std::sync::OnceLock::new();
+    let cache = CACHE.get_or_init(Default::default);
+    let stamp = std::fs::metadata(path).and_then(|m| m.modified()).ok();
+    if let Some((s, img)) = cache.lock().get(path)
+        && *s == stamp
+    {
+        return img.clone();
+    }
+    let img = image::open(path).ok().map(|i| {
+        let i = i.to_rgba8();
+        Arc::new(Img::from_rgba8(i.width() as usize, i.height() as usize, i.as_raw(), false))
+    });
+    let mut c = cache.lock();
+    if c.len() > 64 {
+        c.clear();
+    }
+    c.insert(path.to_string(), (stamp, img.clone()));
+    img
+}
+
 fn mat_override(ev: &Eval, l: &Layer, m: &Material, force: bool) -> MatEval {
     let g = l.props.sub("materialOptions");
-    let on = force || g.and_then(|g| g.get("overrideMaterial")).map(|p| ev.value(l, p).boolean()).unwrap_or(false);
+    let on = force || overriding(ev, l);
     if !on {
-        return MatEval { base: m.base, texture: m.texture.clone(), metallic: m.metallic, roughness: m.roughness, emissive: m.emissive };
+        return MatEval { base: m.base, texture: m.texture.clone(), metallic: m.metallic, roughness: m.roughness, emissive: m.emissive, uv_scale: [1.0; 2] };
     }
     let col = |id: &str, d: [f64; 4]| g.and_then(|g| g.get(id)).map(|p| ev.value(l, p).color()).unwrap_or(d);
     let num = |id: &str, d: f64| g.and_then(|g| g.get(id)).map(|p| ev.value(l, p).num()).unwrap_or(d);
     let b = col("baseColor", [1.0; 4]);
     let e = col("emissive", [0.0, 0.0, 0.0, 1.0]);
+    let map = g.and_then(|g| g.get("baseColorMap")).and_then(|p| match ev.value(l, p) {
+        crate::model::Value::Str(s) if !s.trim().is_empty() => map_image(s.trim()),
+        _ => None,
+    });
+    let tiling = g.and_then(|g| g.get("mapTiling")).map(|p| ev.value(l, p).vec2()).unwrap_or([1.0, 1.0]);
     MatEval {
         base: [b[0] as f32, b[1] as f32, b[2] as f32, (b[3] * m.base[3] as f64) as f32],
-        texture: if force { None } else { m.texture.clone() },
+        texture: map.or_else(|| if force { None } else { m.texture.clone() }),
         metallic: (num("metallic", 0.0) / 100.0) as f32,
         roughness: (num("roughness", 50.0) / 100.0).clamp(0.02, 1.0) as f32,
         emissive: [e[0] as f32, e[1] as f32, e[2] as f32],
+        uv_scale: [tiling[0] as f32, tiling[1] as f32],
     }
 }
 
@@ -224,7 +256,14 @@ pub fn layer_mesh(ev: &Eval, l: &Layer, media: &Media) -> Option<LayerMesh> {
         return Some(LayerMesh { tris, mats });
     }
     let (local, mats) = if super::extrude::active(ev, l) {
-        super::extrude::tris(ev, l)?
+        let (t, m) = super::extrude::tris(ev, l)?;
+        if overriding(ev, l) {
+            let o = mat_override(ev, l, &Material { base: [1.0; 4], metallic: 0.0, roughness: 0.5, ..Material::default() }, true);
+            let n = m.len();
+            (t, vec![o; n])
+        } else {
+            (t, m)
+        }
     } else {
         (primitive_of(ev, l)?, vec![mat_override(ev, l, &Material { base: [1.0; 4], metallic: 0.0, roughness: 0.5, ..Material::default() }, true)])
     };

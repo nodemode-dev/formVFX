@@ -19,6 +19,7 @@ pub mod layout;
 pub mod light;
 pub mod lut;
 pub mod maskfx;
+pub mod materialx;
 pub mod media;
 pub mod mesh;
 pub mod mirror;

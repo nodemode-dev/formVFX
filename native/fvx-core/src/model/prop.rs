@@ -614,6 +614,22 @@ fn add_missing(g: &mut Group, after: &str, extras: Vec<Prop>) {
     }
 }
 
+pub fn ensure_pbr(l: &mut crate::model::Layer, ids: &mut Ids) -> bool {
+    let Some(g) = l.props.sub_mut("materialOptions") else { return false };
+    let extras = vec![
+        ids.prop("overrideMaterial", "Override Material", Value::Bool(false), Ui::Checkbox),
+        ids.prop("baseColor", "Base Color", Value::Color([1.0, 1.0, 1.0, 1.0]), Ui::Color),
+        ids.prop("metallic", "Metallic", Value::Num(0.0), Ui::slider(0.0, 100.0, 0.0, 100.0, 0)),
+        ids.prop("roughness", "Roughness", Value::Num(50.0), Ui::slider(0.0, 100.0, 0.0, 100.0, 0)),
+        ids.prop("emissive", "Emissive", Value::Color([0.0, 0.0, 0.0, 1.0]), Ui::Color),
+        ids.prop("baseColorMap", "Base Color Map", Value::Str(String::new()), Ui::Text),
+        ids.prop("mapTiling", "Map Tiling", Value::Vec2([1.0, 1.0]), Ui::Plain),
+    ];
+    let last = g.children.last().map(|c| c.id().to_string()).unwrap_or_default();
+    add_missing(g, &last, extras);
+    true
+}
+
 pub fn upgrade_3d_options(l: &mut crate::model::Layer, ids: &mut Ids) {
     if let Some(g) = l.props.sub_mut("materialOptions")
         && g.get("indexOfRefraction").is_none()

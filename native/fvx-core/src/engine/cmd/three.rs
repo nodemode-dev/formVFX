@@ -296,6 +296,55 @@ pub fn material_set(e: &mut Engine, p: &Json) -> Res {
     Ok(json!({"layers": ids}))
 }
 
+pub fn materialx_list(_e: &mut Engine, p: &Json) -> Res {
+    let path = ps(p, "path").ok_or("pass `path` (a .mtlx file)")?;
+    let text = std::fs::read_to_string(path).map_err(|err| format!("{path}: {err}"))?;
+    let names = crate::render::materialx::materials(&text).map_err(|err| format!("{path}: {err}"))?;
+    Ok(json!({"path": path, "materials": names}))
+}
+
+pub fn materialx_import(e: &mut Engine, p: &Json) -> Res {
+    let path = ps(p, "path").ok_or("pass `path` (a .mtlx file)")?.to_string();
+    let m = crate::render::materialx::read(&path, ps(p, "material"))?;
+    let (cid, ids) = e.layers_param(p)?;
+    if ids.is_empty() {
+        return Err("select the layers to give the material, or pass `layers`".into());
+    }
+    let now = e.time_of(cid);
+    let mut notes = m.notes.clone();
+    let mut done = vec![];
+    for id in &ids {
+        let lt = pf(p, "time").or_else(|| e.layer_ref(cid, *id).ok().map(|l| l.layer_time(now)));
+        e.proj().upgrade_3d(Some((cid, *id)));
+        let ok = e.proj().with_layer_ids(cid, *id, prop::ensure_pbr).unwrap_or(false);
+        if !ok {
+            notes.push(format!("layer {id} has no Material Options (make it 3D first)"));
+            continue;
+        }
+        let l = e.layer_mut(cid, *id)?;
+        let kind = l.kind;
+        let g = l.props.sub_mut("materialOptions").ok_or("no Material Options")?;
+        set(g, "overrideMaterial", Value::Bool(true), lt);
+        set(g, "baseColor", Value::Color(m.base.map(|x| x.clamp(0.0, 1.0))), lt);
+        set(g, "metallic", Value::Num((m.metallic * 100.0).clamp(0.0, 100.0)), lt);
+        set(g, "roughness", Value::Num((m.roughness * 100.0).clamp(0.0, 100.0)), lt);
+        set(g, "emissive", Value::Color([m.emissive[0], m.emissive[1], m.emissive[2], 1.0]), lt);
+        set(g, "baseColorMap", Value::Str(m.texture.as_ref().map(|t| t.0.clone()).unwrap_or_default()), lt);
+        set(g, "mapTiling", Value::Vec2(m.texture.as_ref().map(|t| t.1).unwrap_or([1.0, 1.0])), lt);
+        set(g, "transparency", Value::Num((m.transparency * 100.0).clamp(0.0, 100.0)), lt);
+        set(g, "indexOfRefraction", Value::Num(m.ior.clamp(1.0, 5.0)), lt);
+        if !matches!(kind, LayerKind::Model | LayerKind::Text | LayerKind::Shape) {
+            notes.push(format!("layer {id} is a flat layer; the material shows on models, primitives and extruded text and shapes"));
+        }
+        done.push(*id);
+    }
+    if done.is_empty() {
+        return Err(notes.join("; "));
+    }
+    e.set_label("Import MaterialX");
+    Ok(json!({"material": m.name, "shader": m.shader, "layers": done, "baseColor": m.base, "metallic": m.metallic, "roughness": m.roughness, "texture": m.texture.as_ref().map(|t| &t.0), "notes": notes}))
+}
+
 pub fn material_reset(e: &mut Engine, p: &Json) -> Res {
     let (cid, ids) = e.layers_param(p)?;
     for id in &ids {
