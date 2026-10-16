@@ -367,7 +367,7 @@ class App {
     this.home = el(`<div class="cv-home fx-home" hidden>
       <div class="cv-home-center">
         <h1 class="cv-home-brand">${brandMark(40)} formvfx <span class="cv-home-by">motion graphics and visual effects</span></h1>
-        <p class="cv-home-sub">Compositions, layers, keyframes, 300 effects, 3D, expressions, templates and a render queue, driven by you or by an agent.</p>
+        <p class="cv-home-sub">Compositions, layers, keyframes, 306 effects, 3D, expressions, templates and a render queue, driven by you or by an agent.</p>
         <div class="cv-home-actions">
           <button class="cv-home-action" type="button" data-h="new"><span class="cv-home-label">New Composition</span><span class="cv-key">↵</span></button>
           <button class="cv-home-action" type="button" data-h="open"><span class="cv-home-label">Open Project</span><span class="cv-key">O</span></button>

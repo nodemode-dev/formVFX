@@ -154,6 +154,7 @@ Living context for the interface. Code carries almost no comments; the reasoning
 ## formvfx Manual (0.44.0)
 
 - `app/app.ts` Help menu: formvfx Manual runs `help.docs {page: manual}` beside formvfx Help, so the manual opens wherever the help pages open (the browser, or the desktop shell's opener). The label goes through the same run-time translation as every menu label.
+- 0.44.1: the home screen's line said 300 effects since 0.23; it says 306 now. The line is its own translation key, so the key and the value change together in each of the 23 base tables (es-MX and fr-CA fall back to es and fr). A count in a translated sentence goes stale with every effect added; the agents reference (`effects.md`) is the source to check against.
 
 ## Chat, Ask Claude Code and languages (0.30.0)
 
