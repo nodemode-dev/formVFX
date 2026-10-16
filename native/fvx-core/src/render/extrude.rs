@@ -191,6 +191,21 @@ pub fn triangulate(outer: &[P2], holes: &[Vec<P2>]) -> Vec<[P2; 3]> {
     out
 }
 
+fn cap(outer: &[P2], holes: &[Vec<P2>]) -> Vec<[P2; 3]> {
+    let mut paths: Vec<Vec<P2>> = vec![outer.to_vec()];
+    paths.extend(holes.iter().cloned());
+    let empty: Vec<Vec<P2>> = vec![];
+    let shapes = paths.overlay(&empty, OverlayRule::Subject, FillRule::NonZero);
+    let mut out = vec![];
+    for sh in shapes {
+        let Some((o, hs)) = sh.split_first() else { continue };
+        if o.len() >= 3 {
+            out.extend(triangulate(o, hs));
+        }
+    }
+    out
+}
+
 fn norm3(v: [f64; 3]) -> [f32; 3] {
     let k = (v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt().max(1e-12);
     [(v[0] / k) as f32, (v[1] / k) as f32, (v[2] / k) as f32]
@@ -318,7 +333,7 @@ fn shape_mesh(out: &mut Vec<Tri>, g: &Geo, outer: &[P2], holes: &[Vec<P2>], [fro
         .collect();
     let front_outer = &rings[0][0].0;
     let front_holes: Vec<Vec<P2>> = rings[1..].iter().map(|r| r[0].0.clone()).collect();
-    for t in triangulate(front_outer, &front_holes) {
+    for t in cap(front_outer, &front_holes) {
         let v = t.map(|p| [p[0], p[1], 0.0]);
         out.push(Tri { v: [v[0], v[2], v[1]], n: [[0.0, 0.0, -1.0]; 3], uv: [[0.0; 2]; 3], mat: front });
     }
@@ -357,7 +372,7 @@ fn shape_mesh(out: &mut Vec<Tri>, g: &Geo, outer: &[P2], holes: &[Vec<P2>], [fro
     if total > 0.0 {
         let back_outer = &rings[0][rings[0].len() - 1].0;
         let back_holes: Vec<Vec<P2>> = rings[1..].iter().map(|r| r[r.len() - 1].0.clone()).collect();
-        for t in triangulate(back_outer, &back_holes) {
+        for t in cap(back_outer, &back_holes) {
             let v = t.map(|p| [p[0], p[1], total]);
             out.push(Tri { v, n: [[0.0, 0.0, 1.0]; 3], uv: [[0.0; 2]; 3], mat: front });
         }
@@ -369,7 +384,7 @@ pub fn tris(ev: &Eval, l: &Layer) -> Option<(Vec<Tri>, Vec<MatEval>)> {
     let ops = layer_ops(ev, l);
     let mut mats: Vec<MatEval> = vec![];
     let mut out = vec![];
-    let mat = |c: [f64; 4], op: f32| MatEval { base: [c[0] as f32, c[1] as f32, c[2] as f32, c[3] as f32 * op], texture: None, metallic: 0.0, roughness: 0.55, emissive: [0.0; 3] };
+    let mat = |c: [f64; 4], op: f32| MatEval { base: [c[0] as f32, c[1] as f32, c[2] as f32, c[3] as f32 * op], texture: None, metallic: 0.0, roughness: 0.55, emissive: [0.0; 3], uv_scale: [1.0; 2] };
     for (op, t) in ops.iter() {
         let OpKind::Fill { even_odd } = op.kind else { continue };
         let front_c = tint(paint_color(&op.paint), t[0]);
@@ -394,6 +409,9 @@ pub fn tris(ev: &Eval, l: &Layer) -> Option<(Vec<Tri>, Vec<MatEval>)> {
             }
             shape_mesh(&mut out, &g, outer, holes, ids);
         }
+    }
+    for t in out.iter_mut() {
+        t.uv = t.v.map(|v| [(v[0] / 512.0) as f32, ((v[1] + v[2]) / 512.0) as f32]);
     }
     (!out.is_empty()).then_some((out, mats))
 }
