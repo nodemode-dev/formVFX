@@ -1,4 +1,9 @@
 {
+"Import MaterialX...": "MaterialX importieren...",
+"MaterialX Materials": "MaterialX-Materialien",
+"Base Color Map": "Grundfarben-Map",
+"Map Tiling": "Map-Kachelung",
+"OpenFX Overlay": "OpenFX-Überlagerung",
 "Casts Shadows": "Wirft Schatten",
 "Light Transmission": "Lichtdurchlässigkeit",
 "Accepts Shadows": "Akzeptiert Schatten",

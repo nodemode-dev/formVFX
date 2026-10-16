@@ -1,4 +1,9 @@
 {
+"Import MaterialX...": "Importovat MaterialX...",
+"MaterialX Materials": "Materiály MaterialX",
+"Base Color Map": "Mapa základní barvy",
+"Map Tiling": "Dlaždicování mapy",
+"OpenFX Overlay": "Překrytí OpenFX",
 "Casts Shadows": "Vrhá stíny",
 "Light Transmission": "Propustnost světla",
 "Accepts Shadows": "Přijímá stíny",

@@ -1,4 +1,9 @@
 {
+"Import MaterialX...": "Nhập MaterialX...",
+"MaterialX Materials": "Vật liệu MaterialX",
+"Base Color Map": "Bản đồ màu cơ bản",
+"Map Tiling": "Lát gạch bản đồ",
+"OpenFX Overlay": "Lớp phủ OpenFX",
 "Casts Shadows": "Đổ bóng",
 "Light Transmission": "Truyền ánh sáng",
 "Accepts Shadows": "Nhận bóng",

@@ -1,4 +1,9 @@
 {
+"Import MaterialX...": "MaterialX importálása...",
+"MaterialX Materials": "MaterialX anyagok",
+"Base Color Map": "Alapszín-térkép",
+"Map Tiling": "Térkép csempézése",
+"OpenFX Overlay": "OpenFX átfedés",
 "Casts Shadows": "Árnyékot vet",
 "Light Transmission": "Fényáteresztés",
 "Accepts Shadows": "Fogad árnyékot",

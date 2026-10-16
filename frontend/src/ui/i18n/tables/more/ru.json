@@ -1,4 +1,9 @@
 {
+"Import MaterialX...": "Импорт MaterialX...",
+"MaterialX Materials": "Материалы MaterialX",
+"Base Color Map": "Карта базового цвета",
+"Map Tiling": "Повтор карты",
+"OpenFX Overlay": "Перекрытие OpenFX",
 "Casts Shadows": "Отбрасывает тени",
 "Light Transmission": "Пропускание света",
 "Accepts Shadows": "Принимает тени",

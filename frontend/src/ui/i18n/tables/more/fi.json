@@ -1,4 +1,9 @@
 {
+"Import MaterialX...": "Tuo MaterialX...",
+"MaterialX Materials": "MaterialX-materiaalit",
+"Base Color Map": "Perusvärikartta",
+"Map Tiling": "Kartan toisto",
+"OpenFX Overlay": "OpenFX-peite",
 "Casts Shadows": "Heittää varjoja",
 "Light Transmission": "Valon läpäisy",
 "Accepts Shadows": "Vastaanottaa varjoja",

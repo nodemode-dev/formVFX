@@ -1,4 +1,9 @@
 {
+"Import MaterialX...": "Importer MaterialX...",
+"MaterialX Materials": "MaterialX-materialer",
+"Base Color Map": "Grunnfargekart",
+"Map Tiling": "Kartgjentakelse",
+"OpenFX Overlay": "OpenFX-overlegg",
 "Casts Shadows": "Kaster skygger",
 "Light Transmission": "Lystransmisjon",
 "Accepts Shadows": "Mottar skygger",

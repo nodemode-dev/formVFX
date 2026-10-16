@@ -1,4 +1,9 @@
 {
+"Import MaterialX...": "匯入 MaterialX...",
+"MaterialX Materials": "MaterialX 材質",
+"Base Color Map": "基礎顏色貼圖",
+"Map Tiling": "貼圖拼貼",
+"OpenFX Overlay": "OpenFX 疊加",
 "Casts Shadows": "投射陰影",
 "Light Transmission": "透光率",
 "Accepts Shadows": "接受陰影",

@@ -1,4 +1,9 @@
 {
+"Import MaterialX...": "MaterialX を読み込み...",
+"MaterialX Materials": "MaterialX マテリアル",
+"Base Color Map": "ベースカラーマップ",
+"Map Tiling": "マップのタイリング",
+"OpenFX Overlay": "OpenFX オーバーレイ",
 "Casts Shadows": "シャドウを落とす",
 "Light Transmission": "光の透過",
 "Accepts Shadows": "シャドウを受ける",

@@ -1,4 +1,9 @@
 {
+"Import MaterialX...": "MaterialX 가져오기...",
+"MaterialX Materials": "MaterialX 재질",
+"Base Color Map": "기본 색상 맵",
+"Map Tiling": "맵 타일링",
+"OpenFX Overlay": "OpenFX 오버레이",
 "Casts Shadows": "그림자 드리우기",
 "Light Transmission": "빛 투과",
 "Accepts Shadows": "그림자 받기",

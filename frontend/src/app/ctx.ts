@@ -62,6 +62,7 @@ const PICKERS: Record<string, Picker> = {
   'file.runScript': { key: 'path', mode: 'open', ext: ['jsx', 'js', 'jsonl', 'json', 'txt'], when: (p) => p.name === undefined },
   'file.installScript': { key: 'path', mode: 'open', ext: ['jsx', 'js'] },
   'file.installScriptUIPanel': { key: 'path', mode: 'open', ext: ['jsx', 'js'] },
+  'material.importMaterialX': { key: 'path', mode: 'open', ext: ['mtlx'] },
   'effect.plugins.load': { key: 'path', mode: 'open', ext: ['wasm', 'wat', 'ofx'], when: (p) => p.folder === undefined },
   'essential.exportTemplate': { key: 'path', mode: 'save', ext: ['fvxtemplate', 'mogrt'], name: 'Template.fvxtemplate', when: (p) => p.folder === undefined },
   'essential.importTemplate': { key: 'path', mode: 'open', ext: ['fvxtemplate', 'mogrt'] },

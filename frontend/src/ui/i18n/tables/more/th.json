@@ -1,4 +1,9 @@
 {
+"Import MaterialX...": "นำเข้า MaterialX...",
+"MaterialX Materials": "วัสดุ MaterialX",
+"Base Color Map": "แผนที่สีพื้นฐาน",
+"Map Tiling": "การเรียงไทล์ของแผนที่",
+"OpenFX Overlay": "โอเวอร์เลย์ OpenFX",
 "Casts Shadows": "ทอดเงา",
 "Light Transmission": "การส่งผ่านแสง",
 "Accepts Shadows": "รับเงา",

@@ -1,4 +1,9 @@
 {
+"Import MaterialX...": "MaterialX İçe Aktar...",
+"MaterialX Materials": "MaterialX Malzemeleri",
+"Base Color Map": "Temel Renk Haritası",
+"Map Tiling": "Harita Döşeme",
+"OpenFX Overlay": "OpenFX Bindirme",
 "Casts Shadows": "Gölge Düşürür",
 "Light Transmission": "Işık Geçirgenliği",
 "Accepts Shadows": "Gölge Kabul Eder",
