@@ -14,7 +14,7 @@ enum M {
     Sub(&'static str, Vec<M>),
 }
 
-const PANELS: [(&str, &str); 19] = [
+const PANELS: [(&str, &str); 31] = [
     ("project", "Project"),
     ("footage", "Footage"),
     ("mediaBrowser", "Media Browser"),
@@ -33,10 +33,22 @@ const PANELS: [(&str, &str); 19] = [
     ("flowchart", "Flowchart"),
     ("history", "History"),
     ("audio", "Audio"),
+    ("brushes", "Brushes"),
+    ("paint", "Paint"),
+    ("contentAwareFill", "Content-Aware Fill"),
+    ("lumetriScopes", "Lumetri Scopes"),
+    ("markers", "Markers"),
+    ("metadata", "Metadata"),
+    ("motionSketch", "Motion Sketch"),
+    ("smoother", "Smoother"),
+    ("wiggler", "Wiggler"),
+    ("progress", "Progress"),
+    ("learn", "Learn"),
+    ("chat", "Chat"),
     ("terminal", "Terminal"),
 ];
 
-const WORKSPACES: [&str; 7] = ["Default", "Standard", "Animation", "Effects", "Motion Tracking", "Text", "Minimal"];
+const WORKSPACES: [&str; 7] = ["Default", "Animation", "Effects", "Motion Tracking", "Text", "Agent", "Minimal"];
 
 fn recent_list(paths: &[String], run: &'static str, clear: &'static str) -> Vec<M> {
     let mut out: Vec<M> = paths.iter().enumerate().map(|(i, path)| M::Owned(run, std::path::Path::new(path).file_name().and_then(|x| x.to_str()).unwrap_or(path).to_string(), json!({"index": i}))).collect();
@@ -516,7 +528,6 @@ fn tree(recent_paths: &[String], projects: &[String], footage: &[String]) -> Vec
                 Sub("Create Nulls from Paths", vec![I("paths.pointsFollowNulls"), I("paths.nullsFollowPoints"), I("paths.tracePath")]),
                 Sub("Extensions", extensions),
                 I("window.assignWorkspaceShortcut"),
-                I("app.commandPalette"),
             ]
             .into_iter()
             .chain(panels)

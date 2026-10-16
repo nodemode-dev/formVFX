@@ -132,7 +132,7 @@ class App {
           { label: 'Maximize Panel', shortcut: '`', run: () => this.dock.toggleMaximizeFocused() },
         ],
         Help: [
-          { label: 'formvfx Manual', run: () => window.open('https://github.com/nodemode-ai/formvfx/wiki', '_blank') },
+          { label: 'formvfx Manual', run: () => void ctx.run('help.docs', { page: 'manual' }) },
           { label: 'formvfx on GitHub', run: () => window.open('https://github.com/nodemode-ai/formvfx', '_blank') },
           { label: 'Report an Issue', run: () => window.open('https://github.com/nodemode-ai/formvfx/issues', '_blank') },
           '-',

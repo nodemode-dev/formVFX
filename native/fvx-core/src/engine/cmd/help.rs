@@ -216,6 +216,7 @@ pub fn docs(e: &mut Engine, p: &Json) -> Res {
     let page = ps(p, "page").unwrap_or("help");
     let file = match page {
         "help" => ".docs/wiki/Home.md",
+        "manual" => "docs/MANUAL.md",
         "start" | "gettingStarted" => ".docs/wiki/Getting-Started.md",
         "scripting" | "expressions" => ".claude/skills/formvfx-harness/sub-skills/expressions-and-scripting/SUB-SKILL.md",
         "effects" => ".claude/skills/formvfx-harness/references/effects.md",
@@ -223,7 +224,7 @@ pub fn docs(e: &mut Engine, p: &Json) -> Res {
         "agents" => ".docs/wiki/Agents.md",
         "parity" => "docs/PARITY.md",
         "plugins" => "docs/PLUGINS.md",
-        other => return Err(format!("`{other}` is not a help page (help, start, scripting, expressions, effects, commands, agents, parity, plugins)")),
+        other => return Err(format!("`{other}` is not a help page (help, manual, start, scripting, expressions, effects, commands, agents, parity, plugins)")),
     };
     let url = format!("{BASE}{file}");
     e.emit(json!({"type": "openUrl", "url": url}));

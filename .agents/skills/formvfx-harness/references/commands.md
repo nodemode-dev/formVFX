@@ -1423,7 +1423,7 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 ## help
 
 - `help.docs` formvfx Help · Help · F1
-  `{page?: help|start|scripting|expressions|effects|commands|agents|parity|plugins} -> {url}`
+  `{page?: help|manual|start|scripting|expressions|effects|commands|agents|parity|plugins} -> {url}`
 - `help.systemInfo` System Information
   `{} -> {formvfx, os, arch, cpus, gpu, ffmpeg, engineData, userData, diskCache, ...}`
 - `help.systemReport` System Compatibility Report · Help

@@ -262,6 +262,11 @@ fvx-core is formvfx's compositing engine, written for formvfx in Rust and loaded
 
 - `engine/state.rs` `flowchart`: with `layers`, each layer's parent and track matte are edges too, `{"from": "l<parent>", "to": "l<child>", "kind": "parent"}` and `{"from": "l<matte>", "to": "l<layer>", "kind": "matte", "label": "Alpha Matte"}`. Flow edges (source into layer, layer into comp) keep no `kind`, so earlier readers of the payload (the MCP flowchart tool) see what they saw before plus the new edges.
 
+## Menus and the manual (0.44.0)
+
+- `engine/menus.rs` `PANELS`: the documentation trace found twelve dock panels the interface registers but Window > Panels did not list (Brushes, Paint, Content-Aware Fill, Lumetri Scopes, Markers, Metadata, Motion Sketch, Smoother, Wiggler, Progress, Learn, Chat); they are added in the interface's dock order with Terminal kept last, since the dock ids are what `ui {action: show}` and `window.panel` take. `WORKSPACES` gains Agent, which the title bar's workspace menu and the Agent button already switched to. Window no longer lists `app.commandPalette` itself: the interface adds Command Palette... with its Cmd+K shortcut, and both had shown since 0.1.0. The command stays in the registry for the palette's own search and for agents.
+- `engine/cmd/help.rs` `help.docs {page: manual}` opens `docs/MANUAL.md` on the repository's main branch the same way `help` opens the wiki's Home page source, so the manual and the wiki page that links it stay one document.
+
 ## MaterialX import (0.43.0)
 
 - **Reader.** `render/materialx.rs` on the engine's own XML parser (`engine/xmldoc.rs`). It indexes top-level nodes and node graphs (with their `fileprefix`, joined from the document down), picks the named `surfacematerial` (or the first), follows `surfaceshader` to the shader node and reads standard_surface, open_pbr_surface, UsdPreviewSurface or gltf_pbr. An input is a value, a top-level node (`nodename`) or a node graph output (`nodegraph` and `output`); only image nodes (`image`, `tiledimage`, `gltf_image`, `gltf_colorimage`, `UsdUVTexture`) are followed, with `uvtiling` and UDIM 1001. A colour from an image becomes the Base Color Map with a white base; a scalar from an image becomes the image's mean (luma); anything else (procedurals, masks, mixes) keeps the shader default and is listed in `notes`.

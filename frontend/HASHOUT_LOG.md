@@ -151,6 +151,10 @@ Living context for the interface. Code carries almost no comments; the reasoning
 
 - The critical style paints only `html` (`#0a0a0a`, then the boot script's profile ground); `body` is transparent until `tokens.css` gives it `--bg-primary`. Painting `body` too showed `#0a0a0a` for the first frames before the Studio ground `#111111`.
 
+## formvfx Manual (0.44.0)
+
+- `app/app.ts` Help menu: formvfx Manual runs `help.docs {page: manual}` beside formvfx Help, so the manual opens wherever the help pages open (the browser, or the desktop shell's opener). The label goes through the same run-time translation as every menu label.
+
 ## Chat, Ask Claude Code and languages (0.30.0)
 
 - `panels/chat.ts` (`ChatPanel`, dock id `chat`): messages patched keyed by id with `patchList`; a `delta` event writes only that message's `.fx-chat-text` node; tool chips are a nested keyed list; the composer, Stop and the usage line are fixed rows of the panel grid so nothing shifts as a reply streams. The scroll follows only when the person is already near the bottom. `context()` sends the active comp, selection and focused panel with each message. Open in Claude Code calls `TerminalPanel.launch('claude', undefined, session)`, which resumes the same conversation in the PTY.

@@ -129,7 +129,7 @@ pub static COMMANDS: &[Cmd] = &[
     c("storage.info", "Browser Storage", "", "", "{} -> {available, backend, usage, quota, persisted, folders, files: {count, bytes, media, projects, autoSaves}, diskCache}", Q, help::storage_info),
     c("storage.persist", "Request Persistent Storage", "", "", "{} -> {requested, persisted} (disk storage is always persistent)", N, help::storage_persist),
     c("storage.clear", "Clear Browser Storage", "", "", "{what: diskCache|media|autoSaves|all} -> {cleared, entries, bytes, keptInUse} (imported media the open project uses is kept; saved projects are never deleted)", N, help::storage_clear),
-    c("help.docs", "formvfx Help", "Help", "F1", "{page?: help|start|scripting|expressions|effects|commands|agents|parity|plugins} -> {url}", N, help::docs),
+    c("help.docs", "formvfx Help", "Help", "F1", "{page?: help|manual|start|scripting|expressions|effects|commands|agents|parity|plugins} -> {url}", N, help::docs),
     c("help.systemInfo", "System Information", "", "", "{} -> {formvfx, os, arch, cpus, gpu, ffmpeg, engineData, userData, diskCache, ...}", Q, help::system_info),
     c("help.systemReport", "System Compatibility Report", "Help", "", "{quiet?: bool} -> {path, checks, ok} · also written to System Report.txt in the data folder", N, help::system_report),
     c("help.enableLogging", "Enable Logging", "Help", "", "{on?: bool (toggles)} · every command, its result and its time are appended to logs/formvfx.log", N, help::enable_logging),
