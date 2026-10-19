@@ -63,7 +63,7 @@ pub fn probe(path: &str, p: &Json, warnings: &mut Vec<String>) -> Result<(Footag
         match f.codec.as_str() {
             "PSD" => {
                 let d = psd::open(path)?;
-                let i = d.find(sel).ok_or_else(|| format!("{path}: no Photoshop layer {sel}"))?;
+                let i = d.find(sel).ok_or_else(|| format!("{path}: no PSD layer {sel}"))?;
                 let l = &d.layers[i];
                 f.layer = Some(i as u32);
                 f.layer_name = l.name.clone();

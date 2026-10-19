@@ -285,7 +285,7 @@ pub fn layer_create(e: &mut Engine, p: &Json) -> Res {
                 }
                 made.push(id);
             }
-            ("editableText", _) => return Err("Convert to Editable Text needs a Photoshop or Illustrator text layer, which formvfx does not import yet".into()),
+            ("editableText", _) => return Err("Convert to Editable Text needs a PSD or .ai text layer, which formvfx does not import yet".into()),
             _ => {}
         }
     }

@@ -15,7 +15,7 @@ pub fn sniff(b: &[u8]) -> bool {
 fn open(path: &str) -> Result<Pdf, String> {
     let b = std::fs::read(path).map_err(|e| format!("{path}: {e}"))?;
     if !sniff(&b) {
-        return Err(format!("{path}: not a PDF-compatible file (Illustrator files need PDF compatibility saved in)"));
+        return Err(format!("{path}: not a PDF-compatible file (.ai files need PDF compatibility saved in)"));
     }
     Pdf::new(Arc::new(b)).map_err(|e| format!("{path}: {e:?}"))
 }

@@ -56,7 +56,7 @@ struct R<'a> {
 
 impl<'a> R<'a> {
     fn take(&mut self, n: usize) -> Result<&'a [u8], String> {
-        let s = self.b.get(self.i..self.i.checked_add(n).ok_or("truncated")?).ok_or("the Photoshop file is truncated")?;
+        let s = self.b.get(self.i..self.i.checked_add(n).ok_or("truncated")?).ok_or("the PSD file is truncated")?;
         self.i += n;
         Ok(s)
     }
@@ -144,7 +144,7 @@ fn pack_bits(src: &[u8], out: &mut Vec<u8>) {
 }
 
 fn inflate(src: &[u8]) -> Result<Vec<u8>, String> {
-    miniz_oxide::inflate::decompress_to_vec_zlib(src).map_err(|e| format!("the Photoshop file's zip data: {e:?}"))
+    miniz_oxide::inflate::decompress_to_vec_zlib(src).map_err(|e| format!("the PSD file's zip data: {e:?}"))
 }
 
 fn samples(raw: &[u8], depth: u16, n: usize) -> Vec<f32> {
@@ -226,7 +226,7 @@ fn channel(r: &mut R, end: usize, w: usize, h: usize, depth: u16) -> Result<Vec<
     }
     let comp = r.u16()?;
     let rb = row_bytes(w, depth);
-    let body = r.b.get(r.i..end.min(r.b.len())).ok_or("the Photoshop file is truncated")?;
+    let body = r.b.get(r.i..end.min(r.b.len())).ok_or("the PSD file is truncated")?;
     r.i = end;
     let raw = match comp {
         0 => body.to_vec(),
@@ -234,7 +234,7 @@ fn channel(r: &mut R, end: usize, w: usize, h: usize, depth: u16) -> Result<Vec<
             let cw = if r.big { 4 } else { 2 };
             let mut counts = Vec::with_capacity(h);
             for y in 0..h {
-                let c = body.get(y * cw..y * cw + cw).ok_or("the Photoshop file's RLE table is truncated")?;
+                let c = body.get(y * cw..y * cw + cw).ok_or("the PSD file's RLE table is truncated")?;
                 counts.push(if cw == 4 { u32::from_be_bytes([c[0], c[1], c[2], c[3]]) as usize } else { u16::from_be_bytes([c[0], c[1]]) as usize });
             }
             let mut p = h * cw;
@@ -254,7 +254,7 @@ fn channel(r: &mut R, end: usize, w: usize, h: usize, depth: u16) -> Result<Vec<
             }
             v
         }
-        _ => return Err(format!("unknown Photoshop compression {comp}")),
+        _ => return Err(format!("unknown PSD compression {comp}")),
     };
     Ok(samples(&raw, depth, n))
 }
@@ -364,7 +364,7 @@ fn layer_info(r: &mut R, end: usize, depth: u16) -> Result<(Vec<Layer>, bool), S
 
 pub fn parse(b: &[u8]) -> Result<Doc, String> {
     if !is_psd(b) {
-        return Err("not a Photoshop document".into());
+        return Err("not a PSD file".into());
     }
     let mut r = R { b, i: 4, big: false };
     let version = r.u16()?;
@@ -376,7 +376,7 @@ pub fn parse(b: &[u8]) -> Result<Doc, String> {
     let depth = r.u16()?;
     let mode = r.u16()?;
     if !matches!(mode, 1 | 3 | 0) {
-        return Err(format!("Photoshop colour mode {mode} is not supported (RGB, Grayscale and Bitmap are)"));
+        return Err(format!("PSD colour mode {mode} is not supported (RGB, Grayscale and Bitmap are)"));
     }
     let cm = r.u32()? as usize;
     r.take(cm)?;

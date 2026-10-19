@@ -41,6 +41,10 @@ pub fn label_parse(s: &str) -> Option<u8> {
     LABELS.iter().position(|l| l.0.eq_ignore_ascii_case(s)).map(|i| i as u8)
 }
 
+fn de_canon<'de, D: serde::Deserializer<'de>>(d: D) -> Result<String, D::Error> {
+    String::deserialize(d).map(|s| crate::legacy::canon(&s))
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct ProjectSettings {
@@ -48,8 +52,10 @@ pub struct ProjectSettings {
     pub time_display: String,
     pub frame_start: u32,
     pub audio_rate: u32,
+    #[serde(deserialize_with = "de_canon")]
     pub working_space: String,
     pub linearize: bool,
+    #[serde(deserialize_with = "de_canon")]
     pub color_engine: String,
     pub ocio_config: String,
     pub blend_linear: bool,
@@ -70,7 +76,7 @@ impl Default for ProjectSettings {
             audio_rate: 48000,
             working_space: "none".into(),
             linearize: false,
-            color_engine: "adobe".into(),
+            color_engine: "profiles".into(),
             ocio_config: String::new(),
             blend_linear: false,
             display: String::new(),

@@ -490,7 +490,7 @@ fn read_template(path: &str) -> Result<(Json, HashMap<String, Vec<u8>>), String>
         bytes = match outer.get(INNER) {
             Some(b) => b.clone(),
             None if outer.keys().any(|k| k.ends_with(".aegraphic") || k.ends_with(".prgraphic")) => {
-                return Err(format!("{path} was made in After Effects or Premiere Pro: its project is Adobe's closed .aegraphic or .prgraphic format, which formvfx cannot open (essential.templateInfo lists its controls)"));
+                return Err(format!("{path} was made in another app: its project is in the closed .aegraphic or .prgraphic format, which formvfx cannot open (essential.templateInfo lists its controls)"));
             }
             None => return Err(format!("{path} has no project formvfx can read")),
         };
@@ -511,7 +511,7 @@ fn digest(path: &str) -> String {
 pub fn import_template(e: &mut Engine, p: &Json) -> Res {
     let path = ps(p, "path").ok_or("pass `path` (a .fvxtemplate file)")?.to_string();
     if is_mogrt(&path)
-        && let Some((comp, folder, name, warnings)) = super::aep::adobe_mogrt(e, &path)?
+        && let Some((comp, folder, name, warnings)) = super::aep::mogrt_project(e, &path)?
     {
         let mut r = finish_import(e, p, comp, folder, &name)?;
         r["warnings"] = json!(warnings);
@@ -735,16 +735,14 @@ fn mogrt_info(path: &str) -> Result<Json, String> {
     let effects = def.get("usedEffects").cloned().unwrap_or(json!([]));
     let app = if files.contains_key(INNER) {
         "formvfx"
-    } else if files.keys().any(|k| k.ends_with(".aegraphic")) {
-        "After Effects"
-    } else if files.keys().any(|k| k.ends_with(".prgraphic")) {
-        "Premiere Pro"
+    } else if files.keys().any(|k| k.ends_with(".aegraphic") || k.ends_with(".prgraphic")) {
+        "another app"
     } else {
         "unknown"
     };
     let poster = files.get("thumb.png").map(|b| format!("data:image/png;base64,{}", crate::engine::lottie::b64(b)));
     let inner: Vec<String> = files.iter().filter(|(k, _)| k.ends_with(".aegraphic") || k.ends_with(".prgraphic")).filter_map(|(_, b)| crate::engine::lottie::unzip(b).ok()).flat_map(|f| f.into_keys()).collect();
-    let opens = app == "formvfx" || (app == "After Effects" && inner.iter().any(|k| k.to_ascii_lowercase().ends_with(".aep")));
+    let opens = app == "formvfx" || (files.keys().any(|k| k.ends_with(".aegraphic")) && inner.iter().any(|k| k.to_ascii_lowercase().ends_with(".aep")));
     Ok(json!({"path": path, "format": "mogrt", "name": name, "madeIn": app, "opens": opens, "width": size.0, "height": size.1, "duration": duration, "frameRate": fps, "platforms": def.get("platformSupport"), "fonts": fonts, "effects": effects, "controls": controls, "poster": poster, "files": files.keys().collect::<Vec<_>>(), "inner": inner}))
 }
 

@@ -32,7 +32,7 @@ pub const P3DCI: Prim = Prim { w: DCI, ..P3D65 };
 pub const P3D60: Prim = Prim { w: D60, ..P3D65 };
 pub const AP0: Prim = Prim { r: [0.7347, 0.2653], g: [0.0, 1.0], b: [0.0001, -0.0770], w: D60 };
 pub const AP1: Prim = Prim { r: [0.713, 0.293], g: [0.165, 0.830], b: [0.128, 0.044], w: D60 };
-pub const ADOBE: Prim = Prim { r: [0.64, 0.33], g: [0.21, 0.71], b: [0.15, 0.06], w: D65 };
+pub const OPRGB: Prim = Prim { r: [0.64, 0.33], g: [0.21, 0.71], b: [0.15, 0.06], w: D65 };
 pub const PROPHOTO: Prim = Prim { r: [0.734699, 0.265301], g: [0.159597, 0.840403], b: [0.036598, 0.000105], w: D50 };
 pub const XYZ: Prim = Prim { r: [1.0, 0.0], g: [0.0, 1.0], b: [0.0, 0.0], w: [1.0 / 3.0, 1.0 / 3.0] };
 
@@ -129,7 +129,7 @@ pub const SPACES: [ASpace; 17] = [
     ASpace { id: "p3", name: "Display P3", prim: P3D65, curve: Curve::Srgb, working: true },
     ASpace { id: "p3d65", name: "P3-D65 (Gamma 2.6)", prim: P3D65, curve: Curve::Gamma(2.6), working: true },
     ASpace { id: "dciP3", name: "DCI-P3 (Gamma 2.6)", prim: P3DCI, curve: Curve::Gamma(2.6), working: true },
-    ASpace { id: "adobeRgb", name: "Adobe RGB (1998)", prim: ADOBE, curve: Curve::Gamma(2.199_218_75), working: true },
+    ASpace { id: "opRgb", name: "opRGB (1998)", prim: OPRGB, curve: Curve::Gamma(2.199_218_75), working: true },
     ASpace { id: "proPhoto", name: "ProPhoto RGB", prim: PROPHOTO, curve: Curve::Gamma(1.8), working: true },
     ASpace { id: "linearSrgb", name: "Linear sRGB (Rec. 709)", prim: REC709, curve: Curve::Linear, working: true },
     ASpace { id: "linearRec2020", name: "Linear Rec. 2020", prim: REC2020, curve: Curve::Linear, working: true },
@@ -149,9 +149,9 @@ pub fn find(id: &str) -> Option<&'static ASpace> {
         "hdtv" | "rec.709" | "rec. 709" => "rec709",
         "rec.2020" | "rec. 2020" | "uhdtv" => "rec2020",
         "display p3" | "displayp3" => "p3",
-        "adobe rgb" | "adobergb" => "adobeRgb",
+        "op rgb" | "oprgb" => "opRgb",
         "aces" | "aces2065-1" => "aces2065",
-        _ => k,
+        _ => crate::legacy::alias(k).unwrap_or(k),
     };
     SPACES.iter().find(|s| s.id.eq_ignore_ascii_case(k) || s.name.eq_ignore_ascii_case(k))
 }
@@ -406,8 +406,10 @@ fn ocio_name_for(cfg: &ocio::Config, a: &ASpace) -> Option<String> {
         "acescg" => &["ACEScg"],
         "aces2065" => &["ACES2065-1"],
         "acescct" => &["ACEScct"],
-        "adobeRgb" => &["Gamma 2.2 Encoded AdobeRGB", "adobergb"],
+        "opRgb" => &["Gamma 2.2 Encoded opRGB", "oprgb"],
         _ => &[],
     };
-    names.iter().find_map(|n| cfg.space(n).map(|s| s.name.clone()))
+    names.iter().find_map(|n| cfg.space(n).map(|s| s.name.clone())).or_else(|| {
+        cfg.spaces.iter().find(|s| std::iter::once(&s.name).chain(s.aliases.iter()).any(|n| crate::legacy::alias(n).is_some_and(|c| names.iter().any(|w| w.eq_ignore_ascii_case(c))))).map(|s| s.name.clone())
+    })
 }

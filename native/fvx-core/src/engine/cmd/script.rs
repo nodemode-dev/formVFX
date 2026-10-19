@@ -32,7 +32,7 @@ fn no_dialog() -> Result<(), String> {
 
 pub fn run(e: &mut Engine, p: &Json) -> Res {
     no_dialog()?;
-    let code = ps(p, "code").ok_or("pass `code` (JavaScript with the After Effects scripting object model)")?.to_string();
+    let code = ps(p, "code").ok_or("pass `code` (JavaScript with the standard compositor scripting object model)")?.to_string();
     let file = ps(p, "file").unwrap_or("").to_string();
     guarded(e, |e| script::run(e, &code, &file, None))
 }

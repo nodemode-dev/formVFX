@@ -71,8 +71,8 @@ pub fn specs() -> Vec<EffectSpec> {
         EffectSpec { id: "fx.color.curves", name: "Curves", category: CAT, params: curve_params(), render: curves, pad: no_pad },
         EffectSpec { id: "fx.color.levelsIndividual", name: "Levels (Individual Controls)", category: CAT, params: lv, render: levels_ic, pad: no_pad },
         EffectSpec {
-            id: "fx.color.lumetri",
-            name: "Lumetri Color",
+            id: "fx.color.grade",
+            name: "Color Grade",
             category: CAT,
             params: vec![
                 grp("basic", "Basic Correction"),
@@ -127,7 +127,7 @@ pub fn specs() -> Vec<EffectSpec> {
                 slider("vignette/roundness", "Roundness", 0.0, -100.0, 100.0, 1),
                 slider("vignette/feather", "Feather", 50.0, 0.0, 100.0, 1),
             ],
-            render: lumetri,
+            render: color_grade,
             pad: no_pad,
         },
         EffectSpec {
@@ -343,7 +343,7 @@ pub fn specs() -> Vec<EffectSpec> {
             id: "fx.color.equalize",
             name: "Equalize",
             category: CAT,
-            params: vec![popup("style", "Equalize", 0, &["RGB", "Brightness", "Photoshop Style"]), pct("amount", "Amount to Equalize", 100.0)],
+            params: vec![popup("style", "Equalize", 0, &["RGB", "Brightness", "Classic Style"]), pct("amount", "Amount to Equalize", 100.0)],
             render: equalize,
             pad: no_pad,
         },
@@ -669,13 +669,13 @@ fn tint_shift(c: [f32; 4]) -> [f32; 3] {
     [(c[0] - 0.5) * 0.6, (c[1] - 0.5) * 0.6, (c[2] - 0.5) * 0.6]
 }
 
-fn lumetri(c: &FxCtx, img: &mut Img) {
+fn color_grade(c: &FxCtx, img: &mut Img) {
     super::ocio::lut_file(img, &c.s("basic/inputLut"), 1.0);
-    lumetri_grade(c, img);
+    color_grade_apply(c, img);
     super::ocio::lut_file(img, &c.s("creative/look"), c.f("creative/lookIntensity") as f32 / 100.0);
 }
 
-fn lumetri_grade(c: &FxCtx, img: &mut Img) {
+fn color_grade_apply(c: &FxCtx, img: &mut Img) {
     let f = |k: &str| c.f(k) as f32;
     let temp = f("basic/temperature") / 100.0;
     let tint = f("basic/tint") / 100.0;

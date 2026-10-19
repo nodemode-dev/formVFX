@@ -805,7 +805,7 @@ fn in_folder(e: &Engine, id: u64, folder: u64) -> bool {
     false
 }
 
-pub fn adobe_mogrt(e: &mut Engine, path: &str) -> Result<Option<(u64, u64, String, Vec<String>)>, String> {
+pub fn mogrt_project(e: &mut Engine, path: &str) -> Result<Option<(u64, u64, String, Vec<String>)>, String> {
     let bytes = std::fs::read(path).map_err(|x| format!("{path}: {x}"))?;
     let outer = crate::engine::lottie::unzip(&bytes).map_err(|x| format!("{path}: {x}"))?;
     let Some(graphic) = outer.iter().find(|(k, _)| k.to_ascii_lowercase().ends_with(".aegraphic")).map(|(_, v)| v) else { return Ok(None) };
@@ -883,7 +883,7 @@ pub fn apply_ffx(e: &mut Engine, path: &str, p: &Json) -> Res {
 }
 
 pub fn import(e: &mut Engine, p: &Json) -> Res {
-    let path = ps(p, "path").ok_or("pass `path` (an After Effects project, .aep)")?.to_string();
+    let path = ps(p, "path").ok_or("pass `path` (an .aep project)")?.to_string();
     let bytes = std::fs::read(&path).map_err(|x| format!("{path}: {x}"))?;
     let a = aep::read(&bytes).map_err(|x| format!("{path}: {x}"))?;
     let base = Path::new(&path).parent();
@@ -909,7 +909,7 @@ pub fn import(e: &mut Engine, p: &Json) -> Res {
         }
     }
     let folder = bring_in(e, &built.project, &proj_path, &format!("{name}.aep"))?;
-    e.set_label("Import After Effects Project");
+    e.set_label("Import AEP Project");
     let made: Vec<Json> = e
         .project
         .items

@@ -297,6 +297,8 @@ pub fn every() -> Vec<&'static EffectSpec> {
 }
 
 pub fn find(key: &str) -> Option<&'static EffectSpec> {
+    let key = crate::legacy::canon(key);
+    let key = key.as_str();
     let a = every();
     if let Some(e) = a.iter().find(|e| e.id == key) {
         return Some(e);

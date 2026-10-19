@@ -496,7 +496,7 @@ fn cineon(c: &FxCtx, img: &mut Img) {
     });
 }
 
-const PROFILES: [&str; 6] = ["sRGB", "Linear sRGB", "Rec. 709", "Display P3", "Rec. 2020", "Adobe RGB (1998)"];
+const PROFILES: [&str; 6] = ["sRGB", "Linear sRGB", "Rec. 709", "Display P3", "Rec. 2020", "opRGB (1998)"];
 
 fn to_linear(p: u32, v: f32) -> f32 {
     match p {

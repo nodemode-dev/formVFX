@@ -213,7 +213,7 @@ fn hidden(c: &Chunk) -> bool {
 pub fn read(bytes: &[u8]) -> Result<Project, String> {
     let (form, top) = rifx::parse(bytes)?;
     if form != "Egg!" {
-        return Err(format!("not an After Effects project (RIFX form `{form}`)"));
+        return Err(format!("not an AEP project (RIFX form `{form}`)"));
     }
     let mut p = Project::default();
     for c in &top {
@@ -655,7 +655,7 @@ pub const PRESET_GROUPS: [&str; 7] = ["ADBE Effect Parade", "ADBE Transform Grou
 pub fn read_preset(bytes: &[u8]) -> Result<(Vec<Group>, Project), String> {
     let (form, top) = rifx::parse(bytes)?;
     if form != "FaFX" {
-        return Err(format!("not an After Effects animation preset (RIFX form `{form}`)"));
+        return Err(format!("not an FFX animation preset (RIFX form `{form}`)"));
     }
     let mut p = Project::default();
     for c in &top {

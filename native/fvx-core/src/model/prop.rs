@@ -171,7 +171,10 @@ pub enum GroupKind {
     Plain,
     Indexed,
     Mask { mode: MaskMode, inverted: bool, color: [u8; 3], locked: bool },
-    Effect { effect: String },
+    Effect {
+        #[serde(deserialize_with = "crate::legacy::de_canon")]
+        effect: String,
+    },
     Tracker,
     Essential,
 }
@@ -179,7 +182,7 @@ pub enum GroupKind {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Group {
     pub uid: u64,
-    #[serde(rename = "match")]
+    #[serde(rename = "match", deserialize_with = "crate::legacy::de_canon")]
     pub id: String,
     pub name: String,
     pub enabled: bool,

@@ -2337,10 +2337,9 @@ pub fn effect_alias(name: &str) -> String {
         "Linear Wipe" => "Linear Wipe",
         "Corner Pin" => "Corner Pin",
         "Geometry2" => "Transform",
-        "Lumetri" => "Lumetri Color",
         "Mosaic" => "Mosaic",
         "Stroke" => "Stroke",
-        other => other,
+        other => crate::legacy::alias(other).unwrap_or(other),
     };
     known.trim_end_matches(char::is_numeric).trim().to_string()
 }

@@ -334,10 +334,10 @@ pub fn project_settings(e: &mut Engine, p: &Json) -> Res {
     if let Some(r) = ps(p, "renderer") {
         s.renderer = if r.eq_ignore_ascii_case("cpu") || r.to_ascii_lowercase().contains("software") { "cpu".into() } else { "gpu".into() };
     }
-    let engine_changed = ps(p, "colorEngine").map(str::to_ascii_lowercase);
+    let engine_changed = ps(p, "colorEngine").map(|x| crate::legacy::canon(x).to_ascii_lowercase());
     if let Some(eng) = &engine_changed {
-        if eng != "adobe" && eng != "ocio" {
-            return Err("colorEngine is `adobe` (formvfx's profiles) or `ocio`".into());
+        if eng != "profiles" && eng != "ocio" {
+            return Err("colorEngine is `profiles` (formvfx's profiles) or `ocio`".into());
         }
         s.color_engine = eng.clone();
     }
@@ -349,7 +349,7 @@ pub fn project_settings(e: &mut Engine, p: &Json) -> Res {
     if let Some(w) = ps(p, "workingSpace") {
         if ocio {
             let cfg = crate::render::ocio::load(&s.ocio_config)?;
-            let sp = cfg.space(w).filter(|x| !x.display && !x.data).ok_or_else(|| format!("`{w}` is not a scene colour space in the OCIO config"))?;
+            let sp = cfg.space(w).or_else(|| crate::legacy::alias(w).and_then(|c| cfg.space(c))).filter(|x| !x.display && !x.data).ok_or_else(|| format!("`{w}` is not a scene colour space in the OCIO config"))?;
             s.working_space = sp.name.clone();
         } else if w.eq_ignore_ascii_case("none") || w.is_empty() {
             s.working_space = "none".into();
@@ -555,5 +555,5 @@ pub fn execute_file(e: &mut Engine, p: &Json) -> Res {
 }
 
 pub fn import_vanishing_point(_: &mut Engine, _: &Json) -> Res {
-    Err("Vanishing Point (.vpe) files are not read: Photoshop writes them in a format with no public description, so formvfx cannot import them faithfully".into())
+    Err("Vanishing Point (.vpe) files are not read: the format has no public description, so formvfx cannot import them faithfully".into())
 }

@@ -12,15 +12,15 @@ use crate::model::{Footage, FootageKind, Item, ItemKind, LayerKind, OutputModule
 use crate::render::media;
 
 const FORMATS: [(&str, &str, &str, bool); 6] = [
-    ("xml", "Final Cut Pro 7 XML (xmeml 5, as Premiere Pro reads and writes it)", "xml", true),
-    ("fcpxml", "Final Cut Pro X XML (FCPXML 1.10)", "fcpxml", true),
+    ("xml", "xmeml 5 XML (.xml)", "xml", true),
+    ("fcpxml", "FCPXML 1.10", "fcpxml", true),
     ("otio", "OpenTimelineIO (.otio JSON)", "otio", true),
     ("edl", "CMX 3600 EDL", "edl", true),
     ("aaf", "Advanced Authoring Format", "aaf", false),
     ("omf", "Open Media Framework", "omf", false),
 ];
 
-const BINARY: &str = "is a binary container (structured storage) formvfx does not read or write; export Final Cut Pro XML, FCPXML, OTIO or an EDL from the editor instead";
+const BINARY: &str = "is a binary container (structured storage) formvfx does not read or write; export xmeml XML, FCPXML, OTIO or an EDL from the editor instead";
 
 #[derive(Clone, Default)]
 struct Clip {
@@ -227,7 +227,7 @@ fn file_name(path: &str) -> String {
 
 fn read_xmeml(text: &str) -> Result<Timeline, String> {
     let root = xmldoc::parse(text)?;
-    let seq = find(&root, "sequence").ok_or("no Final Cut Pro 7 sequence in this file")?;
+    let seq = find(&root, "sequence").ok_or("no xmeml sequence in this file")?;
     let base = num(seq, "rate/timebase").unwrap_or(30.0).max(1.0) as u32;
     let ntsc = txt(seq, "rate/ntsc").is_some_and(|x| x.eq_ignore_ascii_case("true"));
     let fps = rate_of(base, ntsc);

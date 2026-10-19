@@ -93,7 +93,7 @@ pub fn replace_with_layered_comp(e: &mut Engine, p: &Json) -> Res {
     let id = target(e, p)?;
     let (path, parent) = match e.project.item(id) {
         Some(Item { kind: ItemKind::Footage(f), parent, .. }) => (f.path.clone(), *parent),
-        _ => return Err("only Photoshop, PDF and Illustrator footage can become a layered composition".into()),
+        _ => return Err("only PSD, PDF and .ai footage can become a layered composition".into()),
     };
     let lower = path.to_ascii_lowercase();
     let (comp, _) = if lower.ends_with(".psd") || lower.ends_with(".psb") {
@@ -101,7 +101,7 @@ pub fn replace_with_layered_comp(e: &mut Engine, p: &Json) -> Res {
     } else if lower.ends_with(".pdf") || lower.ends_with(".ai") {
         super::formats::import_pdf_comp(e, &path, &json!({"importAs": "composition"}), parent)?
     } else {
-        return Err(format!("{path} has no layers to build a composition from (Photoshop, PDF and Illustrator files do)"));
+        return Err(format!("{path} has no layers to build a composition from (PSD, PDF and .ai files do)"));
     };
     let mut layers = 0;
     for it in e.proj().items.iter_mut() {

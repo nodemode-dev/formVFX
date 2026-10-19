@@ -36,7 +36,7 @@ const PANELS: [(&str, &str); 31] = [
     ("brushes", "Brushes"),
     ("paint", "Paint"),
     ("contentAwareFill", "Content-Aware Fill"),
-    ("lumetriScopes", "Lumetri Scopes"),
+    ("colorScopes", "Color Scopes"),
     ("markers", "Markers"),
     ("metadata", "Metadata"),
     ("motionSketch", "Motion Sketch"),

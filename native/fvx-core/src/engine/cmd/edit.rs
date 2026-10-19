@@ -451,7 +451,7 @@ pub fn prefs_pages(e: &mut Engine, _: &Json) -> Res {
         json!({"note": format!("{files} cached frames, {used:.2} GB. Frames that take a while to render are kept here, so previews of unchanged compositions come back at once, even after a restart.")}),
         json!({"button": "Empty Disk Cache", "command": "cache.cleanDisk", "params": {}}),
     ];
-    let profiles: Vec<Json> = crate::render::color::SPACES.iter().filter(|s| matches!(s.id, "srgb" | "p3" | "rec709" | "rec2020" | "adobeRgb" | "dciP3" | "p3d65")).map(|s| json!({"label": s.name, "value": s.id})).collect();
+    let profiles: Vec<Json> = crate::render::color::SPACES.iter().filter(|s| matches!(s.id, "srgb" | "p3" | "rec709" | "rec2020" | "opRgb" | "dciP3" | "p3d65")).map(|s| json!({"label": s.name, "value": s.id})).collect();
     let previews = vec![
         json!({"section": "Color"}),
         json!({"key": "previews.displayProfile", "label": "Display Profile", "type": "choice", "options": profiles}),
