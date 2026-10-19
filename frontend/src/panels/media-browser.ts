@@ -38,7 +38,7 @@ export class MediaBrowserPanel implements Panel {
         <button class="cv-icon-btn" type="button" data-m="up" title="Up one folder" aria-label="Up one folder">${icon('chevronUp', 14)}</button>
         <button class="cv-icon-btn" type="button" data-m="home" title="Home folder" aria-label="Home folder">${icon('folderOpen', 14)}</button>
         <span class="fx-mb-path"></span>
-        <button class="cv-icon-btn" type="button" data-m="fav" title="Add or remove this folder from Favorites" aria-label="Favorite">${icon('sparkle', 14)}</button>
+        <button class="cv-icon-btn" type="button" data-m="fav" title="Add or remove this folder from Favorites" aria-label="Favorite">${icon('star', 14)}</button>
       </div>
       <div class="fx-mb-bar">
         <select class="cv-input fx-mb-favs" data-automation-id="mediaBrowser.favorites"><option value="">Favorites</option></select>

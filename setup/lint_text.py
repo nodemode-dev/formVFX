@@ -43,6 +43,7 @@ NAMES = {
 DECLINED = {"3a91c6126b8ce74d", "67b8a41e4771da59", "18c3171c6b776c8f", "aaeeeaeb0dc11058", "541a6394f5c0e0d9",
             "502a0f420fe80695", "25ca52a5aeabb3b2"}
 INTEROP = {("backend/app/routers/extensions.py", "352836dac99f04b7")}
+BANNED_ICONS = {"sparkle", "sparkles", "sparkleicon"}
 TOKEN = re.compile(r"[A-Z]+(?![a-z])|[A-Z]?[a-z]+|[0-9]+")
 
 
@@ -70,6 +71,8 @@ def third_party(rel: str, line: str, md: bool) -> list:
                 out.append(("third-party product name", h))
         if not md and low in DECLINED:
             out.append(("declined patented feature", low))
+        if not md and p.lower() in BANNED_ICONS and not rel.endswith("setup/lint_text.py"):
+            out.append(("banned sparkle icon", p.lower()))
     return out
 
 

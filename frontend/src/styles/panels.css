@@ -443,3 +443,76 @@
 /* A hidden panel group takes no room (found by the Info panel, hidden by default: groups set display: flex, which
    overrode the hidden attribute, so any group hidden from the Window menu still took its space). */
 .cv-group[hidden] { display: none !important; }
+
+/* The terminal dock: a full-width strip under the panel dock, tabs for shells, Claude Code and Chat, one ask line. */
+.fx-tdock { position: relative; display: grid; grid-template-rows: 34px minmax(0, 1fr) 40px; min-width: 0; min-height: 0; background: var(--surface-0); border-top: 1px solid var(--line-1); }
+.fx-tdock[hidden] { display: none; }
+.fx-tdock-rsz { position: absolute; top: -3px; left: 0; right: 0; height: 6px; cursor: row-resize; z-index: var(--z-raised); }
+.fx-tdock-rsz:hover, .fx-tdock-rsz.is-dragging { background: var(--accent-line); }
+.fx-tdock-head { display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-2); background: var(--surface-1); border-bottom: 1px solid var(--line-0); min-width: 0; }
+.fx-tdock-tabs { display: flex; align-items: center; gap: 2px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.fx-tdock-tabs::-webkit-scrollbar { display: none; }
+.fx-tdock-tab { display: inline-flex; align-items: center; gap: 6px; flex: none; height: 26px; padding: 0 6px 0 9px; border: 1px solid transparent; border-radius: var(--radius); background: transparent; color: var(--text-muted); font: inherit; font-size: var(--fs-12); white-space: nowrap; cursor: pointer; }
+.fx-tdock-tab:hover { color: var(--text-primary); }
+.fx-tdock-tab.is-on { border-color: var(--line-2); background: var(--surface-raised); color: var(--text-primary); }
+.fx-tdock-tab.is-agent .icon, .fx-tdock-tab.is-chat .icon { color: var(--accent-color); }
+.fx-tdock-tab-x { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: var(--radius-xs); color: var(--text-muted); }
+.fx-tdock-tab-x:hover { background: var(--surface-2); color: var(--text-primary); }
+.fx-tdock-spacer { flex: 1; }
+.fx-tdock-head .cv-icon-btn { width: 26px; height: 26px; }
+.fx-tdock-head [hidden] { display: none; }
+.fx-tdock-stage { position: relative; min-height: 0; min-width: 0; overflow: hidden; }
+.fx-tdock-term { position: absolute; inset: 6px 4px 0 10px; }
+.fx-tdock-term[hidden] { display: none; }
+.fx-tdock-term .xterm-viewport { background: transparent; }
+.fx-tdock-empty { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 0 var(--space-4); text-align: center; }
+.fx-tdock-empty[hidden] { display: none; }
+.fx-tdock-ask { display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-2); background: var(--surface-1); border-top: 1px solid var(--line-0); }
+.fx-tdock-ask-mark { display: inline-grid; place-items: center; color: var(--accent-color); }
+.fx-tdock-ask-input { flex: 1; height: 28px; }
+.fx-tdock-ask .cv-icon-btn { width: 28px; height: 28px; }
+
+.fx-cp { position: absolute; inset: 0; display: grid; grid-template-rows: 30px minmax(0, 1fr); background: var(--surface-0); }
+.fx-cp[hidden] { display: none; }
+.fx-cp-bar { display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-3); border-bottom: 1px solid var(--line-0); min-width: 0; }
+.fx-cp-bar .cv-note { margin: 0; }
+.fx-cp-btn { height: 22px; padding: 0 var(--space-2); font-size: var(--fs-11); flex: none; }
+.fx-cp-btn[hidden] { display: none; }
+.fx-cp-log { overflow-y: auto; padding: var(--space-2) var(--space-3) var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); font-size: var(--fs-12); user-select: text; -webkit-user-select: text; }
+.fx-cp-empty, .fx-cp-missing { margin: auto 0; max-width: 64ch; line-height: 1.5; }
+.fx-cp-missing { margin: 0; }
+.fx-cp-empty[hidden], .fx-cp-missing[hidden] { display: none; }
+.fx-cp-msg { max-width: 82ch; display: flex; flex-direction: column; gap: 4px; line-height: 1.45; }
+.fx-cp-msg.is-user { align-self: flex-end; padding: 6px 10px; border-radius: var(--radius-md); background: var(--surface-raised); color: var(--text-primary); white-space: pre-wrap; overflow-wrap: anywhere; }
+.fx-cp-msg.is-claude { align-self: flex-start; color: var(--text-primary); }
+.fx-cp-text { overflow-wrap: anywhere; }
+.fx-cp-note { color: var(--text-muted); font-size: var(--fs-11); }
+.fx-cp-tool { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; padding: 2px 8px; border: 1px solid var(--line-1); border-radius: var(--radius); color: var(--text-muted); font-family: var(--font-mono); font-size: var(--fs-11); align-self: flex-start; }
+.fx-cp-tool-mark { display: inline-grid; place-items: center; }
+.fx-cp-tool-name { color: var(--text-primary); flex: none; }
+.fx-cp-tool-input { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.fx-cp-tool.is-running .fx-cp-tool-mark { color: var(--accent-color); }
+.fx-cp-tool.is-error { border-color: var(--danger); }
+.fx-cp-tool.is-error .fx-cp-tool-mark { color: var(--danger); }
+.fx-cp-error { color: var(--danger-soft); white-space: pre-wrap; overflow-wrap: anywhere; }
+.fx-cp-meta { color: var(--text-muted); font-size: var(--fs-11); }
+.fx-cp-usage { color: var(--text-muted); font-size: var(--fs-11); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.fx-cp-usage.is-high { color: var(--accent-color); }
+.fx-cp-images { display: flex; flex-wrap: wrap; gap: 6px; align-self: flex-start; }
+.fx-cp-images img { max-width: 260px; max-height: 180px; border-radius: var(--radius); border: 1px solid var(--line-1); background: var(--surface-2); }
+.fx-md { display: flex; flex-direction: column; gap: 6px; white-space: normal; }
+.fx-md p { margin: 0; }
+.fx-md-live { margin: 0; white-space: pre-wrap; }
+.fx-md ul, .fx-md ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 2px; }
+.fx-md strong { color: var(--text-primary); font-weight: 600; }
+.fx-md code { padding: 0 4px; border-radius: var(--radius-sm); background: var(--surface-2); font-family: var(--font-mono); font-size: var(--fs-11); }
+.fx-md pre { margin: 0; padding: 8px 10px; border-radius: var(--radius); background: var(--surface-2); overflow-x: auto; }
+.fx-md pre code { padding: 0; background: transparent; white-space: pre; }
+.fx-md-h { font-weight: 600; color: var(--text-primary); }
+.fx-md-h1 { font-size: var(--fs-14); }
+.fx-md-link { text-decoration: underline; text-decoration-color: var(--line-2); }
+.fx-md hr { width: 100%; border: 0; border-top: 1px solid var(--line-1); margin: 2px 0; }
+.fx-md-table { overflow-x: auto; }
+.fx-md table { border-collapse: collapse; font-size: var(--fs-11); }
+.fx-md th, .fx-md td { padding: 3px 8px; border: 1px solid var(--line-1); text-align: left; }
+.fx-md th { background: var(--surface-2); font-weight: 600; }
