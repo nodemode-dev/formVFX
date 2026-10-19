@@ -1,4 +1,7 @@
+import functools
+import hashlib
 import os
+import re
 import sys
 
 RANGES = [
@@ -29,6 +32,45 @@ ALLOWED = {0x21B5}
 SKIP_DIRS = {"node_modules", "dist", "target", "venv", ".venv", ".git", "__pycache__", "build", "gen", "binaries"}
 EXTS = (".md", ".ts", ".css", ".html", ".py", ".rs", ".toml", ".json", ".sh", ".bat", ".txt", ".yml", ".yaml", ".svg", ".js")
 EM_DASH = "—"
+NAMES = {
+    "692f7c20ad3972ef": True, "352836dac99f04b7": False, "426b32f84949d29b": False, "9b1577b400b538b5": False,
+    "63601b303a9ea9af": False, "0b6b5977ea29ef2b": False, "ec5e3719c28f4c47": True, "2f0bff2781f9cbd2": False,
+    "3ddbd4d342c20431": True, "fa8a05cad2717b3e": False, "565188a5076cc800": True, "2fe5f7f1c10c2a01": True,
+    "d717cc1729e21ca2": False, "cfec72dad0f73d10": False, "7a047a4c03ddd309": True, "278beafd903bd018": False,
+    "b9f3892ae58d8272": False, "ad0a50b303ae59c2": True, "51850345b8ed6a85": False, "62cc20d8bc1e25c2": False,
+    "5be22f8ce08e7958": True, "a3123b8a8bbbb0ac": True, "9fd588a8dd9d9e92": False,
+}
+DECLINED = {"3a91c6126b8ce74d", "67b8a41e4771da59", "18c3171c6b776c8f", "aaeeeaeb0dc11058", "541a6394f5c0e0d9",
+            "502a0f420fe80695", "25ca52a5aeabb3b2"}
+INTEROP = {("backend/app/routers/extensions.py", "352836dac99f04b7")}
+TOKEN = re.compile(r"[A-Z]+(?![a-z])|[A-Z]?[a-z]+|[0-9]+")
+
+
+@functools.lru_cache(maxsize=1 << 18)
+def digest(s: str) -> str:
+    return hashlib.blake2b(s.encode(), digest_size=8).hexdigest()
+
+
+def phrases(line: str) -> set:
+    toks = TOKEN.findall(line)
+    out = set()
+    for i in range(len(toks)):
+        for k in range(1, 5):
+            if i + k <= len(toks):
+                out.add("".join(toks[i:i + k]))
+    return out
+
+
+def third_party(rel: str, line: str, md: bool) -> list:
+    out = []
+    for p in phrases(line):
+        exact, low = digest(p), digest(p.lower())
+        for h in {x for x, cs in ((exact, True), (low, False)) if NAMES.get(x) is cs}:
+            if (rel, h) not in INTEROP:
+                out.append(("third-party product name", h))
+        if not md and low in DECLINED:
+            out.append(("declined patented feature", low))
+    return out
 
 
 def pictographic(cp: int) -> bool:
@@ -47,7 +89,11 @@ def scan(root: str) -> int:
                 text = open(p, encoding="utf-8").read()
             except (UnicodeDecodeError, OSError):
                 continue
+            rel = os.path.relpath(p, root).replace(os.sep, "/")
             for n, line in enumerate(text.splitlines(), 1):
+                for what, _ in third_party(rel, line, f.endswith(".md")):
+                    print(f"{p}:{n}: {what}")
+                    hits += 1
                 for ch in line:
                     if pictographic(ord(ch)):
                         print(f"{p}:{n}: pictographic U+{ord(ch):04X}")
