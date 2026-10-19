@@ -1,6 +1,6 @@
 # formvfx
 
-Motion graphics and visual effects (an After Effects alternative): vanilla TypeScript and Vite interface, Python FastAPI engine around formvfx's own Rust compositing engine, Tauri 2 desktop shell.
+A motion graphics and visual effects compositor: vanilla TypeScript and Vite interface, Python FastAPI engine around formvfx's own Rust compositing engine, Tauri 2 desktop shell.
 
 ## Making motion graphics (natural language)
 

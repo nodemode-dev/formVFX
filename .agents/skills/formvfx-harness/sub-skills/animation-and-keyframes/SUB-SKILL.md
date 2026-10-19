@@ -12,7 +12,7 @@ description: Keyframe animation in formvfx. Use to animate any property, choose 
 | ease | Result |
 | --- | --- |
 | `linear` | constant speed through the key |
-| `easyEase` | eases in and out (After Effects F9) |
+| `easyEase` | eases in and out (F9) |
 | `easyEaseIn` / `easyEaseOut` | eases only arriving / only leaving |
 | `hold` | the value jumps at the next key |
 | `bezier`, `autoBezier` | smooth, with the default influence |

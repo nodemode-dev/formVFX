@@ -1,12 +1,12 @@
 # formvfx manual
 
-formvfx is a motion graphics and visual effects application that works the way After Effects does: a project of footage and compositions, layers on a timeline, properties you keyframe, effects stacked on a layer, and a Render Queue. This manual walks through the application by area. Menu paths are written as Menu > Item; every item is also a command you can search with Cmd or Ctrl+K and that agents can run (its id is in brackets where it helps).
+formvfx is a motion graphics and visual effects compositor: a project of footage and compositions, layers on a timeline, properties you keyframe, effects stacked on a layer, and a Render Queue. This manual walks through the application by area. Menu paths are written as Menu > Item; every item is also a command you can search with Cmd or Ctrl+K and that agents can run (its id is in brackets where it helps).
 
 ## The window
 
 - **Title bar** · the menus (File, Edit, Composition, Layer, Effect, Animation, View, Window, Help), the open project's name, the workspace menu, undo and redo, command search, the Agent button (the Terminal, Claude Code, Chat, Codex, Cursor and the Agent workspace) and Settings.
 - **Toolbar** · selection, hand, zoom, orbit, pan behind, the shape tools (rectangle, rounded rectangle, ellipse, polygon, star), the pen, the type tool, brush, clone stamp and eraser, Roto Brush and the puppet tools. A shape tool with a non-shape layer selected draws a mask instead.
-- **Panels** · Project, Composition (the viewer), Timeline, Effect Controls, Effects & Presets, Info, Preview, Align, Character, Paragraph, Tracker, Render Queue, Essential Graphics, Flowchart, History, Audio, Footage, Media Browser, Brushes, Paint, Content-Aware Fill, Lumetri Scopes, Markers, Metadata, Motion Sketch, Smoother, Wiggler, Progress, Learn, Chat, Terminal, Agents and Dynamic Link. Window > Panels opens any of them; drag a tab onto another group to dock it there, or use Undock Panel from the tab's menu; the backtick key maximises the focused panel.
+- **Panels** · Project, Composition (the viewer), Timeline, Effect Controls, Effects & Presets, Info, Preview, Align, Character, Paragraph, Tracker, Render Queue, Essential Graphics, Flowchart, History, Audio, Footage, Media Browser, Brushes, Paint, Content-Aware Fill, Color Scopes, Markers, Metadata, Motion Sketch, Smoother, Wiggler, Progress, Learn, Chat, Terminal, Agents and Dynamic Link. Window > Panels opens any of them; drag a tab onto another group to dock it there, or use Undock Panel from the tab's menu; the backtick key maximises the focused panel.
 - **Workspaces** · Default, Animation, Effects, Text, Motion Tracking, Agent and Minimal (Window > Workspace or the title bar). Save Changes to this Workspace and Save as New Workspace keep your layout.
 - **Language** · Settings > Interface > Language: 26 languages, English by default. The whole interface changes in place, including menus and effect names.
 - **Shortcuts** · Edit > Keyboard Shortcuts shows the keyboard by modifier, searches, records new shortcuts, loads presets and imports or exports a set; conflicts are flagged.
@@ -14,7 +14,7 @@ formvfx is a motion graphics and visual effects application that works the way A
 ## Projects and footage
 
 - File > New > New Project, Open Project, Save, Save As, Increment and Save, Revert. Projects are `.fvxproj` files; File > Save As > Save a Copy As XML writes a readable `.fvxprojx` twin. Projects from earlier formvfx releases (`.ecproj`, `.ecprojx`) open as imports. Auto-save runs in the background.
-- File > Import > File, Multiple Files, Placeholder, Solid, Lottie, Timeline (XML, FCPXML, OTIO, EDL), Vanishing Point, Motion Graphics Template and Data. Footage covers video and audio (through FFmpeg when it is installed), stills, numbered image sequences, OpenEXR (any layer), Photoshop documents (merged, one layer, or a composition with its groups as precomps), PDF and Illustrator pages, SVG and Lottie. After Effects projects (`.aep`) and After Effects `.mogrt` templates open too.
+- File > Import > File, Multiple Files, Placeholder, Solid, Lottie, Timeline (XML, FCPXML, OTIO, EDL), Vanishing Point, Motion Graphics Template and Data. Footage covers video and audio (through FFmpeg when it is installed), stills, numbered image sequences, OpenEXR (any layer), PSD documents (merged, one layer, or a composition with its groups as precomps), PDF and .ai pages, SVG and Lottie. `.aep` projects and `.mogrt` templates open too.
 - Interpret Footage sets frame rate, alpha, loops and pixel aspect; proxies are set, used and created from File > Set Proxy, Use Proxy and Create Proxy.
 - File > Dependencies collects files, consolidates footage, removes unused footage and reduces the project; the Find Missing command (Cmd or Ctrl+K) lists missing footage, effects and fonts.
 - The Media Browser shows folders with numbered stills grouped as sequences; the Footage panel trims a clip and edits it into the active composition (Overlay and Ripple Insert).
@@ -43,7 +43,7 @@ Composition > Composition Flowchart shows the composition as a graph and works a
 - Animation > Keyframe Assistant: Convert Audio to Keyframes, Easy Ease, Exponential Scale, Sequence Layers, Smart Mask Interpolation, RPF Camera Import and Time-Reverse Keyframes. The Wiggler, Smoother and Motion Sketch panels do what their names say.
 - Animation > Behaviors stacks procedural motion on a property (Wiggle, Oscillate, Spring, Bounce and three loops) without baking keyframes; Link Data to Property drives a property from an imported CSV or JSON column.
 - Animation > Rigging > Create Two-Bone IK builds a limb with an FK switch; Animation > Physics > Bake Physics simulates 2D bodies and bakes keyframes. Layer > Cloner > Create Cloner repeats a layer with live per-copy offsets.
-- Animation presets: Save Animation Preset and Apply Animation Preset (`.fvxpreset`, and After Effects `.ffx`), and Browse Presets.
+- Animation presets: Save Animation Preset and Apply Animation Preset (`.fvxpreset`, and `.ffx`), and Browse Presets.
 
 ## Text
 
@@ -53,7 +53,7 @@ Composition > Composition Flowchart shows the composition as a graph and works a
 
 ## Shapes, masks and paths
 
-- Shape layers hold groups of paths, fills and strokes; Add (in the Timeline) inserts every After Effects shape operator: Merge Paths, Offset Paths, Pucker & Bloat, Repeater, Round Corners, Trim Paths, Twist, Wiggle Paths, Wiggle Transform and Zig Zag. Strokes can be dashed, tapered and wavy.
+- Shape layers hold groups of paths, fills and strokes; Add (in the Timeline) inserts every standard shape operator: Merge Paths, Offset Paths, Pucker & Bloat, Repeater, Round Corners, Trim Paths, Twist, Wiggle Paths, Wiggle Transform and Zig Zag. Strokes can be dashed, tapered and wavy.
 - Paste SVG to get shape layers; Layer > Create makes shapes or masks from text and shapes from a vector layer; Layer > Auto-trace traces a layer's alpha into masks.
 - Layer > Mask: new masks, modes, inversion, locking. Masks take variable feather points and their own motion blur. Window > Create Nulls from Paths links path points and nulls.
 
@@ -82,19 +82,19 @@ Composition > Composition Flowchart shows the composition as a graph and works a
 
 ## Expressions and scripting
 
-- Alt-click a stopwatch (or use the property's menu) to write an expression; the pick whip links properties. Expressions run on formvfx's own interpreter with the After Effects object model, `sampleImage`, regular expressions and the text style API; errors show and fall back to the keyframed value.
-- File > Scripts runs `.jsx` scripts against the After Effects scripting model and installs ScriptUI panels; Window > Extensions installs CEP extension panels.
+- Alt-click a stopwatch (or use the property's menu) to write an expression; the pick whip links properties. Expressions run on formvfx's own interpreter with the standard expression object model, `sampleImage`, regular expressions and the text style API; errors show and fall back to the keyframed value.
+- File > Scripts runs `.jsx` scripts against the standard compositor scripting object model and installs ScriptUI panels; Window > Extensions installs CEP extension panels.
 
 ## Preview
 
 - Space plays a RAM preview with audio (Composition > Preview > Audio). While you work, the work area renders into the preview cache when idle (Composition > Preview > Cache Frames When Idle); a green strip on the time ruler marks cached frames, and scrubbing shows them at once.
-- View > Fast Previews > Adaptive Resolution lowers the viewer's resolution while you drag the time indicator on a heavy composition and restores it when you let go; Draft, Fast Draft and Wireframe are there too. View > Take Snapshot, Show Snapshot, guides, grid, rulers, channels, exposure and the region of interest work as in After Effects; Split with New Locked Viewer keeps one view fixed.
-- Lumetri Scopes shows waveform, parade, vectorscope and histogram.
+- View > Fast Previews > Adaptive Resolution lowers the viewer's resolution while you drag the time indicator on a heavy composition and restores it when you let go; Draft, Fast Draft and Wireframe are there too. View > Take Snapshot, Show Snapshot, guides, grid, rulers, channels, exposure and the region of interest are available; Split with New Locked Viewer keeps one view fixed.
+- Color Scopes shows waveform, parade, vectorscope and histogram.
 
 ## Rendering and export
 
 - Composition > Add to Render Queue, then Render in the Render Queue panel. Render Settings set quality, resolution, proxies, effects, motion blur, frame blending, fields and time span; each item takes several output modules (H.264, HEVC, AV1, ProRes 422 to 4444 XQ, WebM, GIF, PNG, JPEG, TIFF and EXR sequences, WAV, AIFF) with templates. Renders run in the background.
-- Composition > Save Frame As writes a still, layered Photoshop layers or a layered EXR; Pre-render and Save Current Preview render to a file. File > Export writes Lottie JSON, editor timelines (XML, FCPXML, OTIO, EDL) and Slices from Guides. File > Watch Folder renders projects dropped into a folder.
+- Composition > Save Frame As writes a still, PSD layers or a layered EXR; Pre-render and Save Current Preview render to a file. File > Export writes Lottie JSON, editor timelines (XML, FCPXML, OTIO, EDL) and Slices from Guides. File > Watch Folder renders projects dropped into a folder.
 - Composition > Export as Motion Graphics Template and the Essential Graphics panel build templates (`.fvxtemplate` and `.mogrt`) with Essential Properties and Media Replacement.
 
 ## Colour
@@ -112,4 +112,4 @@ In the Project panel, Export Dynamic Link Clip writes a `.fvxlink` for a composi
 
 ## Learning
 
-Help > In-App Tutorials opens the Learn panel, whose tutorials advance as you do each step; Help > Open Demo Project opens a ready composition. Help > formvfx Help and formvfx Manual open these pages; [`PARITY.md`](PARITY.md) says, row by row, how formvfx compares with After Effects.
+Help > In-App Tutorials opens the Learn panel, whose tutorials advance as you do each step; Help > Open Demo Project opens a ready composition. Help > formvfx Help and formvfx Manual open these pages; [`PARITY.md`](PARITY.md) says, row by row, how formvfx compares with the reference compositor.

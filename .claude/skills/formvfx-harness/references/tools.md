@@ -102,7 +102,7 @@ Animates a property: one keyframe per entry at composition time (seconds) with a
 
 ## apply_effect
 
-Adds an effect (id like fx.blur.gaussian or its After Effects name like Gaussian Blur) to a layer and sets its parameters by id ({"blurriness": 20}). Returns the effect's index for paths effects/#n/....
+Adds an effect (id like fx.blur.gaussian or its display name like Gaussian Blur) to a layer and sets its parameters by id ({"blurriness": 20}). Returns the effect's index for paths effects/#n/....
 
 - `layer`: id or name; required; Layer id, `#n` (1 = top) or name.
 - `effect`: string; required
@@ -157,7 +157,7 @@ Planar tracking: follows a flat surface (a screen, a sign, a wall, a tabletop) t
 
 ## object_matte
 
-Object Matte: isolates one object (a person, a car, a product) in footage from one point on it, the way After Effects' Object Matte does. action preview segments the object at time and returns its bounding box, coverage and the model's confidence without changing anything; action select puts a Roto Brush on the layer seeded at that point (one undo step), spans the whole layer and propagates it (direction both by default; wait true blocks until done, otherwise call wait). The layer's alpha becomes the object's matte. Needs the MobileSAM model (roto.model.download {id: mobilesam}).
+Object Matte: isolates one object (a person, a car, a product) in footage from one point on it. action preview segments the object at time and returns its bounding box, coverage and the model's confidence without changing anything; action select puts a Roto Brush on the layer seeded at that point (one undo step), spans the whole layer and propagates it (direction both by default; wait true blocks until done, otherwise call wait). The layer's alpha becomes the object's matte. Needs the MobileSAM model (roto.model.download {id: mobilesam}).
 
 - `action`: string (preview | select); required
 - `layer`: id or name; required; Layer id, `#n` (1 = top) or name.
@@ -233,7 +233,7 @@ Imports footage, images, audio, PSD, SVG, PDF, Lottie or 3D models (absolute pat
 
 ## run_script
 
-Runs an After Effects style JavaScript program against the project (app.project, items.addComp, CompItem, layers.addSolid/addText/addNull/addShape, layer.property('Transform').property('Position').setValueAtTime(t, v), effects through property('Effects').addProperty, File, app.settings, ScriptUI windows). The whole script is one undo step. Returns {ok, result, output (writeLn, alert and $.writeln), error: {message, line}}.
+Runs a JavaScript program against the project (app.project, items.addComp, CompItem, layers.addSolid/addText/addNull/addShape, layer.property('Transform').property('Position').setValueAtTime(t, v), effects through property('Effects').addProperty, File, app.settings, ScriptUI windows). The whole script is one undo step. Returns {ok, result, output (writeLn, alert and $.writeln), error: {message, line}}.
 
 - `code`: string; required
 
@@ -305,7 +305,7 @@ layer.setSwitch {layers, switch: threeD, value: true} makes a layer 3D (transfor
 
 ### expressions
 
-prop.setExpression {layer, path, expression}. The language is JavaScript with the After Effects object model: time, value, wiggle(freq, amp), loopOut('cycle'), linear(t, a, b, c, d), ease(), thisComp.layer('Name').transform.position, effect('Slider Control')('Slider'). Errors: execute expr.errors. Scripts: run_script {code} runs After Effects scripting JavaScript (app.project, comp.layers.addText, property(...).setValueAtTime) as one undo step, for loops and data.
+prop.setExpression {layer, path, expression}. The language is JavaScript with the standard expression object model: time, value, wiggle(freq, amp), loopOut('cycle'), linear(t, a, b, c, d), ease(), thisComp.layer('Name').transform.position, effect('Slider Control')('Slider'). Errors: execute expr.errors. Scripts: run_script {code} runs compositor scripting JavaScript (app.project, comp.layers.addText, property(...).setValueAtTime) as one undo step, for loops and data.
 
 ### tracking
 

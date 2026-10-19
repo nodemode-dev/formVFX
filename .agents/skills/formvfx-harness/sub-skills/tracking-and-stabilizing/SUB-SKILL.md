@@ -25,7 +25,7 @@ Verified sequence, attaching a null to a moving feature:
 - `track.status {layer}` shows the points and how many frames have keys. `track.options {layer, channel: rgb|luminance|saturation, adaptEveryFrame, threshold, action: continue|stop|extrapolate|adapt}` tunes a track that drifts.
 - `track.apply` writes position (and rotation, scale) keys on the target, one per frame. Parent graphics to that null rather than applying to them directly, so they can be offset and animated on top of the track.
 - Screen replacement: use the planar tracker below. A `kind: perspective` point track (four points on the screen corners, analyze, target, apply) works when all four corners stay visible and distinct.
-- People run the same steps from the Tracker panel (`ui {action: panel, panel: tracker}`), laid out as in After Effects: Track Camera, Warp Stabilize, Track Motion, Stabilize Motion; Motion Source, Current Track, Track Type, Position / Rotation / Scale, Motion Target, Options, Analyze (one frame or all, either way), Stop, Reset, Apply. With a mask on the source selected, the panel tracks the mask instead (Mask Method shows). Point the person at it when they want to adjust a track by hand.
+- People run the same steps from the Tracker panel (`ui {action: panel, panel: tracker}`), which offers Track Camera, Warp Stabilize, Track Motion, Stabilize Motion; Motion Source, Current Track, Track Type, Position / Rotation / Scale, Motion Target, Options, Analyze (one frame or all, either way), Stop, Reset, Apply. With a mask on the source selected, the panel tracks the mask instead (Mask Method shows). Point the person at it when they want to adjust a track by hand.
 
 ## Planar tracking (screens, signs, walls, tabletops)
 

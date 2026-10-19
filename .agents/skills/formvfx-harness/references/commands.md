@@ -24,11 +24,11 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 - `file.incrementAndSave` Increment and Save · File · Cmd+Alt+Shift+S
 - `file.revert` Revert · File
 - `file.import` File · File > Import · Cmd+I
-  `{paths: [string] (absolute paths: video, stills, image sequences, EXR, PSD, PDF, Illustrator, SVG, audio, Lottie or a project to bring in), importAs?: footage|composition|compositionLayerSizes (Photoshop, PDF and Illustrator files), layer? (a Photoshop or EXR layer name or index: footage of that layer), page?: number from 1 (PDF / Illustrator page), sequence?: bool (numbered stills as one sequence, default true), sequenceFrameRate?: fps (default 30), addToComp?: bool, time? (s), position? [x, y]}`
+  `{paths: [string] (absolute paths: video, stills, image sequences, EXR, PSD, PDF, .ai, SVG, audio, Lottie or a project to bring in), importAs?: footage|composition|compositionLayerSizes (PSD, PDF and .ai files), layer? (a PSD or EXR layer name or index: footage of that layer), page?: number from 1 (PDF / .ai page), sequence?: bool (numbered stills as one sequence, default true), sequenceFrameRate?: fps (default 30), addToComp?: bool, time? (s), position? [x, y]}`
 - `file.importMultiple` Multiple Files · File > Import · Cmd+Alt+I
-  `{paths: [string], importAs?: footage|composition|compositionLayerSizes, layer? (a Photoshop or EXR layer name or index), page?: number from 1, sequence?: bool, sequenceFrameRate?: fps}`
+  `{paths: [string], importAs?: footage|composition|compositionLayerSizes, layer? (a PSD or EXR layer name or index), page?: number from 1, sequence?: bool, sequenceFrameRate?: fps}`
 - `file.projectSettings` Project Settings · File · Cmd+Alt+Shift+K
-  `{bitDepth?: 8|16|32, timeDisplay?: timecode|frames, frameStart?, audioRate?, colorEngine?: adobe|ocio, ocioConfig? (.ocio path, empty for the built-in ACES config), workingSpace? (none, srgb, rec709, rec2020, p3, acescg ... or an OCIO colour space), linearize?: bool, blendLinear?: bool, display?, view? (OCIO), hdr?: clip|toneMap, outputSpace?, renderer?: gpu|cpu}`
+  `{bitDepth?: 8|16|32, timeDisplay?: timecode|frames, frameStart?, audioRate?, colorEngine?: profiles|ocio, ocioConfig? (.ocio path, empty for the built-in ACES config), workingSpace? (none, srgb, rec709, rec2020, p3, acescg ... or an OCIO colour space), linearize?: bool, blendLinear?: bool, display?, view? (OCIO), hdr?: clip|toneMap, outputSpace?, renderer?: gpu|cpu}`
 - `file.cycleBitDepth` Cycle Bit Depth
 - `file.interpretFootage` Interpret Footage · File > Interpret Footage · Cmd+Alt+G
   `{items?: [id], frameRate?, alpha?: straight|premultiplied|ignore, loops?, pixelAspect?, colorProfile? (auto, a profile id or an OCIO colour space), preserveRgb?: bool}`
@@ -42,7 +42,7 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `{name?, color?, width?, height?}`
 - `file.importLottie` Lottie · File > Import
   `{path (.json or .lottie)} -> a composition with shape, solid, image, text, null and precomp layers, keyframes and easing`
-- `file.importAep` After Effects Project · File > Import
+- `file.importAep` AEP Project · File > Import
   `{path (.aep), open?: bool} -> {folder, comps, warnings} · folders, compositions, solids and footage; text, shape, solid, null, adjustment, camera and light layers with their timing, switches, parents, transforms, keyframes, expressions, effects, text animators and Essential Graphics controls; warnings name what was not read`
 - `file.exportLottie` Lottie JSON · File > Export
   `{comp?, path (.json or .lottie), includeExpressions?: bool (otherwise expressions are baked to keyframes), textAsShapes?: bool}`
@@ -94,9 +94,9 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 - `file.replaceWithSolid` Solid · File > Replace Footage
   `{item?, name?, color? #hex|[r,g,b], width?, height?}`
 - `file.replaceWithLayeredComp` With Layered Comp · File > Replace Footage
-  `{item? (a Photoshop, PDF or Illustrator footage item)} · the layers using it then use a composition of its layers`
+  `{item? (a PSD, PDF or .ai footage item)} · the layers using it then use a composition of its layers`
 - `file.importVanishingPoint` Vanishing Point (.vpe) · File > Import
-  `{} · declined: Photoshop's .vpe format has no public description`
+  `{} · declined: the .vpe format has no public description`
 - `file.timelineFormats` Timeline Interchange Formats
   `{} -> [{id, name, extensions, import, export, note}]`
 - `file.importTimeline` Timeline (XML, FCPXML, OTIO, EDL) · File > Import
@@ -240,7 +240,7 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `{comp?, time?, comment?, duration?}`
 - `comp.saveFrameAs` File · Composition > Save Frame As · Cmd+Alt+S
   `{path (.png|.jpg|.tif|.exr; with queue: an output path or template), time?, scale?, queue?: bool (add a Render Queue item from the still templates instead of writing now)}`
-- `comp.saveFrameAsPsd` Photoshop Layers · Composition > Save Frame As
+- `comp.saveFrameAsPsd` PSD Layers · Composition > Save Frame As
   `{path (.psd), comp?, time?, scale?} -> a layered PSD: one layer per visible comp layer (blend mode, opacity) and the merged frame`
 - `comp.saveFrameAsExr` Layered EXR · Composition > Save Frame As
   `{path (.exr), comp?, time?, scale?, float?: bool (32-bit float, default half)} -> a multi-layer OpenEXR: the composite R, G, B, A and `[layer].R/G/B/A` per layer (scene-linear, premultiplied)`
@@ -1064,7 +1064,7 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 ## script
 
 - `script.run` Run Script
-  `{code (JavaScript with the After Effects scripting object model: app.project, CompItem, layers, properties, File, ScriptUI), file? (shown as $.fileName)} → {ok, result, output, error: {message, line}}; the whole script is one undo step`
+  `{code (JavaScript with the standard compositor scripting object model: app.project, CompItem, layers, properties, File, ScriptUI), file? (shown as $.fileName)} → {ok, result, output, error: {message, line}}; the whole script is one undo step`
 
 ## scriptui
 
@@ -1288,7 +1288,7 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 
 ## scopes
 
-- `scopes.analyze` Lumetri Scopes
+- `scopes.analyze` Color Scopes
   `{comp?, time?, scope?: all|histogram|waveform|parade|vectorscope, maxSide?, columns?, levels?, vectorscopeSize?} -> Rec. 709 histograms, waveform, parade, vectorscope and luma stats of the frame`
 
 ## cache

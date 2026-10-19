@@ -1,13 +1,13 @@
 ---
 name: expressions-and-scripting
-description: Procedural motion in formvfx. Use to write or fix expressions (wiggle, loopOut, linear and ease mapping, valueAtTime delays, links between layers, expression controls, random and posterized motion), to read expression errors, to run After Effects style JavaScript scripts against the project (loops, data, many layers, computed keys) and to build ScriptUI tool windows.
+description: Procedural motion in formvfx. Use to write or fix expressions (wiggle, loopOut, linear and ease mapping, valueAtTime delays, links between layers, expression controls, random and posterized motion), to read expression errors, to run JavaScript scripts (the standard compositor scripting object model) against the project (loops, data, many layers, computed keys) and to build ScriptUI tool windows.
 ---
 
 # expressions-and-scripting
 
 ## Expressions
 
-Set one with `execute prop.setExpression {layer, path, expression}`; clear it with `expression: ""` or switch it off with `enabled: false`. The language is JavaScript with the After Effects expression object model. `get_property` returns both the stored `value` and the `evaluated` result at a time, which is the quickest test.
+Set one with `execute prop.setExpression {layer, path, expression}`; clear it with `expression: ""` or switch it off with `enabled: false`. The language is JavaScript expressions (time, value, wiggle, loopOut). `get_property` returns both the stored `value` and the `evaluated` result at a time, which is the quickest test.
 
 Checked against the engine:
 
@@ -35,7 +35,7 @@ Rules of thumb:
 
 ## Scripts
 
-`run_script {code}` runs JavaScript against the project with the After Effects scripting object model: `app.project` (`items`, `item(i)`, `activeItem`, `items.addComp(name, w, h, pixelAspect, duration, fps)`, `items.addFolder`, `importFile(new ImportOptions(new File(path)))`, `renderQueue.items.add(comp)`), `CompItem` (`layers`, `layer(i or name)`, `numLayers`, `time`, `workAreaStart`), `comp.layers.addSolid([r, g, b], name, w, h, 1)`, `addText`, `addBoxText`, `addNull`, `addShape`, `addCamera`, `addLight`, `add(item)`, `precompose([indices], name)`, layers (`name`, `parent`, `enabled`, `threeDLayer`, `blendingMode = BlendingMode.SCREEN`, `inPoint`, `duplicate()`, `moveToEnd()`), properties (`property("Transform").property("Position")`, `setValue`, `setValueAtTime`, `setValuesAtTimes`, `keyValue`, `setInterpolationTypeAtKey`, `setTemporalEaseAtKey(i, [new KeyframeEase(0, 75)])`, `expression`), `property("Effects").addProperty("Gaussian Blur")` (After Effects match names such as `ADBE Gaussian Blur 2` work), shape contents through `addProperty("ADBE Vector Group")`, `TextDocument` values on Source Text, `File`, `Folder`, `app.settings`, `app.beginUndoGroup(name)`. It returns `{ok, result, output, error: {message, line}}`; `result` is the value of the last expression and `output` collects `writeLn`, `alert` and `$.writeln`.
+`run_script {code}` runs JavaScript against the project with the standard compositor scripting object model (app.project, CompItem, layers): `app.project` (`items`, `item(i)`, `activeItem`, `items.addComp(name, w, h, pixelAspect, duration, fps)`, `items.addFolder`, `importFile(new ImportOptions(new File(path)))`, `renderQueue.items.add(comp)`), `CompItem` (`layers`, `layer(i or name)`, `numLayers`, `time`, `workAreaStart`), `comp.layers.addSolid([r, g, b], name, w, h, 1)`, `addText`, `addBoxText`, `addNull`, `addShape`, `addCamera`, `addLight`, `add(item)`, `precompose([indices], name)`, layers (`name`, `parent`, `enabled`, `threeDLayer`, `blendingMode = BlendingMode.SCREEN`, `inPoint`, `duplicate()`, `moveToEnd()`), properties (`property("Transform").property("Position")`, `setValue`, `setValueAtTime`, `setValuesAtTimes`, `keyValue`, `setInterpolationTypeAtKey`, `setTemporalEaseAtKey(i, [new KeyframeEase(0, 75)])`, `expression`), `property("Effects").addProperty("Gaussian Blur")` (match names such as `ADBE Gaussian Blur 2` work), shape contents through `addProperty("ADBE Vector Group")`, `TextDocument` values on Source Text, `File`, `Folder`, `app.settings`, `app.beginUndoGroup(name)`. It returns `{ok, result, output, error: {message, line}}`; `result` is the value of the last expression and `output` collects `writeLn`, `alert` and `$.writeln`.
 
 Use a script for loops and data: fifty layers from a list, keys computed from a table, renaming by a pattern. The whole script is one undo step. For a handful of known operations, `batch` with commands is clearer.
 
@@ -55,13 +55,13 @@ app.endUndoGroup();
 comp.numLayers;
 ```
 
-`app.executeCommand(id, params)` runs any formvfx command from a script. Scripts read and write files the way After Effects scripts do, so they run with the person's consent like any edit.
+`app.executeCommand(id, params)` runs any formvfx command from a script. Scripts can read and write files, so they run with the person's consent like any edit.
 
 ## ScriptUI
 
 `new Window("palette", "Title")` with `add("button" | "statictext" | "edittext" | "checkbox" | "radiobutton" | "slider" | "progressbar" | "dropdownlist" | "listbox" | "group" | "panel", ...)` and `onClick`, `onChange` or `onChanging` handlers, then `show()`, opens a tool window in the formvfx interface; each handler runs later, when the person uses the control, as its own undo step, and a palette's `show()` returns at once.
 
-`new Window("dialog", ...)` is modal, as in After Effects: `show()` waits until the dialog is answered and returns 1 (OK), 2 (Cancel or the close box) or the number passed to `close(n)`, with the edited values in the controls; `confirm()` and `prompt()` wait the same way. While a script waits, `script.run` answers `{suspended: true, dialog}` and nothing it did yet is kept. To answer it yourself: `scriptui.get` lists the controls, `scriptui.set {control: name|text|id, text|value|selection}` fills them, `scriptui.click {control: "OK"}` presses a button, and the script then finishes as one undo step (its result is in `resumed`). Code before `show()` runs twice (once before the wait, again after), so keep file writes after it.
+`new Window("dialog", ...)` is modal: `show()` waits until the dialog is answered and returns 1 (OK), 2 (Cancel or the close box) or the number passed to `close(n)`, with the edited values in the controls; `confirm()` and `prompt()` wait the same way. While a script waits, `script.run` answers `{suspended: true, dialog}` and nothing it did yet is kept. To answer it yourself: `scriptui.get` lists the controls, `scriptui.set {control: name|text|id, text|value|selection}` fills them, `scriptui.click {control: "OK"}` presses a button, and the script then finishes as one undo step (its result is in `resumed`). Code before `show()` runs twice (once before the wait, again after), so keep file writes after it.
 
 CEP extensions (a folder with `CSXS/manifest.xml`, or a `.zxp`) install with `extensions.install {path}` and open with `extensions.open {id}` as panels; `extensions.evalScript {script}` runs ExtendScript the way the panel's `CSInterface.evalScript` does and returns the result as a string. Scripts installed with `file.installScript` appear in File > Scripts; panels installed with `file.installScriptUIPanel` appear in the Window menu, where `this` is the Panel.
 

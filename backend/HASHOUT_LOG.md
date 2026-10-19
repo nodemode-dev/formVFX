@@ -53,7 +53,7 @@ Living context for the engine service. Code carries almost no comments; the reas
 
 ## Extensions (0.28.0)
 
-- `routers/extensions.py` serves an installed CEP extension's files at `/api/extensions/[folder]/[path]`. The folder must be one `extensions.list` reports, and the resolved path must stay inside it. HTML pages get the `__adobe_cep__` and `CSInterface` shim injected after `head`, so a panel that ships its own `CSInterface.js` still finds the bridge it calls; `/api/extensions/_csinterface.js` serves the fallback alone for panels that load it by path.
+- `routers/extensions.py` serves an installed CEP extension's files at `/api/extensions/[folder]/[path]`. The folder must be one `extensions.list` reports, and the resolved path must stay inside it. HTML pages get the host runtime object and `CSInterface` shim injected after `head`, so a panel that ships its own `CSInterface.js` still finds the bridge it calls; `/api/extensions/_csinterface.js` serves the fallback alone for panels that load it by path.
 
 ## Embedded Claude Code and Chat (0.30.0)
 

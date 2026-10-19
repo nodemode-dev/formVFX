@@ -59,9 +59,9 @@ When an editor (formcut, a script) should use a composition without a render, sa
 - Project templates: `templates.list`, then `templates.create {id, projectPath?}` opens an untitled copy (four built-ins: Title Card, Lower Third, Social Square, Vertical Story); `templates.saveAs {name}` stores the open project with its footage.
 - Do not overwrite a project the person opened without asking; save new work under a new name unless told otherwise.
 
-## Editor timelines (formcut, Premiere Pro, Final Cut Pro, Resolve)
+## Editor timelines (formcut and other editors)
 
-- `file.importTimeline {path}` reads Final Cut Pro XML (`.xml`), FCPXML, OpenTimelineIO (`.otio`) or a CMX 3600 EDL (`edlFrameRate` for EDLs, default 30) into a composition: one footage layer per clip, cut where the editor cut it, upper tracks above. Media it cannot find becomes placeholders (colour bars); read `report` and tell the person what is missing or not carried (transitions, retiming, effects). AAF and OMF are refused.
+- `file.importTimeline {path}` reads xmeml 5 XML (`.xml`), FCPXML, OpenTimelineIO (`.otio`) or a CMX 3600 EDL (`edlFrameRate` for EDLs, default 30) into a composition: one footage layer per clip, cut where the editor cut it, upper tracks above. Media it cannot find becomes placeholders (colour bars); read `report` and tell the person what is missing or not carried (transitions, retiming, effects). AAF and OMF are refused.
 - `file.exportTimeline {comp, path}` writes the composition back in the format of the extension. Only footage layers travel; pass `prerender: "unsupported"` to render text, shapes, solids and precomps to ProRes 4444 movies that sit in their place. An EDL holds one video track, so overlapping layers are reported.
 - `file.timelineFormats` lists what reads and writes.
 

@@ -20,7 +20,7 @@ description: The FastAPI engine service in backend/app. Use for the engine threa
 | `/api/fs/roots`, `list`, `mkdir`, `upload`, `file` | `app/routers/files.py` | the in-app file browser and drops |
 | `/api/link/info`, `/api/link/frame.png`, `/api/link/audio` | `app/routers/link.py`, `app/engine/link.py` | Dynamic Link: a comp of the open project (live) or of any saved `.fvxproj` (side engine, reopened on mtime change) for another app; the `x-formvfx-local: 1` header on GET too; `link.export` writes the `.fvxlink` descriptor |
 | `/api/terminal/status`, `WS /api/terminal/ws` | `app/routers/terminal.py` | PTY (pty.fork, pywinpty on Windows) in the agent workspace with the trust token in its environment |
-| `/api/extensions/[folder]/[path]`, `/api/extensions/_csinterface.js` | `app/routers/extensions.py` | an installed CEP extension's files (installed ids only, no path escape), HTML with the `__adobe_cep__` and `CSInterface` shim injected |
+| `/api/extensions/[folder]/[path]`, `/api/extensions/_csinterface.js` | `app/routers/extensions.py` | an installed CEP extension's files (installed ids only, no path escape), HTML with the CEP runtime object and `CSInterface` shim injected |
 | `/mcp`, `/api/agents/*` | `app/routers/mcp.py`, `app/routers/agents.py` | see `agent-substrate` |
 | Security | `app/core/security.py` | `LocalOnly`: loopback clients and local origins only, `x-formvfx-local: 1` for non-browser callers |
 | Config | `app/core/config.py` | ports (8230), data dir `~/Formvfx` or `FORMVFX_DATA_DIR`, `FORMVFX_DIST`, `FORMVFX_AGENTS`, frozen bundle paths |

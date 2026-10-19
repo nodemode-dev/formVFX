@@ -1,6 +1,6 @@
 # formvfx
 
-Motion graphics and visual effects (an After Effects alternative) in the form family beside formvis and formcut: a vanilla TypeScript and Vite interface, a Python FastAPI engine service around formvfx's own Rust compositing engine (`fvx_core`, wrapped with PyO3), and a Tauri 2 desktop shell.
+A motion graphics and visual effects compositor in the form family beside formvis and formcut: a vanilla TypeScript and Vite interface, a Python FastAPI engine service around formvfx's own Rust compositing engine (`fvx_core`, wrapped with PyO3), and a Tauri 2 desktop shell.
 
 ## Two kinds of work
 

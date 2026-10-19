@@ -1,6 +1,6 @@
 # Effect plug-ins
 
-formvfx loads effect plug-ins written as WebAssembly modules. A plug-in is one `.wasm` (or `.wat`) file that describes its effect and its parameters as JSON and processes the layer's pixels in place. It runs in a sandbox: it can see only the buffers formvfx hands it, has no file or network access, is limited to 2 GB of memory, and is stopped when it runs for too long, so a faulty plug-in cannot hang or crash formvfx. formvfx also loads OpenFX plug-ins (below), the open standard that Resolve, Nuke, Fusion, Vegas and Natron share. After Effects SDK plug-ins are native code built against Adobe's host and do not load.
+formvfx loads effect plug-ins written as WebAssembly modules. A plug-in is one `.wasm` (or `.wat`) file that describes its effect and its parameters as JSON and processes the layer's pixels in place. It runs in a sandbox: it can see only the buffers formvfx hands it, has no file or network access, is limited to 2 GB of memory, and is stopped when it runs for too long, so a faulty plug-in cannot hang or crash formvfx. formvfx also loads OpenFX plug-ins (below), the open standard that every OpenFX host shares. Plug-ins built against a proprietary host SDK are native code for that host and do not load.
 
 ## Installing
 
