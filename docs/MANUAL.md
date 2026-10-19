@@ -107,8 +107,8 @@ In the Project panel, Export Dynamic Link Clip writes a `.fvxlink` for a composi
 
 ## Agents
 
-- Window > Start Claude Code (Shift+Cmd or Ctrl+J) runs Claude Code in the Terminal panel already connected to this window; the field under the terminal sends it a request in plain words. Window > Chat with Claude (Alt+Cmd or Ctrl+J) opens the Chat panel, which streams the answer with each tool it uses. Every change an agent makes is an ordinary undo step.
-- Codex and Cursor start from the Terminal panel's buttons; the Agents panel sets the clients up for your account. Outside agents ask once in the window before their first change. See the wiki's Agents page and `.claude/skills/formvfx-harness`.
+- The terminal dock sits under the panels; Cmd or Ctrl+J shows and hides it, and programs keep running while it is hidden. Its buttons open a new shell tab (plus), the Chat tab (speech bubble) and a Claude Code tab (robot), restart the current tab, or hide the dock. Window > Start Claude Code (Shift+Cmd or Ctrl+J) opens a Claude Code tab already connected to this window; the line under the dock sends it a request in plain words. Window > Chat with Claude (Alt+Cmd or Ctrl+J) opens the Chat tab, which streams the answer in formatted text with each tool it uses, shows how much of Claude's memory the conversation uses and what it cost, and moves a conversation to or from a Claude Code tab. Every change an agent makes is an ordinary undo step.
+- Codex and Cursor start from the dock's More agents button when they are installed; the Agents panel sets the clients up for your account. Outside agents ask once in the window before their first change. See the wiki's Agents page and `.claude/skills/formvfx-harness`.
 
 ## Learning
 

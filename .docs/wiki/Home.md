@@ -8,7 +8,7 @@ Every action in formvfx is a command with an id, so people and agents use the sa
 
 - [Getting Started](Getting-Started) · install, run, the first composition
 - [Manual](Manual) · the application area by area, with menu paths
-- [Agents](Agents) · MCP, the Terminal panel, the command line, permissions
+- [Agents](Agents) · MCP, the terminal dock and Chat, the command line, permissions
 - [Architecture](Architecture) · the compositing engine, the engine service, the interface
 - [Desktop](Desktop) · the Tauri app, the frozen engine, bundles
 - [Releasing](Releasing) · versions, tags, CI

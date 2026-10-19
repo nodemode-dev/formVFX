@@ -2,15 +2,15 @@
 
 formvfx exposes all of its commands to agents. Changes they make appear in the window live and are ordinary undo steps.
 
-## In the Terminal panel
+## In the terminal dock
 
-The Terminal panel opens a shell in formvfx's agent workspace (`~/Formvfx/agent-workspace`). The Claude Code, Codex and Cursor buttons start those clients there; each finds the `formvfx` MCP server and the `formvfx-harness` skill in the folder. Agents started here are trusted and never see a permission prompt.
+The terminal dock (Cmd or Ctrl+J) sits under the panels and holds tabs: shells in formvfx's agent workspace (`~/Formvfx/agent-workspace`), Claude Code tabs and one Chat tab. The robot button starts Claude Code there, and More agents starts Codex or Cursor when installed; each finds the `formvfx` MCP server and the `formvfx-harness` skill in the folder. Agents started here are trusted and never see a permission prompt. Tabs keep running while the dock is hidden, and Restart runs a tab's program again.
 
-Window > Start Claude Code (Shift+Cmd or Ctrl+J) opens the panel and starts Claude Code in one step; the field under the terminal sends it a request in plain words. The title bar's Agent button has the same entries.
+Window > Start Claude Code (Shift+Cmd or Ctrl+J) opens the dock with a Claude Code tab in one step; the line under the dock sends it a request in plain words. The title bar's Agent button has the same entries.
 
-## The Chat panel
+## The Chat tab
 
-Window > Chat with Claude (Alt+Cmd or Ctrl+J) opens a chat that answers in place and shows each formvfx tool it uses as it goes, for people who would rather not use a terminal. It needs Claude Code installed and signed in; its changes are undo steps like any other.
+Window > Chat with Claude (Alt+Cmd or Ctrl+J) opens a chat that answers in formatted text and shows each formvfx tool it uses as it goes, for people who would rather not use a terminal. Its bar shows how much of Claude's memory the conversation uses and what it has cost, stops a reply, starts a new chat, continues the conversation in a Claude Code tab (Open in Claude Code) or brings one in from a Claude Code tab (From Claude Code...). It needs Claude Code installed and signed in; its changes are undo steps like any other.
 
 ## From this repository or anywhere
 
