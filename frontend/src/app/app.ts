@@ -13,7 +13,7 @@ import { ProjectPanel } from '../panels/project';
 import { AlignPanel, CharacterPanel, CommandPanel, HistoryPanel, InfoPanel, ParagraphPanel, PreviewPanel, RenderQueuePanel } from '../panels/small';
 import { TerminalPanel } from '../panels/terminal';
 import { ChatPanel } from '../panels/chat';
-import { LumetriScopesPanel, ProgressPanel } from '../panels/scopes';
+import { ColorScopesPanel, ProgressPanel } from '../panels/scopes';
 import { LearnPanel } from '../panels/learn';
 import { DynamicLinkPanel } from '../panels/dynamic-link';
 import { TimelinePanel } from '../panels/timeline';
@@ -65,7 +65,7 @@ const COMMAND_PANELS: Array<[string, string, string[], string]> = [
   ['progress', 'Progress', ['jobs.'], 'Background tasks.'],
   ['metadata', 'Metadata', ['item.metadata', 'project.usage'], 'Item metadata and usage.'],
   ['layer', 'Layer', ['layer.openLayer', 'roto.', 'puppet.'], 'The Layer panel: roto, paint and puppet work on one layer.'],
-  ['lumetriScopes', 'Lumetri Scopes', ['scopes.', 'view.scopes'], 'Waveform, parade, vectorscope and histogram.'],
+  ['colorScopes', 'Color Scopes', ['scopes.', 'view.scopes'], 'Waveform, parade, vectorscope and histogram.'],
   ['createNullsFromPaths', 'Create Nulls From Paths', ['path.'], 'Points follow nulls, nulls follow points, trace a path.'],
   ['vrCompEditor', 'VR Comp Editor', ['vr.', 'comp.vr'], '360 and VR composition editing.'],
   ['properties', 'Properties', ['layer.setTransform', 'prop.'], 'The selected layer’s main properties.'],
@@ -228,7 +228,7 @@ class App {
     this.dock.register('wiggler', 'Wiggler', () => new WigglerPanel(ctx));
     this.dock.register('smoother', 'Smoother', () => new SmootherPanel(ctx));
     this.dock.register('motionSketch', 'Motion Sketch', () => new MotionSketchPanel(ctx));
-    for (const [id, title, prefixes, blurb] of COMMAND_PANELS) this.dock.register(id, title, () => (id === 'tracker' ? new TrackerPanel(ctx, id, title, prefixes, blurb) : id === 'lumetriScopes' ? new LumetriScopesPanel(ctx) : id === 'progress' ? new ProgressPanel(ctx) : new CommandPanel(ctx, id, title, prefixes, blurb)));
+    for (const [id, title, prefixes, blurb] of COMMAND_PANELS) this.dock.register(id, title, () => (id === 'tracker' ? new TrackerPanel(ctx, id, title, prefixes, blurb) : id === 'colorScopes' ? new ColorScopesPanel(ctx) : id === 'progress' ? new ProgressPanel(ctx) : new CommandPanel(ctx, id, title, prefixes, blurb)));
   }
 
   private buildTitleTools(shell: HTMLElement): void {

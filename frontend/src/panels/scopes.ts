@@ -19,9 +19,9 @@ const COLUMNS = 256;
 const LEVELS = 128;
 const VSIZE = 128;
 
-export class LumetriScopesPanel implements Panel {
-  readonly id = 'lumetriScopes';
-  readonly title = 'Lumetri Scopes';
+export class ColorScopesPanel implements Panel {
+  readonly id = 'colorScopes';
+  readonly title = 'Color Scopes';
   readonly el: HTMLElement;
   private readonly canvas: HTMLCanvasElement;
   private scope: Scope = 'waveform';
@@ -34,7 +34,7 @@ export class LumetriScopesPanel implements Panel {
   constructor(private readonly ctx: Ctx) {
     this.el = el(`<div class="fx-scopes">
       <div class="fx-term-bar">
-        <span class="fx-term-title">${icon('histogram', 14)}<span>Lumetri Scopes</span></span>
+        <span class="fx-term-title">${icon('histogram', 14)}<span>Color Scopes</span></span>
         <select class="fx-select fx-scopes-kind" data-automation-id="scopes.kind">
           <option value="waveform">Waveform (Luma)</option>
           <option value="parade">RGB Parade</option>

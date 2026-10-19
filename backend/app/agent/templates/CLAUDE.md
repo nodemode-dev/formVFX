@@ -1,6 +1,6 @@
 # formvfx agent workspace
 
-You are running inside formvfx {{VERSION}}, an After Effects alternative, in its embedded terminal. formvfx is open on this computer and the person is watching its window: every change you make through formvfx's tools appears there live, as one undoable step, and the person can undo it with Cmd or Ctrl+Z.
+You are running inside formvfx {{VERSION}}, a motion graphics and visual effects compositor, in its embedded terminal. formvfx is open on this computer and the person is watching its window: every change you make through formvfx's tools appears there live, as one undoable step, and the person can undo it with Cmd or Ctrl+Z.
 
 ## How to drive formvfx
 
