@@ -1,116 +1,44 @@
 import asyncio
 import contextlib
 import json
-import os
 import shutil
-import signal
-import struct
-import threading
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
 
-from ..agent import claude_code, consent, workspace
-from ..core import config
+from ..agent import claude_code, terminals, workspace
 
 router = APIRouter(prefix="/api/terminal", tags=["terminal"])
-POSIX = os.name == "posix"
-AGENTS = {"claude": "claude", "codex": "codex", "cursor": "cursor-agent"}
+AGENTS = terminals.AGENTS
 
 
-def _environment(base_url: str) -> dict:
-    ws = workspace.ensure()
-    env = dict(os.environ)
-    env["FORMVFX_URL"] = base_url
-    env["FORMVFX_AGENT_TOKEN"] = consent.TOKEN
-    env["FORMVFX_AGENT_NAME"] = "terminal"
-    env["FORMVFX_WORKSPACE"] = str(ws)
-    env["PATH"] = str(ws / "bin") + os.pathsep + env.get("PATH", "")
-    env.setdefault("TERM", "xterm-256color")
-    env["COLORTERM"] = "truecolor"
-    env.pop("FORMVFX_DESKTOP", None)
-    return env
+async def _off(fn, *args):
+    return await asyncio.get_running_loop().run_in_executor(None, fn, *args)
 
 
-def _shell() -> list[str]:
-    if POSIX:
-        shell = os.environ.get("SHELL") or ("/bin/zsh" if os.path.exists("/bin/zsh") else "/bin/bash")
-        return [shell, "-l"] if os.path.basename(shell) in ("bash", "zsh") else [shell]
-    return [os.environ.get("COMSPEC", "cmd.exe")]
+def _base(request: Request) -> str:
+    return f"http://127.0.0.1:{request.url.port or 80}"
 
 
-class Session:
-    def __init__(self, cols: int, rows: int, env: dict, cwd: str, argv: list[str] | None = None):
-        self.cols, self.rows = max(20, min(500, cols)), max(5, min(300, rows))
-        self.pid = None
-        self.fd = None
-        self.process = None
-        self.winpty = None
-        cmd = argv or _shell()
-        if POSIX:
-            import pty
+async def _body(request: Request) -> dict:
+    try:
+        body = await request.json()
+    except ValueError:
+        return {}
+    return body if isinstance(body, dict) else {}
 
-            pid, fd = pty.fork()
-            if pid == 0:
-                try:
-                    os.chdir(cwd)
-                except OSError:
-                    os.chdir(os.path.expanduser("~"))
-                os.execvpe(cmd[0], cmd, env)  # noqa: S606 the shell is the feature
-            self.pid, self.fd = pid, fd
-            self.resize(self.cols, self.rows)
-            return
-        try:
-            from winpty import PtyProcess
 
-            self.winpty = PtyProcess.spawn(cmd, cwd=cwd, env=env, dimensions=(self.rows, self.cols))
-        except Exception:
-            import subprocess
+def _size(body: dict) -> tuple[int, int]:
+    try:
+        return int(body.get("cols") or 100), int(body.get("rows") or 30)
+    except (TypeError, ValueError):
+        return 100, 30
 
-            self.process = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env, cwd=cwd)
 
-    def resize(self, cols: int, rows: int) -> None:
-        self.cols, self.rows = max(20, min(500, cols)), max(5, min(300, rows))
-        if POSIX and self.fd is not None:
-            import fcntl
-            import termios
-
-            fcntl.ioctl(self.fd, termios.TIOCSWINSZ, struct.pack("HHHH", self.rows, self.cols, 0, 0))
-        elif self.winpty is not None:
-            with contextlib.suppress(Exception):
-                self.winpty.setwinsize(self.rows, self.cols)
-
-    def write(self, data: str) -> None:
-        if POSIX and self.fd is not None:
-            os.write(self.fd, data.encode("utf-8"))
-        elif self.winpty is not None:
-            self.winpty.write(data)
-        elif self.process and self.process.stdin:
-            self.process.stdin.write(data.replace("\r", "\r\n").encode("utf-8"))
-            self.process.stdin.flush()
-
-    def read(self) -> str:
-        if POSIX and self.fd is not None:
-            return os.read(self.fd, 65536).decode("utf-8", errors="replace")
-        if self.winpty is not None:
-            return self.winpty.read(65536)
-        if self.process and self.process.stdout:
-            data = self.process.stdout.read1(65536) if hasattr(self.process.stdout, "read1") else self.process.stdout.readline()
-            return data.decode("utf-8", errors="replace")
-        return ""
-
-    def close(self) -> None:
-        if POSIX and self.pid:
-            with contextlib.suppress(OSError):
-                os.kill(self.pid, signal.SIGHUP)
-            with contextlib.suppress(OSError):
-                os.close(self.fd)
-            with contextlib.suppress(OSError):
-                os.waitpid(self.pid, os.WNOHANG)
-        elif self.winpty is not None:
-            with contextlib.suppress(Exception):
-                self.winpty.terminate(force=True)
-        elif self.process:
-            self.process.kill()
+def _session(sid: object) -> terminals.Session:
+    try:
+        return terminals.get(str(sid or ""))
+    except KeyError:
+        raise HTTPException(404, "No such terminal.") from None
 
 
 @router.get("/status")
@@ -118,8 +46,8 @@ def status() -> dict:
     ws = workspace.ensure()
     return {
         "available": True,
-        "pty": POSIX,
-        "shell": _shell()[0],
+        "pty": terminals.POSIX,
+        "shell": terminals.login_shell()[0],
         "cwd": str(ws),
         "agents": {name: (claude_code.cli() is not None) if name == "claude" else shutil.which(binary) is not None for name, binary in AGENTS.items()},
         "launch": AGENTS,
@@ -127,76 +55,108 @@ def status() -> dict:
     }
 
 
-@router.websocket("/ws")
-async def terminal(socket: WebSocket) -> None:
+@router.get("/list")
+def listing() -> dict:
+    return {"terminals": terminals.listing()}
+
+
+@router.post("/open")
+async def open_shell(request: Request) -> dict:
+    cols, rows = _size(await _body(request))
+    session = await _off(terminals.open_shell, _base(request), cols, rows)
+    return session.describe()
+
+
+@router.post("/claude")
+async def open_claude(request: Request) -> dict:
+    body = await _body(request)
+    cols, rows = _size(body)
+    try:
+        session = await _off(terminals.open_claude, _base(request), str(body.get("prompt") or ""), str(body.get("resume") or ""), cols, rows)
+        return session.describe()
+    except terminals.NotInstalled as e:
+        raise HTTPException(400, str(e)) from e
+
+
+@router.post("/launch")
+async def launch(request: Request) -> dict:
+    body = await _body(request)
+    cols, rows = _size(body)
+    try:
+        session = await _off(terminals.open_agent, str(body.get("agent") or ""), _base(request), cols, rows)
+        return session.describe()
+    except terminals.NotInstalled as e:
+        raise HTTPException(400, str(e)) from e
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+
+
+@router.post("/restart")
+async def restart(request: Request) -> dict:
+    session = _session((await _body(request)).get("id"))
+    await _off(terminals.restart, session)
+    return {"ok": True}
+
+
+@router.post("/close")
+async def close(request: Request) -> dict:
+    session = _session((await _body(request)).get("id"))
+    await _off(terminals.close, session.id)
+    return {"ok": True}
+
+
+@router.websocket("/{sid}/ws")
+async def attach(socket: WebSocket, sid: str) -> None:
     await socket.accept()
     try:
-        cols = int(socket.query_params.get("cols", "100"))
-        rows = int(socket.query_params.get("rows", "30"))
-    except ValueError:
-        cols, rows = 100, 30
-    host = socket.headers.get("host") or f"127.0.0.1:{config.PORT}"
-    base = f"http://127.0.0.1:{host.rsplit(':', 1)[-1]}" if ":" in host else f"http://127.0.0.1:{config.PORT}"
-    if socket.query_params.get("engine"):
-        base = socket.query_params["engine"]
-    env = _environment(base)
-    cwd = socket.query_params.get("cwd") or env["FORMVFX_WORKSPACE"]
-    argv = None
-    if socket.query_params.get("agent") == "claude":
-        try:
-            argv = claude_code.argv(base, socket.query_params.get("prompt") or None, socket.query_params.get("resume") or None)
-            env = claude_code.child_env(env)
-        except RuntimeError as e:
-            await socket.send_text(f"\r\n\x1b[33m{e}\x1b[0m\r\n")
-    session = Session(cols, rows, env, cwd, argv)
-    loop = asyncio.get_running_loop()
+        session = terminals.get(sid)
+    except KeyError:
+        await socket.close(code=4404)
+        return
     queue: asyncio.Queue = asyncio.Queue()
-    stop = threading.Event()
+    backlog, last = session.attach(queue)
+    exit_frame = json.dumps({"type": "exit"})
 
-    def pump() -> None:
-        while not stop.is_set():
-            try:
-                data = session.read()
-            except (OSError, EOFError):
-                break
-            if not data:
-                break
-            loop.call_soon_threadsafe(queue.put_nowait, data)
-        loop.call_soon_threadsafe(queue.put_nowait, None)
-
-    reader = threading.Thread(target=pump, daemon=True)
-    reader.start()
-
-    async def send() -> None:
+    async def outbound() -> None:
+        if backlog:
+            await socket.send_text(backlog)
+        if not session.alive:
+            await socket.send_text(exit_frame)
         while True:
-            data = await queue.get()
-            if data is None:
-                with contextlib.suppress(Exception):
-                    await socket.send_text(json.dumps({"exit": True}))
-                break
-            await socket.send_text(data)
+            seq, text = await queue.get()
+            if text is None:
+                await socket.send_text(exit_frame)
+                if terminals.SESSIONS.get(sid) is not session:
+                    break
+            elif seq > last:
+                await socket.send_text(text)
 
-    sender = asyncio.create_task(send())
-    launch = socket.query_params.get("launch")
-    if launch in AGENTS:
-        session.write(AGENTS[launch] + "\r")
+    sender = asyncio.create_task(outbound())
+    receiver = asyncio.create_task(socket.receive_text())
     try:
         while True:
-            message = await socket.receive_text()
-            if message.startswith("\x00{"):
-                try:
-                    control = json.loads(message[1:])
-                except ValueError:
-                    control = {}
-                if isinstance(control.get("resize"), list) and len(control["resize"]) == 2:
-                    session.resize(int(control["resize"][0]), int(control["resize"][1]))
-                if control.get("launch") in AGENTS:
-                    session.write(AGENTS[control["launch"]] + "\r")
+            done, _ = await asyncio.wait({sender, receiver}, return_when=asyncio.FIRST_COMPLETED)
+            if sender in done:
+                break
+            try:
+                raw = receiver.result()
+            except WebSocketDisconnect:
+                break
+            receiver = asyncio.create_task(socket.receive_text())
+            try:
+                message = json.loads(raw)
+            except ValueError:
                 continue
-            session.write(message)
-    except WebSocketDisconnect:
-        pass
+            if not isinstance(message, dict):
+                continue
+            if message.get("type") == "input":
+                terminals.write(session, str(message.get("data", "")))
+            elif message.get("type") == "resize":
+                with contextlib.suppress(TypeError, ValueError):
+                    terminals.resize(session, int(message.get("cols", 80)), int(message.get("rows", 24)))
     finally:
-        stop.set()
-        session.close()
+        session.detach(queue)
         sender.cancel()
+        receiver.cancel()
+        with contextlib.suppress(Exception):
+            await socket.close()

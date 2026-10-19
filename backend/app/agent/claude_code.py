@@ -19,7 +19,19 @@ NOTE = (
     "multi-step edit undoes as one step, and look at the result with render_frame before saying an edit is done. Every "
     "change appears live in the person's window and is undoable."
 )
-INSTALL = "Claude Code is not installed. Install it from https://claude.com/claude-code, run claude once in a terminal to sign in, then try again."
+CHAT_NOTE = (
+    " You are answering in formvfx's Chat tab, which shows Markdown to people who may never have used a terminal: write short "
+    "paragraphs, use **bold** for names of layers, effects and settings and a bulleted list when you changed several things, "
+    "avoid tables and code blocks, say what you changed in a motion designer's words, and keep tool calls few by batching."
+)
+INSTALL = "Claude Code is not installed on this computer. Install it from https://claude.com/claude-code, run claude once in a terminal to sign in, then try again."
+
+
+class NotInstalled(RuntimeError):
+    pass
+
+
+
 _KEEP = {"CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX", "CLAUDE_CONFIG_DIR"}
 _cache: dict = {"at": 0.0, "info": None}
 
@@ -113,7 +125,7 @@ def _wrap(cmd: list[str]) -> list[str]:
 def argv(base_url: str, prompt: str | None = None, resume: str | None = None) -> list[str]:
     path = cli()
     if not path:
-        raise RuntimeError(INSTALL)
+        raise NotInstalled(INSTALL)
     cmd = [path, "--mcp-config", mcp_config(base_url), "--allowedTools", "mcp__formvfx", "ToolSearch", "--append-system-prompt", NOTE]
     if resume:
         cmd += ["--resume", resume]
@@ -122,13 +134,13 @@ def argv(base_url: str, prompt: str | None = None, resume: str | None = None) ->
     return _wrap(cmd)
 
 
-def headless(base_url: str, prompt: str, resume: str | None = None) -> list[str]:
+def headless(base_url: str, prompt: str, resume: str | None = None, note: str = NOTE) -> list[str]:
     path = cli()
     if not path:
-        raise RuntimeError(INSTALL)
+        raise NotInstalled(INSTALL)
     cmd = [
         path, "-p", prompt, "--output-format", "stream-json", "--verbose", "--include-partial-messages",
-        "--mcp-config", mcp_config(base_url), "--allowedTools", "mcp__formvfx", "ToolSearch", "--append-system-prompt", NOTE,
+        "--mcp-config", mcp_config(base_url), "--allowedTools", "mcp__formvfx", "ToolSearch", "--append-system-prompt", note,
     ]
     if resume:
         cmd += ["--resume", resume]
