@@ -18,6 +18,25 @@ const MATTES: Array<[string, string]> = [['', 'No Track Matte'], ['alpha', 'Alph
 const TYPE_ICON: Record<string, string> = { Text: 'iText', Shape: 'iShape', Solid: 'iSolid', Null: 'iNull', Camera: 'iCamera', Light: 'iLight', Composition: 'iComp', Footage: 'iFootage', Model: 'iModel', Primitive: 'iModel' };
 const LABELS = ['None', 'Red', 'Yellow', 'Aqua', 'Pink', 'Lavender', 'Peach', 'Sea Foam', 'Blue', 'Green', 'Purple', 'Orange', 'Brown', 'Fuchsia', 'Cyan', 'Sandstone', 'Dark Green'];
 
+const SWITCH_TIP: Record<string, string> = {
+  video: 'Video: show or hide this layer in the picture',
+  audio: 'Audio: turn this layer\'s sound on or off',
+  solo: 'Solo: show only this layer, plus any other soloed layers',
+  lock: 'Lock: stop this layer being moved or changed by accident',
+  shy: 'Shy: mark this layer so it can be hidden from the list with Hide Shy Layers (top right)',
+  collapse: 'Collapse Transformations or Continuously Rasterize: for a nested composition, pass its layers\' transforms and 3D through; for vector art, keep edges sharp when scaled',
+  quality: 'Quality and Sampling: click to change between full detail, faster draft and outlines only',
+  fx: 'Effects: turn all the effects on this layer on or off',
+  frameBlend: 'Frame Blending: smooth speed-changed footage by blending neighbouring frames',
+  motionBlur: 'Motion Blur: blur this layer where it moves (needs Motion Blur on at the top right too)',
+  adjustment: 'Adjustment Layer: apply this layer\'s effects to every layer below it',
+  threeD: '3D Layer: give this layer depth so cameras and lights can act on it',
+};
+const TIP_NUM = 'Layer number and label colour. Layers higher in the list sit in front. Click the coloured square to pick a label colour';
+const TIP_MODE = 'Mode: how this layer\'s colours blend with the layers below it, such as Multiply or Screen';
+const TIP_MATTE = 'Track Matte: use the layer above as a cut-out shape or brightness mask for this layer';
+const TIP_PARENT = 'Parent and Link: make this layer follow another layer\'s position, scale and rotation. Choose the layer to follow from the list';
+
 type RowItem =
   | { kind: 'layer'; key: string; layer: LayerRow }
   | { kind: 'group'; key: string; layer: LayerRow; node: GroupNode; depth: number }
@@ -44,6 +63,7 @@ export class TimelinePanel implements Panel {
   private readonly ruler: HTMLCanvasElement;
   private readonly tracks: HTMLCanvasElement;
   private readonly tc: HTMLElement;
+  private readonly empty: HTMLElement;
   private readonly search: HTMLInputElement;
   private readonly graph: GraphView;
   private openLayers = new Set<number>();
@@ -67,9 +87,9 @@ export class TimelinePanel implements Panel {
   constructor(private readonly ctx: Ctx) {
     this.el = el(`<div class="fx-tl">
       <div class="fx-tl-top">
-        <button class="fx-tl-tc" type="button" title="Current time (click to type)" data-automation-id="timeline.timecode"></button>
-        <span class="fx-tl-frames"></span>
-        <input class="cv-input fx-tl-search" placeholder="Search layers and properties" spellcheck="false" data-automation-id="timeline.search">
+        <button class="fx-tl-tc" type="button" title="Current time as hours:minutes:seconds:frames. Click to type a time and jump straight to it (Alt+Shift+J)" aria-label="Current time, click to type a time" data-automation-id="timeline.timecode"></button>
+        <span class="fx-tl-frames" title="The current frame number, and how many frames play each second"></span>
+        <input class="cv-input fx-tl-search" placeholder="Search layers and properties" title="Type to show only the layers and properties whose names match" aria-label="Search layers and properties" spellcheck="false" data-automation-id="timeline.search">
         <span class="fx-tl-flex"></span>
         <div class="fx-tl-compsw"></div>
       </div>
@@ -77,20 +97,36 @@ export class TimelinePanel implements Panel {
         <div class="fx-tl-left">
           <div class="fx-tl-colhead"></div>
           <div class="fx-tl-rows" role="tree" data-automation-id="timeline.rows"></div>
+          <div class="fx-tl-empty" data-automation-id="timeline.empty" hidden>
+            <div class="fx-empty-card" data-state="nocomp" hidden>
+              <p class="fx-empty-sub">No composition is open. A composition is the canvas you animate on, and its layers are listed here. Make one to begin.</p>
+              <div class="fx-empty-actions">
+                <button class="cv-btn cv-btn-primary" type="button" data-e="comp" title="Make a new empty composition (Cmd+N)">${icon('plus', 14)}New Composition</button>
+              </div>
+            </div>
+            <div class="fx-empty-card" data-state="nolayers" hidden>
+              <p class="fx-empty-sub">This composition has no layers yet. Add one below, or drag footage in from the Project panel.</p>
+              <div class="fx-empty-actions">
+                <button class="cv-btn cv-btn-primary" type="button" data-e="text" title="Add a layer of editable text (Cmd+Alt+Shift+T)">${icon('iText', 14)}New Text Layer</button>
+                <button class="cv-btn" type="button" data-e="solid" title="Add a flat block of colour, handy as a background (Cmd+Y)">${icon('iSolid', 14)}New Solid</button>
+                <button class="cv-btn" type="button" data-e="import" title="Bring in video, images or audio from your computer and put it in this composition">${icon('upload', 14)}Import</button>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="fx-tl-right">
-          <canvas class="fx-tl-ruler" data-automation-id="timeline.ruler"></canvas>
-          <canvas class="fx-tl-tracks" data-automation-id="timeline.tracks"></canvas>
+          <canvas class="fx-tl-ruler" title="Click or drag to move the playhead. Drag the thin bar along the bottom edge to set the work area, the part of the timeline that plays and renders" data-automation-id="timeline.ruler"></canvas>
+          <canvas class="fx-tl-tracks" title="Each bar is one layer in time. Drag a bar to move it, drag its ends to trim it, and drag on empty space to select several" data-automation-id="timeline.tracks"></canvas>
           <div class="fx-tl-graph" hidden></div>
         </div>
       </div>
       <div class="fx-tl-foot">
-        <button class="cv-icon-btn" type="button" data-act="modes" title="Toggle Switches / Modes (F4)">${icon('sliders', 14)}</button>
-        <button class="cv-icon-btn" type="button" data-act="graph" title="Graph Editor (Shift+F3)" data-automation-id="timeline.graphToggle">${icon('graph', 14)}</button>
+        <button class="cv-icon-btn" type="button" data-act="modes" title="Switches or Modes: swap the layer switch columns for the Mode and Track Matte columns (F4)" aria-label="Toggle Switches and Modes columns">${icon('sliders', 14)}</button>
+        <button class="cv-icon-btn" type="button" data-act="graph" title="Graph Editor: see how a value or its speed changes over time as a curve (Shift+F3)" aria-label="Graph Editor" data-automation-id="timeline.graphToggle">${icon('graph', 14)}</button>
         <span class="fx-tl-flex"></span>
-        <button class="cv-icon-btn" type="button" data-act="zoomOut" title="Zoom out in time">${icon('minus', 14)}</button>
-        <input class="fx-tl-zoom" type="range" min="0" max="100" value="0" data-automation-id="timeline.zoom">
-        <button class="cv-icon-btn" type="button" data-act="zoomIn" title="Zoom in in time">${icon('plus', 14)}</button>
+        <button class="cv-icon-btn" type="button" data-act="zoomOut" title="Zoom out: see more time at once (Alt + mouse wheel also zooms)" aria-label="Zoom out in time">${icon('minus', 14)}</button>
+        <input class="fx-tl-zoom" type="range" min="0" max="100" value="0" title="Drag to zoom the timeline in or out" aria-label="Timeline zoom" data-automation-id="timeline.zoom">
+        <button class="cv-icon-btn" type="button" data-act="zoomIn" title="Zoom in: see fewer frames in more detail (Alt + mouse wheel also zooms)" aria-label="Zoom in in time">${icon('plus', 14)}</button>
       </div>
     </div>`);
     this.rowsEl = q(this.el, '.fx-tl-rows');
@@ -98,6 +134,7 @@ export class TimelinePanel implements Panel {
     this.ruler = q<HTMLCanvasElement>(this.el, '.fx-tl-ruler');
     this.tracks = q<HTMLCanvasElement>(this.el, '.fx-tl-tracks');
     this.tc = q(this.el, '.fx-tl-tc');
+    this.empty = q(this.el, '.fx-tl-empty');
     this.search = q<HTMLInputElement>(this.el, '.fx-tl-search');
     this.graph = new GraphView(ctx, q(this.el, '.fx-tl-graph'));
     this.buildHead();
@@ -207,25 +244,30 @@ export class TimelinePanel implements Panel {
   private buildHead(): void {
     const head = q(this.el, '.fx-tl-colhead');
     head.append(
-      el(`<span class="fx-col fx-col-av" title="Audio/Video">${icon('sEye', 12)}${icon('sSpeaker', 12)}${icon('solo', 10)}${icon('sLock', 12)}</span>`),
-      el('<span class="fx-col fx-col-num">#</span>'),
+      el(`<span class="fx-col fx-col-av">${headSw('video', 'sEye', 12)}${headSw('audio', 'sSpeaker', 12)}${headSw('solo', 'solo', 10)}${headSw('lock', 'sLock', 12)}</span>`),
+      el(`<span class="fx-col fx-col-num" title="${TIP_NUM}">#</span>`),
       el('<span class="fx-col fx-col-name">Layer Name</span>'),
-      el(`<span class="fx-col fx-col-sw" title="Switches">${icon('sShy', 12)}${icon('sCollapse', 12)}${icon('sBest', 12)}${icon('sFx', 12)}${icon('sFrameBlend', 12)}${icon('sMotionBlur', 12)}${icon('sAdjust', 12)}${icon('s3d', 12)}</span>`),
-      el('<span class="fx-col fx-col-mode">Mode</span>'),
-      el('<span class="fx-col fx-col-matte">Track Matte</span>'),
-      el(`<span class="fx-col fx-col-parent">${icon('pickwhip', 12)} Parent &amp; Link</span>`),
+      el(`<span class="fx-col fx-col-sw">${headSw('shy', 'sShy', 12)}${headSw('collapse', 'sCollapse', 12)}${headSw('quality', 'sBest', 12)}${headSw('fx', 'sFx', 12)}${headSw('frameBlend', 'sFrameBlend', 12)}${headSw('motionBlur', 'sMotionBlur', 12)}${headSw('adjustment', 'sAdjust', 12)}${headSw('threeD', 's3d', 12)}</span>`),
+      el(`<span class="fx-col fx-col-mode" title="${TIP_MODE}">Mode</span>`),
+      el(`<span class="fx-col fx-col-matte" title="${TIP_MATTE}">Track Matte</span>`),
+      el(`<span class="fx-col fx-col-parent" title="${TIP_PARENT}">${icon('pickwhip', 12)} Parent &amp; Link</span>`),
     );
   }
 
   private buildCompSwitches(): void {
     const box = q(this.el, '.fx-tl-compsw');
     const sw = (id: string, ic: string, title: string): HTMLButtonElement => {
-      const b = el<HTMLButtonElement>(`<button class="cv-icon-btn fx-compsw" type="button" title="${title}" data-automation-id="timeline.comp.${id}">${icon(ic, 14)}</button>`);
+      const b = el<HTMLButtonElement>(`<button class="cv-icon-btn fx-compsw" type="button" title="${title}" aria-label="${title}" data-automation-id="timeline.comp.${id}">${icon(ic, 14)}</button>`);
       b.dataset.sw = id;
       b.addEventListener('click', () => void this.ctx.run('comp.setSwitch', { switch: id }));
       return b;
     };
-    box.append(sw('hideShy', 'sShy', 'Hide all layers with the Shy switch'), sw('frameBlending', 'sFrameBlend', 'Enable Frame Blending'), sw('motionBlur', 'sMotionBlur', 'Enable Motion Blur'), sw('draft3d', 's3d', 'Draft 3D'));
+    box.append(
+      sw('hideShy', 'sShy', 'Hide Shy Layers: hide every layer marked Shy from the list'),
+      sw('frameBlending', 'sFrameBlend', 'Frame Blending: let layers with their Frame Blending switch on blend frames'),
+      sw('motionBlur', 'sMotionBlur', 'Motion Blur: let layers with their Motion Blur switch on blur as they move'),
+      sw('draft3d', 's3d', 'Draft 3D: preview 3D layers faster while you work, with simpler shading'),
+    );
   }
 
   private bind(): void {
@@ -286,6 +328,19 @@ export class TimelinePanel implements Panel {
       if (e.dataTransfer?.types.includes('application/x-formvfx-item')) e.preventDefault();
     });
     this.tracks.addEventListener('drop', (e) => void this.drop(e));
+    this.empty.addEventListener('dragover', (e) => {
+      if (e.dataTransfer?.types.includes('application/x-formvfx-item')) e.preventDefault();
+    });
+    this.empty.addEventListener('drop', (e) => void this.drop(e));
+    const emptyRuns: Record<string, () => void> = {
+      comp: () => void this.ctx.invoke('comp.new'),
+      text: () => void this.ctx.invoke('layer.newText'),
+      solid: () => void this.ctx.invoke('layer.newSolid'),
+      import: () => void this.ctx.invoke('file.import', { addToComp: true }),
+    };
+    for (const b of Array.from(this.empty.querySelectorAll<HTMLElement>('[data-e]'))) {
+      b.addEventListener('click', () => emptyRuns[b.dataset.e as string]?.());
+    }
   }
 
   private toggleModes(): void {
@@ -324,11 +379,18 @@ export class TimelinePanel implements Panel {
       this.fitTime();
     }
     this.lastKey = `${comp?.id}|${st.revision}`;
+    this.syncEmpty(!comp, !!comp && st.layers.length === 0);
     const ids = new Set(st.layers.map((l) => l.id));
     for (const id of [...this.openLayers]) if (!ids.has(id)) this.openLayers.delete(id);
     this.ctx.store.wantTrees('timeline', this.reveal ? [...new Set([...this.openLayers, ...this.reveal.layers])] : this.openLayers);
     this.rebuild();
     this.syncGraph();
+  }
+
+  private syncEmpty(noComp: boolean, noLayers: boolean): void {
+    this.empty.hidden = !noComp && !noLayers;
+    q(this.empty, '[data-state="nocomp"]').hidden = !noComp;
+    q(this.empty, '[data-state="nolayers"]').hidden = !noLayers;
   }
 
   private syncGraph(): void {
@@ -451,16 +513,16 @@ export class TimelinePanel implements Panel {
     node.dataset.automationId = `timeline.layer.${id}`;
     node.innerHTML = `
       <span class="fx-col fx-col-av">
-        <button class="fx-sw" data-sw="video" title="Video">${icon('sEye', 13)}</button><button class="fx-sw" data-sw="audio" title="Audio">${icon('sSpeaker', 13)}</button><button class="fx-sw" data-sw="solo" title="Solo">${icon('solo', 10)}</button><button class="fx-sw" data-sw="lock" title="Lock">${icon('sLock', 12)}</button>
+        ${rowSw('video', 'sEye', 13)}${rowSw('audio', 'sSpeaker', 13)}${rowSw('solo', 'solo', 10)}${rowSw('lock', 'sLock', 12)}
       </span>
-      <span class="fx-col fx-col-num"><span class="fx-label-chip"></span><span class="fx-num"></span></span>
-      <span class="fx-col fx-col-name"><button class="fx-twirl" type="button"></button><span class="fx-type"></span><span class="fx-name"></span></span>
+      <span class="fx-col fx-col-num"><span class="fx-label-chip" title="Label colour: click to pick a colour for this layer" role="button" aria-label="Label colour"></span><span class="fx-num"></span></span>
+      <span class="fx-col fx-col-name"><button class="fx-twirl" type="button" title="Show or hide this layer's properties, such as Transform and Effects (Alt-click opens everything inside)" aria-label="Show or hide this layer's properties"></button><span class="fx-type"></span><span class="fx-name"></span></span>
       <span class="fx-col fx-col-sw">
-        <button class="fx-sw" data-sw="shy" title="Shy">${icon('sShy', 12)}</button><button class="fx-sw" data-sw="collapse" title="Collapse Transformations / Continuously Rasterize">${icon('sCollapse', 12)}</button><button class="fx-sw" data-sw="quality" title="Quality and Sampling"></button><button class="fx-sw" data-sw="fx" title="Effects">${icon('sFx', 12)}</button><button class="fx-sw" data-sw="frameBlend" title="Frame Blending">${icon('sFrameBlend', 12)}</button><button class="fx-sw" data-sw="motionBlur" title="Motion Blur">${icon('sMotionBlur', 12)}</button><button class="fx-sw" data-sw="adjustment" title="Adjustment Layer">${icon('sAdjust', 12)}</button><button class="fx-sw" data-sw="threeD" title="3D Layer">${icon('s3d', 12)}</button>
+        ${rowSw('shy', 'sShy', 12)}${rowSw('collapse', 'sCollapse', 12)}${rowSw('quality', '', 12)}${rowSw('fx', 'sFx', 12)}${rowSw('frameBlend', 'sFrameBlend', 12)}${rowSw('motionBlur', 'sMotionBlur', 12)}${rowSw('adjustment', 'sAdjust', 12)}${rowSw('threeD', 's3d', 12)}
       </span>
-      <span class="fx-col fx-col-mode"><select class="fx-select fx-mini" data-f="blend"></select></span>
-      <span class="fx-col fx-col-matte"><select class="fx-select fx-mini" data-f="matte"></select></span>
-      <span class="fx-col fx-col-parent"><select class="fx-select fx-mini" data-f="parent"></select></span>`;
+      <span class="fx-col fx-col-mode"><select class="fx-select fx-mini" data-f="blend" title="${TIP_MODE}" aria-label="Blend mode"></select></span>
+      <span class="fx-col fx-col-matte"><select class="fx-select fx-mini" data-f="matte" title="${TIP_MATTE}" aria-label="Track matte"></select></span>
+      <span class="fx-col fx-col-parent"><select class="fx-select fx-mini" data-f="parent" title="${TIP_PARENT}" aria-label="Parent layer"></select></span>`;
     const blend = q<HTMLSelectElement>(node, '[data-f="blend"]');
     for (const b of BLENDS) blend.appendChild(Object.assign(document.createElement('option'), { value: b, textContent: b }));
     blend.addEventListener('change', () => void this.ctx.run('layer.setBlendMode', { layers: [id], mode: blend.value }));
@@ -622,6 +684,7 @@ export class TimelinePanel implements Panel {
     setText(q(node, '.fx-num'), String(l.index));
     const nameEl = q(node, '.fx-name');
     if (!nameEl.querySelector('input')) setText(nameEl, l.name);
+    if (nameEl.title !== l.name) nameEl.title = l.name;
     setHtml(q(node, '.fx-type'), icon(TYPE_ICON[l.type] ?? 'iFootage', 13), l.type);
     const open = this.openLayers.has(l.id) || !!this.reveal?.layers.has(l.id);
     setHtml(q(node, '.fx-twirl'), icon(open ? 'twirlOpen' : 'twirl', 10), open ? 'o' : 'c');
@@ -633,6 +696,8 @@ export class TimelinePanel implements Panel {
     for (const b of Array.from(node.querySelectorAll<HTMLElement>('[data-sw]'))) {
       const k = b.dataset.sw as string;
       setClass(b, 'is-on', !!on[k]);
+      const pressed = on[k] ? 'true' : 'false';
+      if (b.getAttribute('aria-pressed') !== pressed) b.setAttribute('aria-pressed', pressed);
       if (k === 'audio') b.style.visibility = l.hasAudio ? '' : 'hidden';
       if (k === 'video') b.style.visibility = l.hasVideo || l.type === 'Null' ? '' : 'hidden';
       if (k === 'fx') b.style.visibility = l.effects.length ? '' : 'hidden';
@@ -710,7 +775,7 @@ export class TimelinePanel implements Panel {
     extra.dataset.sig = sig;
     extra.replaceChildren();
     if (g.kind === 'effect') {
-      const b = el<HTMLButtonElement>(`<button class="fx-sw${g.enabled ? ' is-on' : ''}" title="Effect on/off">${icon('sFx', 12)}</button>`);
+      const b = el<HTMLButtonElement>(`<button class="fx-sw${g.enabled ? ' is-on' : ''}" title="Turn this effect on or off without removing it" aria-label="Turn this effect on or off">${icon('sFx', 12)}</button>`);
       b.addEventListener('click', (e) => {
         e.stopPropagation();
         void this.ctx.run('effect.toggle', { layer: layer.id, effect: g.uid });
@@ -737,7 +802,7 @@ export class TimelinePanel implements Panel {
   private createProp(node: HTMLElement, r: Extract<RowItem, { kind: 'prop' }>): void {
     const { layer, node: p } = r;
     node.dataset.automationId = `timeline.prop.${layer.id}.${p.uid}`;
-    node.innerHTML = `<span class="fx-indent"></span><button class="fx-stopwatch" type="button" title="Time-vary stopwatch (Alt-click: expression)">${icon('stopwatch', 13)}</button><span class="fx-pname"></span><span class="fx-pval"></span><span class="fx-keynav"><button type="button" data-k="prev">${icon('keyPrev', 9)}</button><button type="button" data-k="toggle">${icon('keyHollow', 10)}</button><button type="button" data-k="next">${icon('keyNext', 9)}</button></span>`;
+    node.innerHTML = `<span class="fx-indent"></span><button class="fx-stopwatch" type="button" title="Stopwatch: click to animate this property so its value can change over time (Alt-click adds an expression instead)" aria-label="Animate this property over time">${icon('stopwatch', 13)}</button><span class="fx-pname"></span><span class="fx-pval"></span><span class="fx-keynav"><button type="button" data-k="prev" title="Go to the previous keyframe (J)" aria-label="Previous keyframe">${icon('keyPrev', 9)}</button><button type="button" data-k="toggle" title="Add or remove a keyframe at the current time" aria-label="Add or remove keyframe">${icon('keyHollow', 10)}</button><button type="button" data-k="next" title="Go to the next keyframe (K)" aria-label="Next keyframe">${icon('keyNext', 9)}</button></span>`;
     q(node, '.fx-stopwatch').addEventListener('click', (e) => {
       e.stopPropagation();
       if (e.altKey) void this.ctx.run('prop.setExpression', { layer: layer.id, prop: p.uid });
@@ -783,7 +848,7 @@ export class TimelinePanel implements Panel {
 
   private createExpr(node: HTMLElement, r: Extract<RowItem, { kind: 'expr' }>): void {
     const { layer, node: p } = r;
-    node.innerHTML = `<span class="fx-indent"></span><button class="fx-sw fx-expr-on" type="button" title="Enable Expression">=</button><span class="fx-expr-label">Expression</span><textarea class="fx-expr-text" rows="1" spellcheck="false"></textarea>`;
+    node.innerHTML = `<span class="fx-indent"></span><button class="fx-sw fx-expr-on" type="button" title="Expression on or off: turn this property's expression (a short script that drives its value) on or off" aria-label="Expression on or off">=</button><span class="fx-expr-label">Expression</span><textarea class="fx-expr-text" rows="1" spellcheck="false"></textarea>`;
     const ta = q<HTMLTextAreaElement>(node, 'textarea');
     ta.dataset.automationId = `timeline.expr.${layer.id}.${p.uid}`;
     ta.addEventListener('keydown', (e) => {
@@ -1390,6 +1455,16 @@ function walkPath(g: GroupNode, path: string[], fn: (n: TreeNode, path: string[]
 
 function rowH(r: RowItem): number {
   return r.kind === 'wave' ? ROW * WAVE_ROWS : ROW;
+}
+
+function rowSw(key: string, ic: string, size: number): string {
+  const tip = SWITCH_TIP[key];
+  return `<button class="fx-sw" type="button" data-sw="${key}" title="${tip}" aria-label="${tip}">${ic ? icon(ic, size) : ''}</button>`;
+}
+
+function headSw(key: string, ic: string, size: number): string {
+  const tip = SWITCH_TIP[key];
+  return `<span class="fx-colsw" role="img" title="${tip}" aria-label="${tip}">${icon(ic, size)}</span>`;
 }
 
 function roundRect(g: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number): void {

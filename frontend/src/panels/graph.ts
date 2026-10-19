@@ -64,16 +64,16 @@ export class GraphView {
 
   constructor(private readonly ctx: Ctx, private readonly host: HTMLElement) {
     const bar = el(`<div class="fx-graph-bar">
-      <button class="cv-icon-btn" type="button" data-m="value" title="Value Graph">${icon('graph', 14)}</button>
-      <button class="cv-icon-btn" type="button" data-m="speed" title="Speed Graph">${icon('sMotionBlur', 14)}</button>
+      <button class="cv-icon-btn" type="button" data-m="value" title="Value Graph: the curve shows the property's value over time. Drag a keyframe up or down to change its value" aria-label="Value Graph">${icon('graph', 14)}</button>
+      <button class="cv-icon-btn" type="button" data-m="speed" title="Speed Graph: the curve shows how fast the value changes. Drag the handles to ease in and out" aria-label="Speed Graph">${icon('sMotionBlur', 14)}</button>
       <span class="cv-sep"></span>
-      <button class="fx-link" type="button" data-c="keys.interpolation" data-p='{"interpolation":"hold"}' title="Hold">Hold</button>
-      <button class="fx-link" type="button" data-c="keys.interpolation" data-p='{"interpolation":"linear"}' title="Linear">Linear</button>
-      <button class="fx-link" type="button" data-c="keys.interpolation" data-p='{"interpolation":"autoBezier"}' title="Auto Bezier">Auto</button>
-      <button class="fx-link" type="button" data-c="keys.easyEase" title="Easy Ease (F9)">Easy Ease</button>
-      <button class="fx-link" type="button" data-c="keys.easyEaseIn" title="Easy Ease In">Ease In</button>
-      <button class="fx-link" type="button" data-c="keys.easyEaseOut" title="Easy Ease Out">Ease Out</button>
-      <button class="fx-link" type="button" data-c="prop.separateDimensions" title="Separate Dimensions">Separate</button>
+      <button class="fx-link" type="button" data-c="keys.interpolation" data-p='{"interpolation":"hold"}' title="Hold: keep the value fixed until the next keyframe, then jump">Hold</button>
+      <button class="fx-link" type="button" data-c="keys.interpolation" data-p='{"interpolation":"linear"}' title="Linear: change at a steady rate between selected keyframes">Linear</button>
+      <button class="fx-link" type="button" data-c="keys.interpolation" data-p='{"interpolation":"autoBezier"}' title="Auto Bezier: a smooth curve through selected keyframes, set for you">Auto</button>
+      <button class="fx-link" type="button" data-c="keys.easyEase" title="Easy Ease: start and end gently on selected keyframes (F9)">Easy Ease</button>
+      <button class="fx-link" type="button" data-c="keys.easyEaseIn" title="Ease In: slow down gently as the value arrives at selected keyframes">Ease In</button>
+      <button class="fx-link" type="button" data-c="keys.easyEaseOut" title="Ease Out: leave selected keyframes gently, then speed up">Ease Out</button>
+      <button class="fx-link" type="button" data-c="prop.separateDimensions" title="Separate Dimensions: animate X, Y and Z of a position on their own curves">Separate</button>
     </div>`);
     this.canvas = el<HTMLCanvasElement>('<canvas class="fx-graph-canvas" data-automation-id="timeline.graph"></canvas>');
     host.append(bar, this.canvas);

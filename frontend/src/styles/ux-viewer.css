@@ -1,0 +1,6 @@
+.fx-viewer-hint { position: absolute; left: 50%; bottom: var(--space-3); transform: translateX(-50%); display: flex; align-items: center; gap: var(--space-2); max-width: calc(100% - 24px); padding: 4px var(--space-3); border: 1px solid var(--line-2); border-radius: var(--radius-pill); background: var(--glass-bg); -webkit-backdrop-filter: var(--glass-filter); backdrop-filter: var(--glass-filter); color: var(--text-secondary); font-size: var(--fs-12); line-height: 1.4; pointer-events: none; }
+.fx-viewer-hint[hidden] { display: none; }
+.fx-viewer-hint-text { min-width: 0; }
+.fx-viewer-hint-link { flex: none; min-height: 24px; padding: 0 var(--space-2); border: 0; border-radius: var(--radius-pill); background: transparent; color: var(--accent-color); font: inherit; font-weight: 600; cursor: pointer; pointer-events: auto; }
+.fx-viewer-hint-link:hover { background: var(--accent-soft); }
+.fx-viewer-hint-link:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 1px; }

@@ -84,6 +84,8 @@ export class ViewerPanel implements Panel {
   private readonly canvas: HTMLCanvasElement;
   private readonly g: CanvasRenderingContext2D;
   private readonly empty: HTMLElement;
+  private readonly hint: HTMLElement;
+  private fitFor = -1;
   private readonly tabs: HTMLElement;
   private readonly bar: HTMLElement;
   private readonly aux: AuxViews;
@@ -130,14 +132,18 @@ export class ViewerPanel implements Panel {
         <canvas class="fx-viewer-canvas"></canvas>
         <div class="fx-viewer-empty" hidden>
           <div class="fx-empty-card">
-            <div class="fx-empty-title">${icon('iComp', 22)}<span>Composition</span></div>
-            <p class="fx-empty-sub">Start a composition, or bring footage in and make one from it.</p>
+            <div class="fx-empty-title">${icon('iComp', 22)}<span>Nothing open yet</span></div>
+            <p class="fx-empty-sub">Create a new composition to start animating, or import footage and build one from it.</p>
             <div class="fx-empty-actions">
-              <button class="cv-btn cv-btn-primary" type="button" data-act="new">${icon('plus', 14)}New Composition</button>
-              <button class="cv-btn" type="button" data-act="import">${icon('upload', 14)}Import Footage</button>
-              <button class="cv-btn cv-btn-ghost" type="button" data-act="demo">Open the Demo</button>
+              <button class="cv-btn cv-btn-primary" type="button" data-act="new" title="Make a new empty composition, the canvas you animate on">${icon('plus', 14)}New Composition</button>
+              <button class="cv-btn" type="button" data-act="import" title="Bring in video, images or audio from your computer (Cmd+I)">${icon('upload', 14)}Import Footage</button>
+              <button class="cv-btn cv-btn-ghost" type="button" data-act="demo" title="Open a ready-made example project to look around">Open the Demo</button>
             </div>
           </div>
+        </div>
+        <div class="fx-viewer-hint" hidden>
+          <span class="fx-viewer-hint-text">Add something to animate: Layer &gt; New &gt; Text, or drop footage here</span>
+          <button class="fx-viewer-hint-link" type="button" data-act="hint-text" title="Add a text layer to this composition">Add text</button>
         </div>
       </div></div></div>
       <div class="fx-viewer-bar"></div>
@@ -146,6 +152,11 @@ export class ViewerPanel implements Panel {
     this.canvas = q<HTMLCanvasElement>(this.el, 'canvas');
     this.g = this.canvas.getContext('2d') as CanvasRenderingContext2D;
     this.empty = q(this.el, '.fx-viewer-empty');
+    this.hint = q(this.el, '.fx-viewer-hint');
+    const hintLink = q(this.el, '[data-act="hint-text"]');
+    hintLink.addEventListener('pointerdown', (e) => e.stopPropagation());
+    hintLink.addEventListener('dblclick', (e) => e.stopPropagation());
+    hintLink.addEventListener('click', () => void ctx.run('layer.newText', { text: 'Text' }));
     this.tabs = q(this.el, '.fx-viewer-tabs');
     this.bar = q(this.el, '.fx-viewer-bar');
     this.stage.dataset.automationId = 'viewer.stage';
@@ -234,7 +245,7 @@ export class ViewerPanel implements Panel {
 
   private buildBar(): void {
     const bar = this.bar;
-    const zoomSel = el<HTMLSelectElement>('<select class="fx-select fx-bar-select" title="Magnification" data-automation-id="viewer.zoom"></select>');
+    const zoomSel = el<HTMLSelectElement>('<select class="fx-select fx-bar-select" title="Zoom: how large the picture appears here. Fit shows the whole frame (Shift+/), . zooms in, , zooms out" aria-label="Zoom" data-automation-id="viewer.zoom"></select>');
     for (const [v, label] of [['fit', 'Fit'], ['0.25', '25%'], ['0.333', '33.3%'], ['0.5', '50%'], ['1', '100%'], ['2', '200%'], ['4', '400%']]) {
       const o = el<HTMLOptionElement>('<option></option>');
       o.value = v;
@@ -245,20 +256,20 @@ export class ViewerPanel implements Panel {
       if (zoomSel.value === 'fit') this.fit();
       else this.setZoom(Number(zoomSel.value));
     });
-    const resSel = el<HTMLSelectElement>('<select class="fx-select fx-bar-select" title="Resolution" data-automation-id="viewer.resolution"><option value="auto">Auto</option><option value="full">Full</option><option value="half">Half</option><option value="third">Third</option><option value="quarter">Quarter</option></select>');
+    const resSel = el<HTMLSelectElement>('<select class="fx-select fx-bar-select" title="Preview resolution: lower is faster, the render is always full" aria-label="Preview resolution" data-automation-id="viewer.resolution"><option value="auto">Auto</option><option value="full">Full</option><option value="half">Half</option><option value="third">Third</option><option value="quarter">Quarter</option></select>');
     resSel.addEventListener('change', () => {
       this.res = resSel.value as Res;
       this.requestFrame(true);
     });
     const btn = (ic: string, title: string, id: string, run: () => void): HTMLButtonElement => {
-      const b = el<HTMLButtonElement>(`<button class="cv-icon-btn fx-bar-btn" type="button" title="${title}" data-automation-id="viewer.${id}">${icon(ic, 15)}</button>`);
+      const b = el<HTMLButtonElement>(`<button class="cv-icon-btn fx-bar-btn" type="button" title="${title}" aria-label="${title}" data-automation-id="viewer.${id}">${icon(ic, 15)}</button>`);
       b.dataset.toggle = id;
       b.addEventListener('click', run);
       return b;
     };
-    const chanSel = el<HTMLSelectElement>('<select class="fx-select fx-bar-select" title="Show Channel" data-automation-id="viewer.channel"><option value="rgb">RGB</option><option value="red">Red</option><option value="green">Green</option><option value="blue">Blue</option><option value="alpha">Alpha</option><option value="rgbStraight">RGB Straight</option></select>');
+    const chanSel = el<HTMLSelectElement>('<select class="fx-select fx-bar-select" title="Channels: look at only the red, green, blue or transparency part of the picture. Only the viewer changes, not the render" aria-label="Channels" data-automation-id="viewer.channel"><option value="rgb">RGB</option><option value="red">Red</option><option value="green">Green</option><option value="blue">Blue</option><option value="alpha">Alpha</option><option value="rgbStraight">RGB Straight</option></select>');
     chanSel.addEventListener('change', () => void this.ctx.run('view.channel', { channel: chanSel.value }));
-    const viewSel = el<HTMLSelectElement>('<select class="fx-select fx-bar-select" title="3D View" data-automation-id="viewer.view3d"></select>');
+    const viewSel = el<HTMLSelectElement>('<select class="fx-select fx-bar-select" title="3D view: choose the angle you look from. Active Camera is what the render sees (F12, Front F10, Custom View 1 F11)" aria-label="3D view" data-automation-id="viewer.view3d"></select>');
     for (const [v, label] of [['activeCamera', 'Active Camera'], ['front', 'Front'], ['left', 'Left'], ['top', 'Top'], ['back', 'Back'], ['right', 'Right'], ['bottom', 'Bottom'], ['custom1', 'Custom View 1'], ['custom2', 'Custom View 2'], ['custom3', 'Custom View 3']]) {
       const o = el<HTMLOptionElement>('<option></option>');
       o.value = v;
@@ -266,25 +277,25 @@ export class ViewerPanel implements Panel {
       viewSel.appendChild(o);
     }
     viewSel.addEventListener('change', () => void this.ctx.run(`view.3d.${viewSel.value}`));
-    const layoutSel = el<HTMLSelectElement>('<select class="fx-select fx-bar-select" title="View Layout" data-automation-id="viewer.layout"><option value="1">1 View</option><option value="2">2 Views</option><option value="4">4 Views</option></select>');
+    const layoutSel = el<HTMLSelectElement>('<select class="fx-select fx-bar-select" title="Views layout: show one, two or four views of the composition at once" aria-label="Views layout" data-automation-id="viewer.layout"><option value="1">1 View</option><option value="2">2 Views</option><option value="4">4 Views</option></select>');
     layoutSel.addEventListener('change', () => void this.ctx.run('view.layout', { views: Number(layoutSel.value) }));
-    const time = el('<button class="fx-bar-time" type="button" title="Go to time" data-automation-id="viewer.time"></button>');
+    const time = el('<button class="fx-bar-time" type="button" title="Timecode: the current time. Click to jump to a time you type (Alt+Shift+J)" aria-label="Timecode" data-automation-id="viewer.time"></button>');
     time.addEventListener('click', () => void this.ctx.invoke('time.set'));
     bar.append(
       zoomSel,
       resSel,
       el('<span class="cv-sep"></span>'),
-      btn('roi', 'Region of Interest', 'roi', () => void this.ctx.run('view.setRegionOfInterest', this.ctx.store.state?.roi ? {} : { rect: this.defaultRoi() })),
-      btn('checker', 'Transparency Grid', 'checker', () => this.toggle('checker')),
-      btn('grid', 'Grid', 'grid', () => this.toggle('grid')),
-      btn('rulers', 'Rulers (Cmd+R)', 'rulers', () => this.toggle('rulers')),
-      btn('guides', 'Guides', 'guides', () => this.toggle('guides')),
-      btn('safe', 'Title/Action Safe', 'safe', () => this.toggle('safe')),
+      btn('roi', 'Region of interest: preview only a box of the picture so it updates faster. Click again to clear it', 'roi', () => void this.ctx.run('view.setRegionOfInterest', this.ctx.store.state?.roi ? {} : { rect: this.defaultRoi() })),
+      btn('checker', 'Transparency grid: show a checkerboard behind see-through areas', 'checker', () => this.toggle('checker')),
+      btn('grid', 'Grid: show a grid to line things up (Cmd+\')', 'grid', () => this.toggle('grid')),
+      btn('rulers', 'Rulers: show measurements along the edges, and drag from them to make guides (Cmd+R)', 'rulers', () => this.toggle('rulers')),
+      btn('guides', 'Guides: show or hide the guide lines you dragged out of the rulers (Cmd+;)', 'guides', () => this.toggle('guides')),
+      btn('safe', 'Safe margins: keep titles and action inside these lines so TV screens do not crop them', 'safe', () => this.toggle('safe')),
       el('<span class="cv-sep"></span>'),
       chanSel,
-      btn('exposure', 'Reset Exposure', 'exposure', () => void this.ctx.run('view.resetExposure')),
-      btn('snapshot', 'Take Snapshot (Shift+F5)', 'snapshot', () => void this.ctx.run('view.takeSnapshot')),
-      btn('showSnap', 'Show Snapshot', 'showSnapshot', () => void this.ctx.run('view.showSnapshot')),
+      btn('exposure', 'Exposure: put the viewer brightness back to normal. Only the viewer changes, not the render', 'exposure', () => void this.ctx.run('view.resetExposure')),
+      btn('snapshot', 'Snapshot: save this frame so you can compare it later (Shift+F5)', 'snapshot', () => void this.ctx.run('view.takeSnapshot')),
+      btn('showSnap', 'Show snapshot: lay the saved frame over the picture to compare. Take a snapshot first (Shift+F5)', 'showSnapshot', () => void this.ctx.run('view.showSnapshot')),
       el('<span class="cv-sep"></span>'),
       viewSel,
       layoutSel,
@@ -344,10 +355,14 @@ export class ViewerPanel implements Panel {
   private onState(st: UiState): void {
     const comp = st.comp;
     this.empty.hidden = !!comp;
+    const count = st.items.find((i) => i.id === comp?.id)?.layers;
+    const bare = !!comp && st.layers.length === 0 && (count === undefined || count === 0);
+    if (this.hint.hidden === bare) this.hint.hidden = !bare;
     this.renderTabs(st);
     this.aux.update();
     void this.loadSnapshot(st);
     if (!comp) {
+      this.fitFor = -1;
       this.letGo();
       this.frame = null;
       this.frameOwned = true;
@@ -357,6 +372,11 @@ export class ViewerPanel implements Panel {
       return;
     }
     if (!this.zoom) this.fitZoom();
+    if (comp.id !== this.fitFor && this.stage.getBoundingClientRect().width >= 10) {
+      this.fitFor = comp.id;
+      this.fitZoom();
+      this.draw();
+    }
     this.refreshBar();
     if (this.ctx.store.playing) return;
     this.requestFrame();

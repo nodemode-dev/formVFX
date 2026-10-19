@@ -1,7 +1,7 @@
 import type { Ctx } from '../app/ctx';
 import type { Item, UiState } from '../engine/types';
 import type { Panel } from '../ui/dock';
-import { el, q, setClass, setHtml, setText, swapMedia } from '../ui/dom';
+import { el, q, setClass, setHidden, setHtml, setText, swapMedia } from '../ui/dom';
 import { icon } from '../ui/icons';
 import { contextMenu } from '../ui/popup';
 import { promptName } from '../ui/dialogs';
@@ -35,6 +35,9 @@ export class ProjectPanel implements Panel {
   private readonly preview: HTMLImageElement;
   private readonly info: HTMLElement;
   private readonly search: HTMLInputElement;
+  private readonly emptyBox: HTMLElement;
+  private readonly emptyNone: HTMLElement;
+  private readonly emptyMatch: HTMLElement;
   private open = new Set<number>();
   private previewKey = '';
 
@@ -44,20 +47,51 @@ export class ProjectPanel implements Panel {
         <div class="fx-proj-thumb"><img alt="" draggable="false"></div>
         <div class="fx-proj-info"></div>
       </div>
-      <div class="fx-proj-search"><input class="cv-input" placeholder="Search" spellcheck="false" data-automation-id="project.search"></div>
+      <div class="fx-proj-search"><input class="cv-input" placeholder="Search" title="Type to show only the items whose names match" aria-label="Search the project" spellcheck="false" data-automation-id="project.search"></div>
       <div class="fx-proj-head"><span>Name</span><span>Type</span><span>Size</span><span>Duration</span></div>
       <div class="fx-proj-list" role="tree" data-automation-id="project.list"></div>
+      <div class="fx-proj-empty" data-automation-id="project.empty" hidden>
+        <div class="fx-empty-card" data-state="empty">
+          <p class="fx-empty-sub">This project has nothing in it yet. Bring in your video, images or audio, or make a new composition to animate on.</p>
+          <div class="fx-empty-actions">
+            <button class="cv-btn cv-btn-primary" type="button" data-e="import" title="Bring in video, images or audio from your computer (Cmd+I)">${icon('upload', 14)}Import Footage</button>
+            <button class="cv-btn" type="button" data-e="comp" title="Make a new empty composition (Cmd+N)">${icon('plus', 14)}New Composition</button>
+          </div>
+          <p class="fx-empty-sub">You can also drop files from your computer here.</p>
+        </div>
+        <div class="fx-empty-card" data-state="nomatch" hidden>
+          <p class="fx-empty-sub">No item matches your search.</p>
+          <div class="fx-empty-actions">
+            <button class="cv-btn" type="button" data-e="clear" title="Clear the search box and show every item">Clear search</button>
+          </div>
+        </div>
+      </div>
       <div class="fx-proj-foot">
-        <button class="cv-icon-btn" type="button" data-act="import" title="Import File">${icon('upload', 14)}</button>
-        <button class="cv-icon-btn" type="button" data-act="folder" title="New Folder">${icon('iFolder', 14)}</button>
-        <button class="cv-icon-btn" type="button" data-act="comp" title="New Composition">${icon('iComp', 14)}</button>
+        <button class="cv-icon-btn" type="button" data-act="import" title="Import: bring in video, images, audio or a project from your computer (Cmd+I)" aria-label="Import: bring in video, images, audio or a project from your computer">${icon('upload', 14)}</button>
+        <button class="cv-icon-btn" type="button" data-act="folder" title="New Folder: keep your project items tidy (Cmd+Alt+Shift+N)" aria-label="New Folder: keep your project items tidy">${icon('iFolder', 14)}</button>
+        <button class="cv-icon-btn" type="button" data-act="comp" title="New Composition: make a new empty canvas to animate on (Cmd+N)" aria-label="New Composition: make a new empty canvas to animate on">${icon('iComp', 14)}</button>
         <span class="fx-flex"></span>
-        <span class="fx-proj-depth"></span>
-        <button class="cv-icon-btn" type="button" data-act="settings" title="Project Settings">${icon('settings', 14)}</button>
-        <button class="cv-icon-btn" type="button" data-act="delete" title="Delete">${icon('delete', 14)}</button>
+        <button class="fx-proj-depth" type="button" data-act="depth" title="Colour depth, in bits per channel (bpc). More bits keep smoother gradients and bright highlights but use more memory. Click to switch between 8, 16 and 32" aria-label="Colour depth in bits per channel, click to switch"></button>
+        <button class="cv-icon-btn" type="button" data-act="settings" title="Project Settings: colour depth, time display and colour management (Cmd+Alt+Shift+K)" aria-label="Project Settings: colour depth, time display and colour management">${icon('settings', 14)}</button>
+        <button class="cv-icon-btn" type="button" data-act="delete" title="Delete the selected items from the project" aria-label="Delete the selected items from the project">${icon('delete', 14)}</button>
       </div>
     </div>`);
     this.list = q(this.el, '.fx-proj-list');
+    this.emptyBox = q(this.el, '.fx-proj-empty');
+    this.emptyNone = q(this.el, '[data-state="empty"]');
+    this.emptyMatch = q(this.el, '[data-state="nomatch"]');
+    for (const b of Array.from(this.emptyBox.querySelectorAll<HTMLElement>('[data-e]'))) {
+      b.addEventListener('click', () => {
+        const a = b.dataset.e;
+        if (a === 'import') void ctx.invoke('file.import');
+        if (a === 'comp') void ctx.invoke('comp.new');
+        if (a === 'clear') {
+          this.search.value = '';
+          this.render();
+          this.search.focus();
+        }
+      });
+    }
     this.preview = q<HTMLImageElement>(this.el, '.fx-proj-thumb img');
     this.info = q(this.el, '.fx-proj-info');
     this.search = q<HTMLInputElement>(this.el, '.fx-proj-search input');
@@ -70,6 +104,7 @@ export class ProjectPanel implements Panel {
         if (a === 'import') void ctx.invoke('file.import');
         if (a === 'folder') void ctx.run('project.newFolder');
         if (a === 'comp') void ctx.invoke('comp.new');
+        if (a === 'depth') void ctx.run('file.cycleBitDepth');
         if (a === 'settings') void ctx.invoke('file.projectSettings');
         if (a === 'delete') void ctx.run('project.delete', { items: ctx.store.state?.projectSelection ?? [] });
       });
@@ -84,9 +119,18 @@ export class ProjectPanel implements Panel {
       ]);
     });
     this.list.addEventListener('dragover', (e) => {
-      if (e.dataTransfer?.types.includes('Files')) e.preventDefault();
+      if (e.dataTransfer?.types.includes('Files')) {
+        e.preventDefault();
+        setClass(this.list, 'is-drop', true);
+      }
     });
-    this.list.addEventListener('drop', (e) => void this.dropFiles(e));
+    this.list.addEventListener('dragleave', (e) => {
+      if (!this.list.contains(e.relatedTarget as Node | null)) setClass(this.list, 'is-drop', false);
+    });
+    this.list.addEventListener('drop', (e) => {
+      setClass(this.list, 'is-drop', false);
+      void this.dropFiles(e);
+    });
     ctx.store.events.on('items', (st) => this.render(st));
     ctx.store.events.on('project', (st) => setText(q(this.el, '.fx-proj-depth'), st.bitDepth));
     if (ctx.store.state) queueMicrotask(() => ctx.store.state && this.render(ctx.store.state));
@@ -152,6 +196,10 @@ export class ProjectPanel implements Panel {
       if (n !== cursor) this.list.insertBefore(n, cursor);
       else cursor = cursor.nextElementSibling;
     }
+    const bare = st.items.length === 0;
+    setHidden(this.emptyBox, !(bare || (rows.length === 0 && this.search.value.trim() !== '')));
+    setHidden(this.emptyNone, !bare);
+    setHidden(this.emptyMatch, bare);
     const first = st.items.find((i) => i.id === st.projectSelection[0]) ?? st.items.find((i) => i.id === st.activeComp);
     this.showInfo(first, st);
     setText(q(this.el, '.fx-proj-depth'), st.bitDepth);
@@ -271,6 +319,7 @@ export class ProjectPanel implements Panel {
     setHtml(q(n, '.fx-item-ic'), icon(itemIcon(i), 14), itemIcon(i));
     q(n, '.fx-label-chip').style.background = `rgb(${i.color.join(',')})`;
     setText(q(n, '.fx-item-n'), i.name);
+    if (n.title !== i.name) n.title = i.name;
     setText(q(n, '.fx-item-type'), i.type === 'Footage' && i.footage ? (i.footage.hasVideo ? 'Footage' : 'Audio') : i.type);
     setText(q(n, '.fx-item-size'), i.size ? `${i.size[0]}x${i.size[1]}` : '');
     setText(q(n, '.fx-item-dur'), i.type === 'Composition' || (i.footage?.hasVideo && i.duration) ? fmtDur(i.duration, i.frameRate) : '');

@@ -48,7 +48,7 @@ const PANELS: [(&str, &str); 31] = [
     ("terminal", "Terminal"),
 ];
 
-const WORKSPACES: [&str; 7] = ["Default", "Animation", "Effects", "Motion Tracking", "Text", "Agent", "Minimal"];
+const WORKSPACES: [&str; 8] = ["Essentials", "Default","Animation", "Effects", "Motion Tracking", "Text", "Agent", "Minimal"];
 
 fn recent_list(paths: &[String], run: &'static str, clear: &'static str) -> Vec<M> {
     let mut out: Vec<M> = paths.iter().enumerate().map(|(i, path)| M::Owned(run, std::path::Path::new(path).file_name().and_then(|x| x.to_str()).unwrap_or(path).to_string(), json!({"index": i}))).collect();

@@ -45,11 +45,20 @@ const ALL: Area[] = [...AREAS, 'float'];
 const g = (panels: string[], size = 1): GroupSpec => ({ panels, active: panels[0], size });
 
 export const WORKSPACES: Record<string, Layout> = {
+  Essentials: {
+    left: [g(['project', 'effectControls'])],
+    center: [g(['composition'])],
+    right: [g(['effectsPresets'], 1.6), g(['preview', 'character'], 1)],
+    bottom: [g(['timeline', 'renderQueue'])],
+    leftW: 300,
+    rightW: 300,
+    bottomH: 300,
+  },
   Default: {
     left: [g(['project', 'effectControls'])],
     center: [g(['composition'])],
     right: [g(['info', 'audio'], 0.7), g(['preview'], 0.8), g(['effectsPresets'], 1.6), g(['align', 'character', 'paragraph'], 1.2)],
-    bottom: [g(['timeline', 'renderQueue'], 3), g(['terminal', 'agents'], 1.2)],
+    bottom: [g(['timeline', 'renderQueue'], 3), g(['agents'], 1.2)],
     leftW: 300,
     rightW: 290,
     bottomH: 330,
@@ -93,7 +102,7 @@ export const WORKSPACES: Record<string, Layout> = {
   Agent: {
     left: [g(['project', 'effectControls'])],
     center: [g(['composition'])],
-    right: [g(['terminal', 'agents'])],
+    right: [g(['agents'])],
     bottom: [g(['timeline', 'renderQueue'])],
     leftW: 260,
     rightW: 560,
@@ -388,7 +397,7 @@ export class Dock {
     this.resized();
   }
 
-  private resized(): void {
+  resized(): void {
     for (const p of this.made.values()) if (!p.el.hidden) p.resized?.();
   }
 
@@ -415,7 +424,7 @@ export class Dock {
         this.areas[a].appendChild(grp.el);
         this.groups[a].push(grp);
         for (const id of spec.panels) if (this.factories.has(id)) grp.add(id, false);
-        if (a === 'float' && !grp.panels.length) {
+        if (!grp.panels.length) {
           grp.el.remove();
           this.groups[a].pop();
           continue;
@@ -429,7 +438,7 @@ export class Dock {
   }
 
   load(): void {
-    let name = 'Default';
+    let name = 'Essentials';
     let saved: Layout | null = null;
     try {
       const raw = localStorage.getItem(STORE_KEY);
@@ -510,7 +519,7 @@ export class Dock {
   private home(id: string): Group | undefined {
     const beside = id === 'essential' ? this.find('effectsPresets') : id === 'mediaBrowser' ? this.find('project') : id === 'footage' ? this.find('composition') : undefined;
     if (beside && beside.area !== 'float') return beside;
-    const area: Area = id === 'composition' ? 'center' : ['timeline', 'renderQueue', 'terminal', 'agents', 'graph', 'flowchart'].includes(id) ? 'bottom' : 'right';
+    const area: Area = id === 'composition' ? 'center' : ['timeline', 'renderQueue', 'agents', 'graph', 'flowchart'].includes(id) ? 'bottom' : 'right';
     return this.groups[area][0] ?? this.groups.right[0] ?? this.groups.bottom[0] ?? this.groups.center[0];
   }
 

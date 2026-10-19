@@ -1,7 +1,7 @@
 import type { Ctx } from '../app/ctx';
 import type { EffectSpec } from '../engine/types';
 import type { Panel } from '../ui/dock';
-import { el, q, setClass, setHtml, setText } from '../ui/dom';
+import { el, q, setClass, setHidden, setHtml, setText } from '../ui/dom';
 import { icon } from '../ui/icons';
 import { toast } from '../ui/toast';
 
@@ -11,6 +11,12 @@ export interface TextPresetInfo {
   category: string;
   description: string;
   perChar3d: boolean;
+}
+
+function tipOnly(node: HTMLElement, text: string): void {
+  if (node.dataset.tip === text) return;
+  node.dataset.tip = text;
+  node.title = text;
 }
 
 export async function applyTextPreset(ctx: Ctx, preset: string, layers: number[]): Promise<void> {
@@ -27,6 +33,7 @@ export class EffectsPresetsPanel implements Panel {
   readonly el: HTMLElement;
   private readonly list: HTMLElement;
   private readonly search: HTMLInputElement;
+  private readonly none: HTMLElement;
   private specs: EffectSpec[] = [];
   private presets: TextPresetInfo[] = [];
   private open = new Set<string>();
@@ -34,17 +41,28 @@ export class EffectsPresetsPanel implements Panel {
 
   constructor(private readonly ctx: Ctx) {
     this.el = el(`<div class="fx-efx">
-      <div class="fx-efx-search"><input class="cv-input" placeholder="Search effects and presets" spellcheck="false" data-automation-id="effectsPresets.search"></div>
+      <div class="fx-efx-search"><input class="cv-input" placeholder="Search effects, like blur or glow" title="Type to find an effect or preset. Press Enter to add the first match to the selected layers" aria-label="Search effects and presets" spellcheck="false" data-automation-id="effectsPresets.search"></div>
       <div class="fx-efx-list" data-automation-id="effectsPresets.list"></div>
+      <div class="fx-efx-none" data-automation-id="effectsPresets.none" hidden>
+        <p class="fx-empty-sub">Nothing matches your search. Clear the search to see every effect again.</p>
+        <button class="cv-btn" type="button" data-act="clear" title="Clear the search box and show every effect">Clear search</button>
+      </div>
     </div>`);
     this.list = q(this.el, '.fx-efx-list');
+    this.none = q(this.el, '.fx-efx-none');
     this.search = q<HTMLInputElement>(this.el, 'input');
     this.search.addEventListener('input', () => this.render());
+    q(this.el, '[data-act="clear"]').addEventListener('click', () => {
+      this.search.value = '';
+      this.render();
+      this.search.focus();
+    });
     this.search.addEventListener('keydown', (e) => {
       e.stopPropagation();
       if (e.key === 'Enter') {
         const first = this.list.querySelector<HTMLElement>('.fx-efx-item');
-        if (first) void this.apply(first.dataset.effect as string);
+        if (first?.dataset.effect) void this.apply(first.dataset.effect);
+        else if (first?.dataset.preset) void this.applyPreset(first.dataset.preset);
       }
     });
   }
@@ -73,7 +91,7 @@ export class EffectsPresetsPanel implements Panel {
   private async applyPreset(id: string): Promise<void> {
     const layers = (this.ctx.store.state?.selection.layers ?? []).filter((l) => this.ctx.store.layers.find((x) => x.id === l)?.type === 'Text');
     if (!layers.length) {
-      toast('Select a text layer first, or drag the preset onto one', 'error');
+      toast('Select a text layer in the Timeline first, or drag the preset onto one', 'error');
       return;
     }
     await applyTextPreset(this.ctx, id, layers);
@@ -85,9 +103,15 @@ export class EffectsPresetsPanel implements Panel {
   }
 
   private async apply(effect: string): Promise<void> {
-    const layers = this.ctx.store.state?.selection.layers ?? [];
+    const picked = this.ctx.store.state?.selection.layers ?? [];
+    if (!picked.length) {
+      toast('Select a layer in the Timeline first, or drag the effect onto one', 'error');
+      return;
+    }
+    const rows = this.ctx.store.layers;
+    const layers = picked.filter((id) => !rows.find((x) => x.id === id)?.effects.some((fx) => fx.effect === effect));
     if (!layers.length) {
-      toast('Select a layer first, or drag the effect onto one', 'error');
+      toast('The selected layer already has this effect. Drag it onto the layer to add another copy', 'info');
       return;
     }
     await this.ctx.run('effect.apply', { effect, layers });
@@ -129,7 +153,7 @@ export class EffectsPresetsPanel implements Panel {
       if (!n) {
         if (r.cat) {
           const cat = r.key.startsWith('c:*') || r.key.startsWith('c:pc:') ? r.key.slice(2) : r.cat;
-          n = el(`<div class="fx-efx-cat"><span class="fx-twirl"></span><span class="fx-efx-catname"></span><span class="fx-efx-count"></span></div>`);
+          n = el(`<div class="fx-efx-cat" title="Click to show or hide the effects in this group"><span class="fx-twirl"></span><span class="fx-efx-catname"></span><span class="fx-efx-count"></span></div>`);
           n.dataset.automationId = `effectsPresets.category.${cat}`;
           n.addEventListener('click', () => {
             if (this.open.has(cat)) this.open.delete(cat);
@@ -139,7 +163,7 @@ export class EffectsPresetsPanel implements Panel {
         } else if (r.preset) {
           const p = r.preset;
           n = el(`<div class="fx-efx-item" draggable="true"><span class="fx-efx-ic">${icon('iText', 12)}</span><span class="fx-efx-name"></span><span class="fx-efx-badges"></span></div>`);
-          n.title = `${p.description} Double-click to apply to the selected text layers; drag onto a text layer.`;
+          n.title = `${p.description} Double-click to add it to the selected text layers, or drag it onto a text layer.`;
           n.dataset.preset = p.id;
           n.dataset.automationId = `effectsPresets.preset.${p.id}`;
           n.addEventListener('dblclick', () => void this.applyPreset(p.id));
@@ -149,7 +173,7 @@ export class EffectsPresetsPanel implements Panel {
           });
         } else {
           const spec = r.spec as EffectSpec;
-          n = el(`<div class="fx-efx-item" draggable="true" title="Double-click to apply to the selected layers; drag onto a layer"><span class="fx-efx-ic">${icon('sFx', 12)}</span><span class="fx-efx-name"></span><span class="fx-efx-badges"></span></div>`);
+          n = el(`<div class="fx-efx-item" draggable="true"><span class="fx-efx-ic">${icon('sFx', 12)}</span><span class="fx-efx-name"></span><span class="fx-efx-badges"></span></div>`);
           n.dataset.effect = spec.id;
           n.dataset.automationId = `effectsPresets.effect.${spec.id}`;
           n.addEventListener('dblclick', () => void this.apply(spec.id));
@@ -172,11 +196,16 @@ export class EffectsPresetsPanel implements Panel {
         n.style.paddingLeft = `${8 + (r.depth ?? 0) * 14}px`;
       } else if (r.spec) {
         setText(q(n, '.fx-efx-name'), r.spec.name);
-        setText(q(n, '.fx-efx-badges'), `${r.spec.gpu ? 'GPU ' : ''}${r.spec.float ? '32' : ''}`);
+        const badges = q(n, '.fx-efx-badges');
+        setText(badges, `${r.spec.gpu ? 'GPU ' : ''}${r.spec.float ? '32' : ''}`);
+        tipOnly(badges, r.spec.gpu ? 'GPU: this effect can run on the graphics card, which is faster. 32: it keeps full colour precision (32 bits per channel)' : '32: this effect keeps full colour precision (32 bits per channel)');
+        const about = (r.spec as EffectSpec & { description?: string }).description?.trim();
+        tipOnly(n, about || 'Double-click to add it to the selected layers, or drag it onto a layer');
         setClass(n, 'is-gpu', r.spec.gpu);
       }
       if (n !== cursor) this.list.insertBefore(n, cursor);
       else cursor = cursor.nextElementSibling;
     }
+    setHidden(this.none, !(term && rows.length === 0 && (this.specs.length > 0 || this.presets.length > 0)));
   }
 }

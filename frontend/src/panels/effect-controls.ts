@@ -1,10 +1,23 @@
 import type { Ctx } from '../app/ctx';
 import type { GroupNode, LayerRow, PropNode, TreeNode, UiState } from '../engine/types';
 import type { Panel } from '../ui/dock';
-import { el, q, setClass, setHtml, setText } from '../ui/dom';
+import { el, q, setClass, setHidden, setHtml, setText } from '../ui/dom';
 import { icon } from '../ui/icons';
 import { contextMenu } from '../ui/popup';
 import { PropEditor } from '../ui/prop-editor';
+
+function tip(node: HTMLElement, text: string): void {
+  if (node.dataset.tip === text) return;
+  node.dataset.tip = text;
+  node.title = text;
+  node.setAttribute('aria-label', text);
+}
+
+function tipOnly(node: HTMLElement, text: string): void {
+  if (node.dataset.tip === text) return;
+  node.dataset.tip = text;
+  node.title = text;
+}
 
 type Row = { key: string; kind: 'fx'; node: GroupNode; index: number } | { key: string; kind: 'group'; node: GroupNode; depth: number } | { key: string; kind: 'prop'; node: PropNode; depth: number };
 
@@ -14,19 +27,35 @@ export class EffectControlsPanel implements Panel {
   readonly el: HTMLElement;
   private readonly list: HTMLElement;
   private readonly head: HTMLElement;
+  private readonly empty: HTMLElement;
+  private readonly emptyNone: HTMLElement;
+  private readonly emptyFx: HTMLElement;
   private layerId: number | null = null;
   private closed = new Set<string>();
   private editors = new Map<string, PropEditor>();
 
   constructor(private readonly ctx: Ctx) {
     this.el = el(`<div class="fx-ec">
-      <div class="fx-ec-head"><span class="fx-ec-title"></span><span class="fx-flex"></span><button class="fx-link" type="button" data-act="add">Add Effect</button></div>
+      <div class="fx-ec-head"><span class="fx-ec-title" title="The composition and layer these effects belong to"></span><span class="fx-flex"></span><button class="fx-link" type="button" data-act="add" title="Open Effects &amp; Presets to pick an effect for the selected layer">Add Effect</button></div>
       <div class="fx-ec-list" data-automation-id="effectControls.list"></div>
-      <div class="fx-ec-empty" hidden>Select a layer, then add an effect from the Effect menu or the Effects &amp; Presets panel, or drop one here.</div>
+      <div class="fx-ec-empty" data-automation-id="effectControls.empty" hidden>
+        <div class="fx-empty-card" data-state="nolayer">
+          <p class="fx-empty-sub">Select a layer in the Timeline to see and change its effects. To add one, double-click an effect in Effects &amp; Presets or drag it onto the layer.</p>
+        </div>
+        <div class="fx-empty-card" data-state="noeffects" hidden>
+          <p class="fx-empty-sub">This layer has no effects yet.</p>
+          <div class="fx-empty-actions">
+            <button class="cv-btn cv-btn-primary" type="button" data-act="addfx" title="Open Effects &amp; Presets and start a search for the selected layer" data-automation-id="effectControls.addEffect">Add Effect...</button>
+          </div>
+        </div>
+      </div>
     </div>`);
     this.list = q(this.el, '.fx-ec-list');
     this.head = q(this.el, '.fx-ec-title');
-    q(this.el, '[data-act="add"]').addEventListener('click', () => this.ctx.ui.emit('showPanel', 'effectsPresets'));
+    this.empty = q(this.el, '.fx-ec-empty');
+    this.emptyNone = q(this.el, '[data-state="nolayer"]');
+    this.emptyFx = q(this.el, '[data-state="noeffects"]');
+    for (const b of Array.from(this.el.querySelectorAll<HTMLElement>('[data-act="add"], [data-act="addfx"]'))) b.addEventListener('click', () => void this.ctx.invoke('effect.manage'));
     ctx.store.watch((st) => this.onState(st));
     this.el.addEventListener('dragover', (e) => {
       if (e.dataTransfer?.types.includes('application/x-formvfx-effect')) e.preventDefault();
@@ -48,7 +77,9 @@ export class EffectControlsPanel implements Panel {
     }
     const layer = id ? st.layers.find((l) => l.id === id) : undefined;
     const comp = st.comp;
-    setText(this.head, layer && comp ? `${comp.name} · ${layer.name}` : 'No layer selected');
+    const heading = layer && comp ? `${comp.name} · ${layer.name}` : 'No layer selected';
+    setText(this.head, heading);
+    tipOnly(this.head, layer && comp ? heading : 'Select a layer in the Timeline to see its effects');
     const tree = id ? st.trees[String(id)] : undefined;
     const effects = tree?.children.find((c) => c.k === 'g' && c.match === 'effects') as GroupNode | undefined;
     const rows: Row[] = [];
@@ -60,7 +91,9 @@ export class EffectControlsPanel implements Panel {
         if (!this.closed.has(key)) this.walk(layer, c, 1, rows);
       });
     }
-    q(this.el, '.fx-ec-empty').hidden = rows.length > 0;
+    setHidden(this.empty, rows.length > 0 || (!!layer && !tree));
+    setHidden(this.emptyNone, !!layer);
+    setHidden(this.emptyFx, !layer);
     this.patch(rows, layer);
   }
 
@@ -106,7 +139,7 @@ export class EffectControlsPanel implements Panel {
     n.dataset.kind = r.kind;
     if (r.kind === 'fx') {
       n.dataset.automationId = `effectControls.effect.${r.node.uid}`;
-      n.innerHTML = `<button class="fx-twirl" type="button"></button><button class="fx-sw" type="button" title="Effect on/off">${icon('sFx', 12)}</button><span class="fx-ec-name"></span><span class="fx-flex"></span><button class="fx-link" type="button" data-act="reset">Reset</button><button class="cv-icon-btn fx-ec-more" type="button">${icon('more3', 13)}</button>`;
+      n.innerHTML = `<button class="fx-twirl" type="button" title="Show or hide this effect's settings" aria-label="Show or hide this effect's settings"></button><button class="fx-sw" type="button" title="Turn this effect off to see the layer without it" aria-label="Turn this effect off to see the layer without it" aria-pressed="true">${icon('sFx', 12)}</button><span class="fx-ec-name"></span><span class="fx-flex"></span><button class="fx-link" type="button" data-act="reset" title="Reset: put every setting of this effect back to how it started" aria-label="Reset this effect to its starting settings">Reset</button><button class="cv-icon-btn fx-ec-more" type="button" title="More: duplicate, move up or down, or delete this effect" aria-label="More options for this effect">${icon('more3', 13)}</button>`;
       q(n, '.fx-twirl').addEventListener('click', () => this.toggle(r.key));
       q(n, '.fx-sw').addEventListener('click', () => void this.ctx.run('effect.toggle', { layer: layer.id, effect: r.node.uid }));
       q(n, '[data-act="reset"]').addEventListener('click', () => void this.ctx.run('effect.reset', { layer: layer.id, effect: r.node.uid }));
@@ -142,11 +175,11 @@ export class EffectControlsPanel implements Panel {
         void this.ctx.run('effect.reorder', { layer: layer.id, effect: uid, index: (r as { index: number }).index });
       });
     } else if (r.kind === 'group') {
-      n.innerHTML = `<span class="fx-indent"></span><button class="fx-twirl" type="button"></button><span class="fx-ec-name"></span>`;
+      n.innerHTML = `<span class="fx-indent"></span><button class="fx-twirl" type="button" title="Show or hide this group of settings" aria-label="Show or hide this group of settings"></button><span class="fx-ec-name"></span>`;
       q(n, '.fx-twirl').addEventListener('click', () => this.toggle(r.key));
     } else {
       n.dataset.automationId = `effectControls.param.${r.node.uid}`;
-      n.innerHTML = `<span class="fx-indent"></span><button class="fx-stopwatch" type="button" title="Stopwatch">${icon('stopwatch', 13)}</button><span class="fx-ec-name"></span><span class="fx-ec-val"></span>`;
+      n.innerHTML = `<span class="fx-indent"></span><button class="fx-stopwatch" type="button" title="Stopwatch: animate this setting over time. Alt-click to drive it with an expression instead" aria-label="Animate this setting over time" aria-pressed="false">${icon('stopwatch', 13)}</button><span class="fx-ec-name"></span><span class="fx-ec-val"></span>`;
       q(n, '.fx-stopwatch').addEventListener('click', (e) => {
         if (e.altKey) void this.ctx.run('prop.setExpression', { layer: layer.id, prop: r.node.uid });
         else void this.ctx.run('prop.toggleAnimation', { layer: layer.id, prop: r.node.uid });
@@ -177,6 +210,10 @@ export class EffectControlsPanel implements Panel {
       setText(q(n, '.fx-ec-name'), r.node.name);
       setClass(q(n, '.fx-sw'), 'is-on', r.node.enabled);
       setClass(n, 'is-selected', r.node.selected);
+      const sw = q(n, '.fx-sw');
+      tip(sw, r.node.enabled ? 'Turn this effect off to see the layer without it. Its settings are kept' : 'Turn this effect back on');
+      const on = String(r.node.enabled);
+      if (sw.getAttribute('aria-pressed') !== on) sw.setAttribute('aria-pressed', on);
       return;
     }
     q(n, '.fx-indent').style.width = `${r.depth * 14}px`;
@@ -189,6 +226,9 @@ export class EffectControlsPanel implements Panel {
     setText(q(n, '.fx-ec-name'), p.name);
     const sw = q(n, '.fx-stopwatch');
     setClass(sw, 'is-on', p.animated);
+    tip(sw, p.animated ? 'This setting is animated with keyframes, values saved at points in time. Click to stop animating. Alt-click to use an expression instead' : 'Stopwatch: animate this setting over time. Alt-click to drive it with an expression instead');
+    const anim = String(p.animated);
+    if (sw.getAttribute('aria-pressed') !== anim) sw.setAttribute('aria-pressed', anim);
     sw.style.visibility = p.static ? 'hidden' : '';
     setClass(n, 'has-expr', !!p.expr);
     const holder = q(n, '.fx-ec-val');

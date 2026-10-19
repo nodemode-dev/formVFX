@@ -6,6 +6,7 @@ type Table = Record<string, string>;
 const STORE = 'formvfx_lang';
 const TABLES = import.meta.glob<Table>('./i18n/tables/*.json', { import: 'default' });
 const MORE = import.meta.glob<Table>('./i18n/tables/more/*.json', { import: 'default' });
+const EVERYDAY = import.meta.glob<Table>('./i18n/tables/everyday/*.json', { import: 'default' });
 const tables = new Map<Lang, Table>([['en', {}]]);
 
 function readSaved(): Lang {
@@ -33,8 +34,9 @@ async function load(l: Lang): Promise<void> {
     if (!code || tables.has(code) || code === 'en') continue;
     const loader = TABLES[`./i18n/tables/${code}.json`];
     const more = MORE[`./i18n/tables/more/${code}.json`];
-    const [a, b] = await Promise.all([loader ? loader() : Promise.resolve({}), more ? more() : Promise.resolve({})]);
-    tables.set(code, { ...b, ...a });
+    const plain = EVERYDAY[`./i18n/tables/everyday/${code}.json`];
+    const [a, b, c] = await Promise.all([loader ? loader() : Promise.resolve({}), more ? more() : Promise.resolve({}), plain ? plain() : Promise.resolve({})]);
+    tables.set(code, { ...c, ...b, ...a });
   }
 }
 

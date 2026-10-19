@@ -1,0 +1,10 @@
+.fx-tl-left { position: relative; }
+.fx-tl-empty { position: absolute; top: 28px; right: 0; bottom: 0; left: 0; display: grid; place-items: center; padding: var(--space-4); }
+.fx-tl-empty[hidden], .fx-tl-empty .fx-empty-card[hidden] { display: none; }
+.fx-tl-empty .fx-empty-card { max-width: 420px; padding: var(--space-4); }
+
+.fx-colsw { display: inline-grid; place-items: center; width: 18px; height: 100%; flex: none; }
+.fx-row-layer .fx-sw { height: 24px; }
+.fx-label-chip { position: relative; }
+.fx-label-chip::after { content: ""; position: absolute; inset: -7px; }
+.fx-row .fx-twirl { height: 24px; }
