@@ -531,7 +531,7 @@ class App {
         ctx.dropEffects();
         return this.effects.refresh();
       case 'app.settings':
-        void this.prefs.open(String(params.page ?? 'interface'));
+        void this.prefs.open(String(params.page ?? 'general'));
         return;
       case 'file.newFromTemplate':
         void this.templates.open();
