@@ -118,6 +118,9 @@ class App {
       <footer class="cv-status fx-status"></footer>
     </div>`);
     appEl.appendChild(shell);
+    if (document.documentElement.classList.contains('has-overlay-titlebar')) {
+      for (const n of shell.querySelectorAll('.cv-titlebar, .cv-brand, .fx-menubar-host, .fx-doc-title, .fx-title-tools')) n.setAttribute('data-tauri-drag-region', '');
+    }
     const extras: MenuExtras = {
       workspace: () => this.dock.workspace,
       savedWorkspaces: () => this.dock.savedNames(),

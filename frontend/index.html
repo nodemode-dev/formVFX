@@ -20,6 +20,9 @@
     .hidden { display: none !important; }
   </style>
   <script>
+    if (/Mac/.test(navigator.platform) && '__TAURI_INTERNALS__' in window) document.documentElement.classList.add('has-overlay-titlebar');
+  </script>
+  <script>
 /* stylized-nodemode · theme-boot.js · v1.0.0
    Inline this file's contents in a script element in the document head,
    AFTER the critical inline style block and BEFORE any stylesheet link.

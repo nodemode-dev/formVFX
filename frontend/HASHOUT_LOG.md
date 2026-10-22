@@ -202,3 +202,10 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - index.html: `html, body` are `#0a0a0a` (body was transparent) so no lighter frame shows before `#app` is revealed; the logo is preloaded.
 - app/app.ts `brandMark` is now `<img src="/formvfx-logo.png">` at the requested size with width and height set, so the title bar, Home and About marks match the owner's icon and nothing shifts; the per-copy gradient id table is gone with the inline SVG.
 - The desktop shell asks macOS for an overlay title bar with the traffic lights centred in a 38 px row (`traffic_lights.rs`). The page still has its own 40 px title bar with no left inset or drag region for macOS, so on macOS the lights overlap the brand until a titlebar inset and `data-tauri-drag-region` are added.
+
+## Page side of the macOS overlay title bar (0.49.0)
+
+- index.html adds `has-overlay-titlebar` to `<html>` in a small inline script before the theme boot (macOS inside the desktop app only; the page has no CSP, so inline is allowed), so the 38 px row exists from first paint and nothing jumps when the app mounts.
+- styles/shell.css: under the class `--cv-titlebar-h` is 38 px (the `ROW` in `traffic_lights.rs`) and the title bar gets 78 px of left padding (14 px inset plus the three lights). Every row below hangs off that token, so the options row, dock and Home keep their place relative to the bar.
+- app/app.ts puts `data-tauri-drag-region` on the title bar and on its empty parts (brand, menu host, document title, the tools container), never on a button, only under the class; Tauri toggles maximize on a double click of a drag region, so no page handler was added.
+- src-tauri/capabilities/default.json gains `core:window:allow-start-dragging` and `core:window:allow-toggle-maximize` for the remote page.

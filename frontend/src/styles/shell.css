@@ -13,6 +13,8 @@ body { font-size: var(--fs-12); line-height: 1.35; }
 .cv-app { display: grid; grid-template-rows: var(--cv-titlebar-h) var(--cv-options-h) minmax(0, 1fr) var(--cv-status-h); height: 100%; background: var(--bg-primary); color: var(--text-primary); user-select: none; -webkit-user-select: none; }
 
 .cv-titlebar { display: grid; grid-template-columns: auto auto minmax(0, 1fr) auto; align-items: center; column-gap: var(--space-3); padding: 0 var(--space-3); background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); min-width: 0; }
+:root.has-overlay-titlebar { --cv-titlebar-h: 38px; --cv-traffic-w: 78px; }
+.has-overlay-titlebar .cv-titlebar { padding-left: var(--cv-traffic-w); }
 .cv-brand { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--accent-color); }
 .cv-brand-name { color: var(--text-primary); font-size: var(--fs-13); font-weight: 600; letter-spacing: 0.2px; }
 .cv-menubar { display: flex; align-items: center; gap: 2px; }
