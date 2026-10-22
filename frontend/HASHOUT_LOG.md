@@ -209,3 +209,7 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - styles/shell.css: under the class `--cv-titlebar-h` is 38 px (the `ROW` in `traffic_lights.rs`) and the title bar gets 78 px of left padding (14 px inset plus the three lights). Every row below hangs off that token, so the options row, dock and Home keep their place relative to the bar.
 - app/app.ts puts `data-tauri-drag-region` on the title bar and on its empty parts (brand, menu host, document title, the tools container), never on a button, only under the class; Tauri toggles maximize on a double click of a drag region, so no page handler was added.
 - src-tauri/capabilities/default.json gains `core:window:allow-start-dragging` and `core:window:allow-toggle-maximize` for the remote page.
+
+## The family's 28 themes (0.49.0)
+
+- ui/themes.ts THEMES and index.html theme-boot PROFILES and LIGHT: the theme choice is shared across the Form family (`nodemode_ui_settings`) and formvis offers 28 themes; formvfx had 15, so a theme picked in formvis such as Pro Dark or Soft Light fell back to Studio. The 13 missing profiles are added with formvis's values to both tables, which must stay equal. Checked in headless Chromium with the store set to pro-dark, soft-light and nineties: the right `--bg-primary` at the first script turn and after start, `theme-light` on the light ones.
