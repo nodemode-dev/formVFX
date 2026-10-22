@@ -1,6 +1,7 @@
 import type { Ctx } from '../app/ctx';
 import { Dialog } from './dialogs';
 import { el, escapeHtml, patchList, q, setClass, setText } from './dom';
+import { homePref, setHomePref } from './home';
 import { readChoice, setAccent, setIntensity, setTheme, THEMES } from './themes';
 import { isLang, language, languages, setLanguage } from './i18n';
 import { colorToHex, hexToRgb } from './widgets';
@@ -260,5 +261,15 @@ export class Preferences {
     ii.value = String(choice.intensity ?? 1);
     ii.addEventListener('input', () => setIntensity(Number(ii.value)));
     pane.appendChild(inten);
+    pane.appendChild(el('<div class="fx-prefs-section">Home</div>'));
+    const homeRow = (key: 'autoShowHome' | 'homeOnLastClose', label: string): HTMLElement => {
+      const row = el<HTMLLabelElement>(`<label class="fx-prefs-row"><span class="fx-prefs-label">${label}</span><span class="fx-prefs-ctl"><input type="checkbox" class="fx-check" data-automation-id="preferences.${key}"></span></label>`);
+      const box = q<HTMLInputElement>(row, 'input');
+      box.checked = homePref(key);
+      box.addEventListener('change', () => setHomePref(key, box.checked));
+      return row;
+    };
+    pane.appendChild(homeRow('autoShowHome', 'Show the Home screen at launch'));
+    pane.appendChild(homeRow('homeOnLastClose', 'Show the Home screen when the last project closes'));
   }
 }

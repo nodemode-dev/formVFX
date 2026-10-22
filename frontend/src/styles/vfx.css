@@ -103,7 +103,6 @@
 .fx-st-act { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .fx-st-rev, .fx-st-ver { font-variant-numeric: tabular-nums; }
 
-.fx-home-more { display: flex; gap: var(--space-5); margin-top: var(--space-5); }
 .fx-link { padding: 0 2px; border: 0; background: none; color: var(--text-secondary); font: inherit; font-size: var(--fs-12); cursor: pointer; white-space: nowrap; }
 .fx-link:hover { color: var(--accent-color); }
 .fx-note { margin: 0; color: var(--text-secondary); font-size: var(--fs-12); line-height: 1.5; }

@@ -1,4 +1,5 @@
 import { VERSION } from '../version';
+import type { MenuNode } from '../engine/types';
 import { api } from '../engine/client';
 import type { ServerEvent } from '../engine/client';
 import { AgentsPanel } from '../panels/agents';
@@ -21,6 +22,8 @@ import { ViewerPanel } from '../panels/viewer';
 import { Dialog } from '../ui/dialogs';
 import { Dock, WORKSPACES } from '../ui/dock';
 import { el, escapeHtml, isMac, q, revealApp, setClass, setText } from '../ui/dom';
+import { HomeScreen, HOME_PRESETS } from '../ui/home';
+import type { HomeItem } from '../ui/home-files';
 import { icon } from '../ui/icons';
 import '../ui/icons-vfx';
 import { Keys } from '../ui/keys';
@@ -88,7 +91,7 @@ class App {
   private timeline!: TimelinePanel;
   private tdock!: TerminalDock;
   private effects!: EffectsPresetsPanel;
-  private home!: HTMLElement;
+  private home!: HomeScreen;
   private status!: HTMLElement;
   private toolbar!: HTMLElement;
   private wsSelect!: HTMLSelectElement;
@@ -398,48 +401,60 @@ class App {
   }
 
   private buildHome(): void {
-    this.home = el(`<div class="cv-home fx-home" hidden>
-      <div class="cv-home-center">
-        <h1 class="cv-home-brand">${brandMark(40)} formvfx <span class="cv-home-by">motion graphics and visual effects</span></h1>
-        <p class="cv-home-sub">Compositions, layers, keyframes, 306 effects, 3D, expressions, templates and a render queue, driven by you or by an agent.</p>
-        <div class="cv-home-actions">
-          <button class="cv-home-action" type="button" data-h="new"><span class="cv-home-label">New Composition</span><span class="cv-key">↵</span></button>
-          <button class="cv-home-action" type="button" data-h="open"><span class="cv-home-label">Open Project</span><span class="cv-key">O</span></button>
-        </div>
-        <div class="fx-home-more">
-          <button class="fx-link" type="button" data-h="template">New from a template</button>
-          <button class="fx-link" type="button" data-h="learn">Learn with a tutorial</button>
-          <button class="fx-link" type="button" data-h="import">Import footage</button>
-          <button class="fx-link" type="button" data-h="demo">Open the demo project</button>
-          <button class="fx-link" type="button" data-h="agent">Build it with an agent</button>
-        </div>
-      </div>
-    </div>`);
-    document.getElementById('app')?.appendChild(this.home);
-    for (const b of Array.from(this.home.querySelectorAll<HTMLElement>('[data-h]'))) {
-      b.dataset.automationId = `home.${b.dataset.h}`;
-      b.addEventListener('click', () => {
-        const h = b.dataset.h;
-        if (h === 'new') void ctx.invoke('comp.new');
-        if (h === 'open') void ctx.invoke('file.open');
-        if (h === 'import') void ctx.invoke('file.import');
-        if (h === 'template') void this.templates.open();
-        if (h === 'learn') void this.learn.openList();
-        if (h === 'demo') void ctx.run('file.openDemoProject');
-        if (h === 'agent') {
-          this.home.hidden = true;
+    this.home = new HomeScreen(q(document, '#app'), {
+      store: ctx.store,
+      files: {
+        list: (tab) => this.homeRecent(tab),
+        open: (_tab, item) => void ctx.invoke('file.openRecent', { index: Number(item.key.split(':')[0]) }),
+      },
+      run: (cmd) => {
+        if (cmd === 'new') return ctx.invoke('comp.new');
+        if (cmd === 'open') return ctx.invoke('file.open');
+        if (cmd === 'import') return ctx.invoke('file.import');
+        if (cmd === 'template') return this.templates.open();
+        if (cmd === 'learn') return this.learn.openList();
+        if (cmd === 'demo') return ctx.run('file.openDemoProject');
+        if (cmd === 'clearRecent') return ctx.run('file.clearRecent');
+        if (cmd === 'settings') return this.prefs.open();
+        if (cmd === 'help') return ctx.run('help.docs', { page: 'manual' });
+        if (cmd === 'agent') {
+          this.home.dismiss();
           this.workspace('Agent');
         }
-      });
+        return undefined;
+      },
+      preset: (id) => {
+        const p = HOME_PRESETS.find((x) => x.id === id);
+        if (p) void ctx.run('comp.new', { name: p.name, width: p.w, height: p.h, frameRate: p.fps });
+      },
+    });
+    const brand = q(document, '.cv-brand');
+    brand.setAttribute('role', 'button');
+    brand.setAttribute('tabindex', '0');
+    brand.setAttribute('aria-label', 'Home');
+    brand.setAttribute('title', 'Home');
+    brand.addEventListener('click', () => this.home.show());
+    brand.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        this.home.show();
+      }
+    });
+    ctx.store.events.on('state', () => this.reveal());
+  }
+
+  private async homeRecent(tab: 'recent' | 'projects'): Promise<HomeItem[]> {
+    if (tab === 'projects') return [];
+    const nodes = await ctx.client.call<MenuNode[]>('menu.bar', { menu: 'File' });
+    const sub = (nodes[0]?.children ?? []).find((n) => n.type === 'submenu' && n.label === 'Open Recent');
+    const out: HomeItem[] = [];
+    for (const n of sub?.children ?? []) {
+      if (n.command !== 'file.openRecent' || typeof n.params?.index !== 'number') continue;
+      const name = n.label || '';
+      const dot = name.lastIndexOf('.');
+      out.push({ key: `${n.params.index}:${name}`, name, kind: dot > 0 ? name.slice(dot + 1).toUpperCase() : 'PROJECT', size: 0, when: 0 });
     }
-    this.home.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') void ctx.invoke('comp.new');
-    });
-    ctx.store.events.on('state', (st) => {
-      const empty = !st.items.length && !st.comp;
-      if (this.home.hidden === empty) this.home.hidden = !empty;
-      this.reveal();
-    });
+    return out;
   }
 
   private bindEngine(): void {
@@ -686,7 +701,7 @@ class App {
       viewer: this.viewer.state(),
       timeline: this.timeline.state(),
       playing: ctx.playback.playing,
-      home: !this.home.hidden,
+      home: this.home.isShown,
     };
   }
 
