@@ -895,6 +895,9 @@ dependencies = [
 name = "formvfx"
 version = "0.47.0"
 dependencies = [
+ "objc2",
+ "objc2-app-kit",
+ "objc2-foundation",
  "regex",
  "serde_json",
  "tauri",
