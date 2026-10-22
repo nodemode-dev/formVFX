@@ -893,7 +893,7 @@ dependencies = [
 
 [[package]]
 name = "formvfx"
-version = "0.47.0"
+version = "0.48.0"
 dependencies = [
  "objc2",
  "objc2-app-kit",
