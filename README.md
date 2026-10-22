@@ -39,7 +39,7 @@ Open http://localhost:5230, choose **Open the demo project** on the start screen
 
 `./formvfx desktop build` is the same as `./build_app`; on Windows run `build_app.bat`. On macOS the app is copied to Applications and a DMG is packed beside the bundle, and the desktop app puts formvfx's menus in the macOS menu bar.
 
-Tagging `vX.Y.Z` builds macOS, Linux and Windows bundles in GitHub Actions and opens a draft release.
+Pushing a `compile_vX.Y.Z` branch has formcompiler (`nodemode-ai/formcompiler`) build macOS, Linux and Windows bundles and open a draft release `formvfx-vX.Y.Z` on its release page.
 
 ## Commands
 
