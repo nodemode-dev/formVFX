@@ -79,3 +79,7 @@ Pushing a `compile_vX.Y.Z` branch has formcompiler (`nodemode-ai/formcompiler`) 
 | Total | 331 | 106,536 |
 
 Non-blank lines in tracked files; generated skill references excluded. `./formvfx counts` prints this table.
+
+## Trademarks
+
+Adobe and After Effects are either registered trademarks or trademarks of Adobe in the United States and/or other countries. Other product names are the trademarks of their owners. formvfx is not affiliated with or endorsed by any of them; they are named only to identify file formats and compatibility. See `NOTICE.md`.
