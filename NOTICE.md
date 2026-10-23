@@ -30,9 +30,38 @@ formvfx is licensed under the Apache License 2.0 (`LICENSE`). It includes or dep
 | Inter and JetBrains Mono (`@fontsource`) | interface fonts | SIL Open Font License 1.1 |
 | xterm.js and its fit addon | the embedded terminal | MIT |
 | PyO3, maturin | the Python extension | MIT OR Apache-2.0 |
-| FastAPI, Starlette, Uvicorn, python-multipart | the engine service | MIT, BSD-3-Clause |
+| FastAPI, Starlette, Uvicorn, python-multipart | the engine service | MIT (FastAPI), BSD-3-Clause (Starlette, Uvicorn), Apache-2.0 (python-multipart) |
 | pywinpty (Windows only) | the terminal on Windows | MIT |
 | Vite, TypeScript, Tauri API and plugins | build and desktop | MIT, Apache-2.0 |
+
+## Python packages frozen into the engine
+
+The engine is frozen with PyInstaller `--onefile` (`setup/freeze_backend`). These packages are installed in `backend/venv` from `backend/requirements.txt` and are collected by the freeze, directly or as dependencies of fastapi and uvicorn[standard]; each licence is read from the package's installed metadata. "Frozen in" is inferred from the freeze flags and imports, not from a built bundle. maturin is a build tool and is not frozen.
+
+| Package | Licence |
+| --- | --- |
+| CPython runtime and standard library | PSF-2.0 |
+| typing_extensions | PSF-2.0 |
+| PyInstaller 6.22.3 (its bootloader is the executable stub of the frozen engine) | GPL-2.0-or-later with the PyInstaller exception that permits distributing the frozen program under another licence (PyPI metadata for 6.22.3) |
+| pydantic, pydantic_core, annotated-types, annotated-doc, typing-inspection, anyio, h11, httptools, PyYAML, watchfiles | MIT |
+| uvloop | MIT or Apache-2.0 |
+| click, idna, python-dotenv, websockets | BSD-3-Clause |
+| fvx-core (formvfx's own compositing engine) | Apache-2.0 |
+
+certifi is not installed in the engine's environment and is not frozen.
+
+## Desktop shell: crates under other licences
+
+Tauri links these crates unedited (no `[patch]` and no vendored copy):
+
+| Crate | Licence | Why it is there |
+| --- | --- | --- |
+| cssparser, selectors, dtoa-short, option-ext | MPL-2.0 | Tauri's HTML handling (tauri-utils); used unmodified, source at crates.io |
+| ring | Apache-2.0 AND ISC | TLS for the updater (rustls) |
+| webpki-root-certs | CDLA-Permissive-2.0 | root certificates for the updater's TLS |
+| r-efi | MIT OR Apache-2.0 OR LGPL-2.1-or-later | used under MIT |
+
+The Linux AppImage also carries the build machine's WebKitGTK, GTK and GLib (LGPL-2.1-or-later) as separate shared libraries.
 
 ## Trademarks and other products' files
 
