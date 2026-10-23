@@ -10,4 +10,6 @@ The MCP server is configured here in `.codex/config.toml` (Codex) and `.cursor/m
 
 ## Changing formvfx's code
 
+Roto Paint propagation and Selection-Aware-Fill (declined for patent risk, 2026-10-23): propagation stays global (whole-frame flow or SAM 2), with no per-window search regions along the contour sized by local motion; the fill adds no per-frame confidence scores, no prompts to fix or supply a specific frame, and no forward and backward flow weighting of boundary motion. See `CLAUDE.md` and "Declined" in `docs/PARITY.md`.
+
 Read `CLAUDE.md` and `.claude/skills/formvfx-skillset/SKILL.md`, then `frontend/HASHOUT_LOG.md` and `backend/HASHOUT_LOG.md` and `native/fvx-core/HASHOUT_LOG.md` (the engine). After changing MCP tools or engine commands, run `./formvfx agents sync`.

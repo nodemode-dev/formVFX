@@ -191,3 +191,9 @@ Lottie export without a plug-in, editor timelines in four open formats, OpenFX p
 ## Declined
 
 Content-Aware Scale (seam-carving, content-aware resizing of images and layers) and its skin-tone protection option are declined and will not be built, because the techniques are covered by patents. Requests for them are answered with this note.
+
+Also declined for patent risk (2026-10-23), with the same answer:
+
+- Roto Paint propagation by per-window search regions placed along the contour, sized by local motion and blended into one map. Propagation stays whole-frame flow or SAM 2.
+- Per-frame confidence scores in Selection-Aware-Fill, and any prompt or suggestion asking the person to fix or supply a specific frame as the reference.
+- Weighting the fill's boundary motion by a forward and backward flow consistency check.

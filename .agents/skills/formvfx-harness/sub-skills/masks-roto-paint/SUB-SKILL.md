@@ -37,7 +37,7 @@ A mask with mode `None` changes nothing by itself and is how a path is given to 
 For separating a subject from footage:
 
 1. `roto.stroke {layer, kind: fg, points: [[x, y], ...], frame}` paints over the subject on one frame (layer pixels). `kind: bg` subtracts.
-2. `roto.propagate {layer, direction: forward|backward|both, wait: true}` carries the segmentation through the span.
+2. `roto.propagate {layer, direction: forward|backward|both, wait: true}` carries the segmentation through the span, always as a whole frame (flow or SAM 2); formvfx does not score frames or flag one to fix, so you find drifted frames yourself with `contact_sheet`.
 3. Refine with more strokes on frames where it drifted, then `roto.freeze {layer, wait: true}` to lock the result.
 4. `roto.status {layer, frame}` reports progress and can return the matte; `roto.options {view: alphaOverlay}` changes what the window shows.
 
@@ -61,7 +61,7 @@ For one whole object (a person, a car, a product), skip the strokes: `object_mat
 ## Liquify, Selection-Aware-Fill
 
 - `liquify.stroke {layer, points: [[x, y]] (layer pixels), tool: warp|turbulence|twirlClockwise|pucker|bloat|..., brushSize, brushPressure}` after applying the Liquify effect; `liquify.clear` removes the strokes.
-- Object removal: mask the object on the footage layer (mode Subtract or an animated mask), then `layer.newContentAwareFill {layer, method: object|surface|edgeBlend, range: workArea, wait: true}`. It renders a fill layer above the footage.
+- Object removal: mask the object on the footage layer (mode Subtract or an animated mask), then `layer.newContentAwareFill {layer, method: object|surface|edgeBlend, range: workArea, wait: true}`. It renders a fill layer above the footage. It reports no per-frame confidence and never asks for a particular frame; a reference layer and time are optional arguments you choose.
 
 ## Check
 

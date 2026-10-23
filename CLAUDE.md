@@ -16,6 +16,12 @@ A motion graphics and visual effects compositor in the form family beside formvi
 - `setup/` · install, boot, build, freeze and desktop scripts behind the `./formvfx` dispatcher; `setup/agents.py` regenerates the harness skill's references from the engine.
 - Planning documents (DEV_PLAN, BUILD_NOTES, TEST_PLAN, the root HASHOUT_LOG) ship in the planning sidecar zip, not in this tree.
 
+## Roto Paint propagation and Selection-Aware-Fill (declined for patent risk, 2026-10-23)
+
+- Roto propagation stays global: one whole-frame optical flow warps the previous matte, or the SAM 2 path carries it. Never add search windows or regions placed along the object contour whose size or search radius follows the local motion, and never blend such windows into a map that drives the next frame's search.
+- Selection-Aware-Fill never gets a per-frame confidence score, a threshold that flags a frame, or any prompt or suggestion that asks the person to fix, modify or supply a specific frame as the reference. The reference stays an optional choice the person makes unprompted. Never weight boundary motion by a forward and backward flow consistency check, or by any sigmoid of it.
+- See "Declined" in `docs/PARITY.md`.
+
 ## After changing the MCP tools or the engine's commands
 
 Run `./formvfx agents sync` so `.claude/skills/formvfx-harness/references/` and the `.agents/skills` mirror follow; `./formvfx agents sync --check` fails while they drift.
