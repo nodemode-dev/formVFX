@@ -19,3 +19,10 @@ A motion graphics and visual effects compositor in the form family beside formvi
 ## After changing the MCP tools or the engine's commands
 
 Run `./formvfx agents sync` so `.claude/skills/formvfx-harness/references/` and the `.agents/skills` mirror follow; `./formvfx agents sync --check` fails while they drift.
+
+## Trademarks, copyright and licences
+
+- Other vendors' product and feature names appear only to name a file format or compatibility (`.aep`, `.mogrt`, `.ffx`, CEP panels, "Adobe After Effects 8.0 Keyframe Data"). Never as a formvfx command, panel, effect, tool or agent tool name, and never as "like After Effects" in UI text, agent instructions or READMEs. The approved label renames are Template Controls (Essential Graphics), Live Link (Dynamic Link), Selection-Aware-Fill (Content-Aware Fill), Roto Paint (Roto Brush) and Wrap Stabilization (Warp Stabilizer); Liquify stays. Command ids keep their names. `README.md` and `NOTICE.md` list every vendor mark named.
+- Never copy vendor help or documentation text into effect names, parameter descriptions or the manual; never import or trace vendor icons; never bundle vendor presets, Motion Graphics templates, animation presets or sample projects. The user's own files are fine.
+- FFmpeg stays outside the bundle, run as a separate program when the person has it.
+- Every new dependency, binary, model or data file gets a row in `NOTICE.md` before it ships. GPL stays outside the distributed bundle, AGPL nowhere, LGPL run as a separate program or dynamically linked and replaceable; model weights with gated or non-commercial terms stay optional downloads checked against a pinned SHA-256.
