@@ -5,8 +5,8 @@ formvfx is a motion graphics and visual effects compositor: a project of footage
 ## The window
 
 - **Title bar** · the menus (File, Edit, Composition, Layer, Effect, Animation, View, Window, Help), the open project's name, the workspace menu, undo and redo, command search, the Agent button (the Terminal, Claude Code, Chat, Codex, Cursor and the Agent workspace) and Settings.
-- **Toolbar** · selection, hand, zoom, orbit, pan behind, the shape tools (rectangle, rounded rectangle, ellipse, polygon, star), the pen, the type tool, brush, clone stamp and eraser, Roto Brush and the puppet tools. A shape tool with a non-shape layer selected draws a mask instead.
-- **Panels** · Project, Composition (the viewer), Timeline, Effect Controls, Effects & Presets, Info, Preview, Align, Character, Paragraph, Tracker, Render Queue, Essential Graphics, Flowchart, History, Audio, Footage, Media Browser, Brushes, Paint, Content-Aware Fill, Color Scopes, Markers, Metadata, Motion Sketch, Smoother, Wiggler, Progress, Learn, Chat, Terminal, Agents and Dynamic Link. Window > Panels opens any of them; drag a tab onto another group to dock it there, or use Undock Panel from the tab's menu; the backtick key maximises the focused panel.
+- **Toolbar** · selection, hand, zoom, orbit, pan behind, the shape tools (rectangle, rounded rectangle, ellipse, polygon, star), the pen, the type tool, brush, clone stamp and eraser, Roto Paint and the puppet tools. A shape tool with a non-shape layer selected draws a mask instead.
+- **Panels** · Project, Composition (the viewer), Timeline, Effect Controls, Effects & Presets, Info, Preview, Align, Character, Paragraph, Tracker, Render Queue, Template Controls, Flowchart, History, Audio, Footage, Media Browser, Brushes, Paint, Selection-Aware-Fill, Color Scopes, Markers, Metadata, Motion Sketch, Smoother, Wiggler, Progress, Learn, Chat, Terminal, Agents and Live Link. Window > Panels opens any of them; drag a tab onto another group to dock it there, or use Undock Panel from the tab's menu; the backtick key maximises the focused panel.
 - **Workspaces** · Default, Animation, Effects, Text, Motion Tracking, Agent and Minimal (Window > Workspace or the title bar). Save Changes to this Workspace and Save as New Workspace keep your layout.
 - **Language** · Settings > Interface > Language: 26 languages, English by default. The whole interface changes in place, including menus and effect names.
 - **Shortcuts** · Edit > Keyboard Shortcuts shows the keyboard by modifier, searches, records new shortcuts, loads presets and imports or exports a set; conflicts are flagged.
@@ -22,7 +22,7 @@ formvfx is a motion graphics and visual effects compositor: a project of footage
 ## Compositions and layers
 
 - Composition > New Composition sets size, frame rate, duration and background. Composition Settings changes them later; Duplicate Composition, Trim Comp to Work Area and the crop commands work on the active composition.
-- Layer > New adds Text, Solid, Light, Camera, Null Object, Shape Layer, Adjustment Layer, Content-Aware Fill Layer and 3D Primitive (cube, sphere, plane, torus, cone, cylinder). Drag footage from the Project panel into the Timeline or viewer, or use File > Add Footage to Comp.
+- Layer > New adds Text, Solid, Light, Camera, Null Object, Shape Layer, Adjustment Layer, Selection-Aware-Fill Layer and 3D Primitive (cube, sphere, plane, torus, cone, cylinder). Drag footage from the Project panel into the Timeline or viewer, or use File > Add Footage to Comp.
 - Each layer has switches (video, audio, solo, lock, shy, collapse, quality, effects, frame blending, motion blur, adjustment, 3D), a blend mode (39 modes), a parent and a track matte. Layer > Pre-compose moves layers into a precomp.
 - Layer > Time: time stretch, time remapping, freeze frames and time reversal. Layer > Frame Blending includes Pixel Motion.
 - Layer > Layer Styles: the nine styles with Blending Options and Global Light.
@@ -59,8 +59,8 @@ Composition > Composition Flowchart shows the composition as a graph and works a
 
 ## Rotoscoping, paint and puppet
 
-- Open a layer (Layer > Open Layer) and use the Roto Brush tool to stroke the foreground; propagation follows it through the layer, Classic, with MobileSAM, or with SAM 2.1 (which remembers earlier frames). Object Matte selects an object with one click.
-- The brush, clone stamp and eraser paint on a layer; strokes keep their durations and blend modes. The Content-Aware Fill panel fills a masked area from the surrounding frames.
+- Open a layer (Layer > Open Layer) and use the Roto Paint tool to stroke the foreground; propagation follows it through the layer, Classic, with MobileSAM, or with SAM 2.1 (which remembers earlier frames). Object Matte selects an object with one click.
+- The brush, clone stamp and eraser paint on a layer; strokes keep their durations and blend modes. The Selection-Aware-Fill panel fills a masked area from the surrounding frames.
 - The puppet tools place position, starch, overlap, bend and advanced pins; pins can be recorded.
 
 ## Effects
@@ -78,7 +78,7 @@ Composition > Composition Flowchart shows the composition as a graph and works a
 
 ## Tracking
 
-- Animation > Track Motion, Stabilize Motion, Track Mask, Track this Property, Warp Stabilizer and Track Camera; the Tracker panel shows the analysis and applies tracks to a target. Planar tracking, face tracking (outlines, features and measurements) and the 3D Camera Tracker (which creates cameras, nulls, solids, text and a shadow catcher on its points) run as background jobs listed in the Progress panel.
+- Animation > Track Motion, Stabilize Motion, Track Mask, Track this Property, Wrap Stabilization and Track Camera; the Tracker panel shows the analysis and applies tracks to a target. Planar tracking, face tracking (outlines, features and measurements) and the 3D Camera Tracker (which creates cameras, nulls, solids, text and a shadow catcher on its points) run as background jobs listed in the Progress panel.
 
 ## Expressions and scripting
 
@@ -95,15 +95,15 @@ Composition > Composition Flowchart shows the composition as a graph and works a
 
 - Composition > Add to Render Queue, then Render in the Render Queue panel. Render Settings set quality, resolution, proxies, effects, motion blur, frame blending, fields and time span; each item takes several output modules (H.264, HEVC, AV1, ProRes 422 to 4444 XQ, WebM, GIF, PNG, JPEG, TIFF and EXR sequences, WAV, AIFF) with templates. Renders run in the background.
 - Composition > Save Frame As writes a still, PSD layers or a layered EXR; Pre-render and Save Current Preview render to a file. File > Export writes Lottie JSON, editor timelines (XML, FCPXML, OTIO, EDL) and Slices from Guides. File > Watch Folder renders projects dropped into a folder.
-- Composition > Export as Motion Graphics Template and the Essential Graphics panel build templates (`.fvxtemplate` and `.mogrt`) with Essential Properties and Media Replacement.
+- Composition > Export as Motion Graphics Template and the Template Controls panel build templates (`.fvxtemplate` and `.mogrt`) with Primary Properties and Media Replacement.
 
 ## Colour
 
 File > Project Settings sets 8, 16 or 32 bits per channel, the working space (sRGB to ACEScg) with Linearize Working Space and 1.0-gamma blending, and the colour engine (formvfx's own or OCIO with ACES 1.3 built in or any `.ocio` config). View > Use Display Color Management and Simulate Output check the result; Interpret Footage assigns footage profiles; output modules tag HDR (PQ, HLG) renders.
 
-## Dynamic Link
+## Live Link
 
-In the Project panel, Export Dynamic Link Clip writes a `.fvxlink` for a composition; an editor such as formcut plays it live without rendering. Links survive a moved or renamed project and a renumbered composition. Window > Dynamic Link lists what is being served, relinks and errors.
+In the Project panel, Export Live Link Clip writes a `.fvxlink` for a composition; an editor such as formcut plays it live without rendering. Links survive a moved or renamed project and a renumbered composition. Window > Live Link lists what is being served, relinks and errors.
 
 ## Agents
 
