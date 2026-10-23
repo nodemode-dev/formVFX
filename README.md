@@ -82,4 +82,4 @@ Non-blank lines in tracked files; generated skill references excluded. `./formvf
 
 ## Trademarks
 
-Adobe and After Effects are either registered trademarks or trademarks of Adobe in the United States and/or other countries. Other product names are the trademarks of their owners. formvfx is not affiliated with or endorsed by any of them; they are named only to identify file formats and compatibility. See `NOTICE.md`.
+formvfx names file formats by their extension and no other product. Product names a person may associate with those formats are the trademarks of their owners; formvfx is not affiliated with or endorsed by any of them. See `NOTICE.md`.

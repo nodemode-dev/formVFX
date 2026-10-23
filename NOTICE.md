@@ -34,6 +34,6 @@ formvfx is licensed under the Apache License 2.0 (`LICENSE`). It includes or dep
 | pywinpty (Windows only) | the terminal on Windows | MIT |
 | Vite, TypeScript, Tauri API and plugins | build and desktop | MIT, Apache-2.0 |
 
-## Trademarks
+## Trademarks and other products' files
 
-Adobe and After Effects are either registered trademarks or trademarks of Adobe in the United States and/or other countries. Other product names are the trademarks of their owners. formvfx is not affiliated with or endorsed by Adobe or any of them. It names them only to identify file formats and compatibility: it opens the user's own `.aep` projects, `.mogrt` templates and `.ffx` presets with its own readers, runs scripts and CEP extension panels against interfaces it implements itself (the `CSInterface` shim in `backend/app/routers/extensions.py` is formvfx's code), and contains no Adobe code, presets, templates or sample media.
+formvfx names no other product or company (`setup/lint_text.py` holds that); file formats are named by their extension. Any product names a person may associate with those formats are the trademarks of their owners, and formvfx is not affiliated with or endorsed by any of them. It opens the user's own `.aep` projects, `.mogrt` templates and `.ffx` presets with its own readers, runs scripts and CEP extension panels against interfaces it implements itself (the `CSInterface` shim in `backend/app/routers/extensions.py` is formvfx's code), and contains no other vendor's code, presets, templates or sample media.
