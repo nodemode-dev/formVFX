@@ -246,7 +246,7 @@ export class ProgressPanel implements Panel {
         <button class="cv-btn" type="button" data-act="cancelAll">Cancel All</button>
       </div>
       <div class="fx-progress-list" data-automation-id="progress.list"></div>
-      <div class="fx-progress-empty">No background tasks are running. Renders, tracking, Roto Brush, Content-Aware Fill and watch folders show here while they work.</div>
+      <div class="fx-progress-empty">No background tasks are running. Renders, tracking, Roto Paint, Selection-Aware-Fill and watch folders show here while they work.</div>
     </div>`);
     q(this.el, '[data-act="cancelAll"]').addEventListener('click', () => void this.ctx.client.exec('jobs.cancel', { job: 'all' }).catch(() => undefined));
   }

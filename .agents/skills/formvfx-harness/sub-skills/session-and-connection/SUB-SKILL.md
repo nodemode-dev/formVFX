@@ -36,7 +36,7 @@ description: How an agent reaches formvfx. Use when the formvfx MCP server or it
 | `Outside agents are turned off (FORMVFX_AGENTS=deny)` | Only Terminal agents may edit. Suggest starting the agent from the Terminal panel. |
 | `The formvfx engine stopped answering` | The engine exited or is busy past the timeout. `status` again; if it fails, ask the person to restart formvfx. |
 
-Background work (renders started with `wait: false`, tracking, roto, Content-Aware Fill, the watch folder, footage checks) is listed by `jobs.list`, waited for with `jobs.wait {timeout}` and stopped with `jobs.cancel {job}`. `editor.state` gives the whole editor at once (selection, open comps, Footage panel, jobs, undo). When a feature misbehaves on the person's machine, `help.systemReport {quiet: true}` checks FFmpeg, the GPU and the data folder, and `help.enableLogging {on: true}` records every command with its result in `logs/formvfx.log`.
+Background work (renders started with `wait: false`, tracking, roto, Selection-Aware-Fill, the watch folder, footage checks) is listed by `jobs.list`, waited for with `jobs.wait {timeout}` and stopped with `jobs.cancel {job}`. `editor.state` gives the whole editor at once (selection, open comps, Footage panel, jobs, undo). When a feature misbehaves on the person's machine, `help.systemReport {quiet: true}` checks FFmpeg, the GPU and the data folder, and `help.enableLogging {on: true}` records every command with its result in `logs/formvfx.log`.
 
 ## Several windows
 

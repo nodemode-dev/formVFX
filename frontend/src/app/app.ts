@@ -53,7 +53,7 @@ const TOOL_GROUPS: Array<{ key: string; tools: Array<[ToolId, string, string]> }
   { key: 'G', tools: [['pen', 'vPen', 'Pen Tool'], ['penAdd', 'vPenAdd', 'Add Vertex Tool'], ['penDelete', 'vPenDelete', 'Delete Vertex Tool'], ['penConvert', 'vPenConvert', 'Convert Vertex Tool'], ['maskFeather', 'vFeather', 'Mask Feather Tool']] },
   { key: 'Cmd+T', tools: [['type', 'vType', 'Horizontal Type Tool'], ['typeVertical', 'vTypeV', 'Vertical Type Tool']] },
   { key: 'Cmd+B', tools: [['brush', 'vBrush', 'Brush Tool'], ['clone', 'vClone', 'Clone Stamp Tool'], ['eraser', 'vEraser', 'Eraser Tool']] },
-  { key: 'Alt+W', tools: [['roto', 'vRoto', 'Roto Brush Tool'], ['refine', 'vRefine', 'Refine Edge Tool'], ['objectMatte', 'vObjectMatte', 'Object Matte Tool']] },
+  { key: 'Alt+W', tools: [['roto', 'vRoto', 'Roto Paint Tool'], ['refine', 'vRefine', 'Refine Edge Tool'], ['objectMatte', 'vObjectMatte', 'Object Matte Tool']] },
   { key: 'Cmd+P', tools: [['puppet', 'vPuppet', 'Puppet Position Pin Tool'], ['starch', 'vStarch', 'Puppet Starch Pin Tool'], ['bend', 'vBend', 'Puppet Bend Pin Tool'], ['advanced', 'vAdvanced', 'Puppet Advanced Pin Tool'], ['overlap', 'vOverlap', 'Puppet Overlap Pin Tool']] },
 ];
 
@@ -61,7 +61,7 @@ const COMMAND_PANELS: Array<[string, string, string[], string]> = [
   ['tracker', 'Tracker', ['track.', 'warp.', 'camera.analyze', 'camera.solve', 'mask.track'], 'Track motion, stabilize, track a mask or solve a 3D camera. Select the layer first.'],
   ['paint', 'Paint', ['paint.'], 'Paint, clone and erase on a layer; choose the Brush, Clone Stamp or Eraser tool and draw in the viewer.'],
   ['brushes', 'Brushes', ['paint.options', 'paint.presets'], 'Brush tips and their options.'],
-  ['contentAwareFill', 'Content-Aware Fill', ['contentFill.', 'content.'], 'Fill a masked area from the surrounding frames.'],
+  ['contentAwareFill', 'Selection-Aware-Fill', ['contentFill.', 'content.'], 'Fill a masked area from the surrounding frames.'],
   ['markers', 'Markers', ['markers.'], 'Composition and layer markers.'],
   ['audio', 'Audio', ['audio.', 'playback.audio', 'keys.audioToKeyframes'], 'Audio levels, previews and audio-driven keyframes.'],
   ['progress', 'Progress', ['jobs.'], 'Background tasks.'],
@@ -135,7 +135,7 @@ class App {
           { label: 'Start Codex', run: () => void this.tdock.launch('codex') },
           { label: 'Start Cursor', run: () => void this.tdock.launch('cursor') },
           { label: 'Agents', run: () => this.dock.show('agents') },
-          { label: 'Dynamic Link', run: () => this.dock.show('dynamicLink') },
+          { label: 'Live Link', run: () => this.dock.show('dynamicLink') },
           { label: 'Command Palette...', shortcut: 'Cmd+K', run: () => void this.palette.open() },
           { label: 'Maximize Panel', shortcut: '`', run: () => this.dock.toggleMaximizeFocused() },
         ],
@@ -252,14 +252,14 @@ class App {
     this.dock.register('info', 'Info', () => new InfoPanel(ctx));
     this.dock.register('preview', 'Preview', () => new PreviewPanel(ctx));
     this.dock.register('effectsPresets', 'Effects & Presets', () => this.effects);
-    this.dock.register('essential', 'Essential Graphics', () => new EssentialGraphicsPanel(ctx));
+    this.dock.register('essential', 'Template Controls', () => new EssentialGraphicsPanel(ctx));
     this.dock.register('align', 'Align', () => new AlignPanel(ctx));
     this.dock.register('character', 'Character', () => new CharacterPanel(ctx));
     this.dock.register('paragraph', 'Paragraph', () => new ParagraphPanel(ctx));
     this.dock.register('renderQueue', 'Render Queue', () => new RenderQueuePanel(ctx));
     this.dock.register('history', 'History', () => new HistoryPanel(ctx));
     this.dock.register('learn', 'Learn', () => new LearnPanel(ctx));
-    this.dock.register('dynamicLink', 'Dynamic Link', () => new DynamicLinkPanel(ctx));
+    this.dock.register('dynamicLink', 'Live Link', () => new DynamicLinkPanel(ctx));
     this.dock.register('agents', 'Agents', () => new AgentsPanel(ctx));
     this.dock.register('flowchart', 'Flowchart', () => new FlowchartPanel(ctx));
     this.dock.register('wiggler', 'Wiggler', () => new WigglerPanel(ctx));

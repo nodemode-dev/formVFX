@@ -43,7 +43,7 @@ fn effect_uid(e: &Engine, cid: u64, lid: u64, p: &Json) -> Result<Option<u64>, S
     let l = e.layer_ref(cid, lid)?;
     let Some(fxg) = l.effects() else { return Ok(None) };
     match p.get("effect").and_then(Json::as_u64) {
-        Some(u) => fxg.groups().find(|g| g.uid == u && is_roto(g)).map(|g| Some(g.uid)).ok_or_else(|| "no Roto Brush with that uid".into()),
+        Some(u) => fxg.groups().find(|g| g.uid == u && is_roto(g)).map(|g| Some(g.uid)).ok_or_else(|| "no Roto Paint with that uid".into()),
         None => Ok(fxg.groups().filter(|g| is_roto(g)).last().map(|g| g.uid)),
     }
 }
@@ -53,7 +53,7 @@ fn ensure(e: &mut Engine, cid: u64, lid: u64, p: &Json) -> Result<u64, String> {
         return Ok(u);
     }
     let r = super::effect::apply(e, &json!({"effect": fx::ID, "layers": [lid], "comp": cid}))?;
-    let uid = r.get("applied").and_then(|a| a.get(0)).and_then(|a| a.get("uid")).and_then(Json::as_u64).ok_or("could not add the Roto Brush")?;
+    let uid = r.get("applied").and_then(|a| a.get(0)).and_then(|a| a.get("uid")).and_then(Json::as_u64).ok_or("could not add the Roto Paint")?;
     let m = active_model(e);
     if let Some(pr) = e.layer_mut(cid, lid)?.props.find_group_mut(uid).and_then(|g| g.get_mut("model")) {
         pr.value = Value::Enum(m);
@@ -77,7 +77,7 @@ fn s_of(g: &Group, id: &str) -> String {
 }
 
 fn read(e: &Engine, cid: u64, lid: u64, uid: u64) -> Result<State, String> {
-    let g = e.layer_ref(cid, lid)?.props.find_group(uid).ok_or("no Roto Brush")?;
+    let g = e.layer_ref(cid, lid)?.props.find_group(uid).ok_or("no Roto Paint")?;
     let span = s_of(g, "span").split_once(',').and_then(|(a, b)| Some((a.trim().parse().ok()?, b.trim().parse().ok()?)));
     Ok(State {
         model: g.get("model").map(|p| p.value.index()).unwrap_or(0),
@@ -89,7 +89,7 @@ fn read(e: &Engine, cid: u64, lid: u64, uid: u64) -> Result<State, String> {
 }
 
 fn write(e: &mut Engine, cid: u64, lid: u64, uid: u64, st: &State) -> Result<(), String> {
-    let g = e.layer_mut(cid, lid)?.props.find_group_mut(uid).ok_or("no Roto Brush")?;
+    let g = e.layer_mut(cid, lid)?.props.find_group_mut(uid).ok_or("no Roto Paint")?;
     let set = |g: &mut Group, id: &str, v: String| {
         if let Some(pr) = g.get_mut(id) {
             pr.value = Value::Str(v);
@@ -319,13 +319,13 @@ fn start_propagate(e: &mut Engine, cid: u64, lid: u64, uid: u64, dir: &str, wait
     anchors.sort_unstable();
     anchors.dedup();
     if anchors.is_empty() {
-        return Err("draw a Roto Brush stroke inside the span first".into());
+        return Err("draw a Roto Paint stroke inside the span first".into());
     }
     need_model(st.model)?;
     let seg = seg_for(e, cid, lid, st.model)?;
     let fwd = dir != "backward";
     let back = dir != "forward";
-    jobs::run(e, "roto", lid, "Propagate Roto Brush", wait, move |ctx| {
+    jobs::run(e, "roto", lid, "Propagate Roto Paint", wait, move |ctx| {
         let mut results: Vec<(i64, Vec<bool>)> = vec![];
         let mut cur = State { model: st.model, strokes: st.strokes.clone(), span: st.span, mattes: st.mattes.clone(), frozen: st.frozen };
         for (i, &f) in anchors.iter().enumerate() {
@@ -413,7 +413,7 @@ pub fn stroke(e: &mut Engine, p: &Json) -> Res {
     ms.frames.insert(f, roto::encode_rle(&m));
     st.mattes = Some(ms);
     write(e, cid, lid, uid, &st)?;
-    e.set_label("Roto Brush Stroke");
+    e.set_label("Roto Paint Stroke");
     let auto = opts.get("autoPropagate").and_then(Json::as_bool).unwrap_or(true) && !pb(p, "noPropagate").unwrap_or(false);
     let job = if auto { start_propagate(e, cid, lid, uid, "both", false).ok() } else { None };
     Ok(json!({"layer": lid, "effect": uid, "frame": f, "coverage": coverage, "span": st.span.map(|(a, b)| [a, b]), "propagating": job.is_some()}))
@@ -421,7 +421,7 @@ pub fn stroke(e: &mut Engine, p: &Json) -> Res {
 
 pub fn propagate(e: &mut Engine, p: &Json) -> Res {
     let (cid, lid) = e.layer_param(p)?;
-    let uid = effect_uid(e, cid, lid, p)?.ok_or("the layer has no Roto Brush")?;
+    let uid = effect_uid(e, cid, lid, p)?.ok_or("the layer has no Roto Paint")?;
     if let Some(to) = pf(p, "to") {
         let mut st = read(e, cid, lid, uid)?;
         let to = to.round() as i64;
@@ -451,7 +451,7 @@ pub fn span(e: &mut Engine, p: &Json) -> Res {
 
 pub fn freeze(e: &mut Engine, p: &Json) -> Res {
     let (cid, lid) = e.layer_param(p)?;
-    let uid = effect_uid(e, cid, lid, p)?.ok_or("the layer has no Roto Brush")?;
+    let uid = effect_uid(e, cid, lid, p)?.ok_or("the layer has no Roto Paint")?;
     let mut st = read(e, cid, lid, uid)?;
     let (a, b) = st.span.ok_or("nothing to freeze")?;
     let missing = (a..=b).any(|f| st.mattes.as_ref().is_none_or(|m| !m.frames.contains_key(&f)));
@@ -467,7 +467,7 @@ pub fn freeze(e: &mut Engine, p: &Json) -> Res {
 
 pub fn unfreeze(e: &mut Engine, p: &Json) -> Res {
     let (cid, lid) = e.layer_param(p)?;
-    let uid = effect_uid(e, cid, lid, p)?.ok_or("the layer has no Roto Brush")?;
+    let uid = effect_uid(e, cid, lid, p)?.ok_or("the layer has no Roto Paint")?;
     let mut st = read(e, cid, lid, uid)?;
     st.frozen = false;
     write(e, cid, lid, uid, &st)?;
@@ -477,7 +477,7 @@ pub fn unfreeze(e: &mut Engine, p: &Json) -> Res {
 
 pub fn clear_strokes(e: &mut Engine, p: &Json) -> Res {
     let (cid, lid) = e.layer_param(p)?;
-    let uid = effect_uid(e, cid, lid, p)?.ok_or("the layer has no Roto Brush")?;
+    let uid = effect_uid(e, cid, lid, p)?.ok_or("the layer has no Roto Paint")?;
     let mut st = read(e, cid, lid, uid)?;
     let frame = pf(p, "frame").map(|v| v.round() as i64);
     let kind = ps(p, "kind").map(|k| match k {
@@ -498,7 +498,7 @@ pub fn clear_strokes(e: &mut Engine, p: &Json) -> Res {
         }
     }
     write(e, cid, lid, uid, &st)?;
-    e.set_label("Remove Roto Brush Strokes");
+    e.set_label("Remove Roto Paint Strokes");
     Ok(json!({"effect": uid, "removed": removed}))
 }
 
@@ -583,13 +583,13 @@ pub fn model_select(e: &mut Engine, p: &Json) -> Res {
             e.prefs.insert("rotoModel".into(), json!(id));
             Ok(json!({"active": id}))
         }
-        other => Err(format!("no Roto Brush model {other} (classical, mobilesam, sam2 or sam2full)")),
+        other => Err(format!("no Roto Paint model {other} (classical, mobilesam, sam2 or sam2full)")),
     }
 }
 
 fn which(p: &Json) -> Result<&'static ModelInfo, String> {
     let id = ps(p, "id").unwrap_or(MOBILESAM.id);
-    roto::model_info(if id == "sam2full" { "sam2" } else { id }).ok_or_else(|| format!("no downloadable Roto Brush model {id} (mobilesam or sam2)"))
+    roto::model_info(if id == "sam2full" { "sam2" } else { id }).ok_or_else(|| format!("no downloadable Roto Paint model {id} (mobilesam or sam2)"))
 }
 
 fn place(m: &ModelInfo, bytes: &[u8]) -> Result<PathBuf, String> {

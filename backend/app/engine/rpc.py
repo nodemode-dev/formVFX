@@ -56,7 +56,7 @@ async def _native_edit(name: str, fn, source: str) -> Any:
     return json.loads(raw) if raw else None
 
 
-_NEEDS_SAM = "Object Matte uses the MobileSAM model: install it in Settings > Roto Brush (Download), or run roto.model.download {id: mobilesam}"
+_NEEDS_SAM = "Object Matte uses the MobileSAM model: install it in Settings > Roto Paint (Download), or run roto.model.download {id: mobilesam}"
 
 
 async def _object_matte(p: dict, source: str) -> dict:

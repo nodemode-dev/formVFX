@@ -51,7 +51,7 @@ function show(v: unknown): string {
 
 export class EssentialGraphicsPanel implements Panel {
   readonly id = 'essential';
-  readonly title = 'Essential Graphics';
+  readonly title = 'Template Controls';
   readonly el: HTMLElement;
   private readonly comp: HTMLSelectElement;
   private readonly name: HTMLInputElement;
@@ -196,8 +196,8 @@ export class EssentialGraphicsPanel implements Panel {
       !d
         ? 'Open a composition to build a template.'
         : rows.length
-          ? `${rows.filter((r) => r.kind === 'property').length} properties. Every precomp layer of this composition shows them under Essential Properties${used ? ` (${used} in use)` : ''}.`
-          : 'Select a property in the Timeline and choose Animation > Add Property to Essential Graphics.',
+          ? `${rows.filter((r) => r.kind === 'property').length} properties. Every precomp layer of this composition shows them under Primary Properties${used ? ` (${used} in use)` : ''}.`
+          : 'Select a property in the Timeline and choose Animation > Add Property to Template Controls.',
     );
   }
 

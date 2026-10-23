@@ -236,7 +236,7 @@ async def export(comp: Any, path: str | None, source: str) -> dict:
     summary = await execute("project.summary", {}, source)
     project = summary.get("path") if isinstance(summary, dict) else None
     if not project:
-        raise RpcError("save the project first: a Dynamic Link clip points at the saved project file")
+        raise RpcError("save the project first: a Live Link clip points at the saved project file")
     data = await info(project, comp)
     name = (data["comp"].get("name") or "Comp").replace("/", "-").replace("\\", "-")
     out = Path(path).expanduser() if path else Path(project).with_name(f"{Path(project).stem} - {name}{SUFFIX}")
@@ -275,7 +275,7 @@ async def check(descriptor: dict, path: str | None = None, write: bool = False) 
     mine = _major(FORMAT) or 1
     theirs = _major(descriptor.get("format"))
     if theirs is None:
-        raise RpcError("this is not a formvfx Dynamic Link descriptor (its format should be formvfx.link/1)", -32602)
+        raise RpcError("this is not a formvfx Live Link descriptor (its format should be formvfx.link/1)", -32602)
     if theirs > mine:
         raise RpcError(f"this link was written by a newer formvfx ({descriptor.get('formvfx') or 'format ' + str(theirs)}); this formvfx {__version__} reads format {mine}. Update formvfx to open it.", -32602)
     comp = descriptor.get("comp") or {}

@@ -157,7 +157,7 @@ Planar tracking: follows a flat surface (a screen, a sign, a wall, a tabletop) t
 
 ## object_matte
 
-Object Matte: isolates one object (a person, a car, a product) in footage from one point on it. action preview segments the object at time and returns its bounding box, coverage and the model's confidence without changing anything; action select puts a Roto Brush on the layer seeded at that point (one undo step), spans the whole layer and propagates it (direction both by default; wait true blocks until done, otherwise call wait). The layer's alpha becomes the object's matte. Needs the MobileSAM model (roto.model.download {id: mobilesam}).
+Object Matte: isolates one object (a person, a car, a product) in footage from one point on it. action preview segments the object at time and returns its bounding box, coverage and the model's confidence without changing anything; action select puts a Roto Paint on the layer seeded at that point (one undo step), spans the whole layer and propagates it (direction both by default; wait true blocks until done, otherwise call wait). The layer's alpha becomes the object's matte. Needs the MobileSAM model (roto.model.download {id: mobilesam}).
 
 - `action`: string (preview | select); required
 - `layer`: id or name; required; Layer id, `#n` (1 = top) or name.
@@ -203,7 +203,7 @@ Renders a composition to a file through the Render Queue and waits for it: forma
 
 ## dynamic_link
 
-Dynamic Link: another app (formcut, an editor, a script) uses a composition as a live clip with no render. export writes a .fvxlink descriptor beside the saved project (or at path) naming the project, the comp and the frame and audio URLs; the editor fetches GET /api/link/frame.png?project=&comp=&time= and /api/link/audio with the x-formvfx-local: 1 header, so every saved change shows up on its next frame (the open project serves its unsaved state too). info reads a comp's size, rate and duration from any saved project file, and frame renders one of its frames, both without opening that project in the window. Links survive a moved or renamed project (found again by its project id or file name beside the .fvxlink, in the project's old folder or among recent projects) and a renumbered comp (found again by name). check reads a .fvxlink (path), reports whether it resolves, was relinked, or was written by a newer formvfx, and with write: true rewrites it to the new location; render renders the linked comp to a movie beside the project (Render and Replace for the editor); status lists the projects being served and the recent link requests.
+Live Link: another app (formcut, an editor, a script) uses a composition as a live clip with no render. export writes a .fvxlink descriptor beside the saved project (or at path) naming the project, the comp and the frame and audio URLs; the editor fetches GET /api/link/frame.png?project=&comp=&time= and /api/link/audio with the x-formvfx-local: 1 header, so every saved change shows up on its next frame (the open project serves its unsaved state too). info reads a comp's size, rate and duration from any saved project file, and frame renders one of its frames, both without opening that project in the window. Links survive a moved or renamed project (found again by its project id or file name beside the .fvxlink, in the project's old folder or among recent projects) and a renumbered comp (found again by name). check reads a .fvxlink (path), reports whether it resolves, was relinked, or was written by a newer formvfx, and with write: true rewrites it to the new location; render renders the linked comp to a movie beside the project (Render and Replace for the editor); status lists the projects being served and the recent link requests.
 
 - `action`: string (export | info | frame | check | render | status); required
 - `project`: string; absolute project path, .fvxproj or .ecproj (default the open project)
@@ -257,7 +257,7 @@ The formvfx window: state (what the person sees: panels, tool, zoom, workspace),
 
 ## wait
 
-Waits until background work (rendering, tracking, stabilizing, Roto Brush, Content-Aware Fill) has finished, up to timeout seconds.
+Waits until background work (rendering, tracking, stabilizing, Roto Paint, Selection-Aware-Fill) has finished, up to timeout seconds.
 
 - `timeout`: number; default 120
 
@@ -297,7 +297,7 @@ list_effects {query} finds effects (blur, color correction, distort, generate, k
 
 ### masks
 
-layer.addMask {layer, shape: rect|ellipse, rect: [x, y, w, h] in layer pixels}; mask.new {layer, vertices: [[x,y]...]} for a polygon; mask properties: masks/#1/feather, masks/#1/opacity, masks/#1/expansion (or layer.mask.set {layer, mask, field, value}); mode with layer.mask.mode {layer, mask, mode: None|Add|Subtract|Intersect|Lighten|Darken|Difference}, invert with layer.mask.invert. Roto Brush: roto.stroke {layer, kind: fg|bg, points (layer px)} then roto.propagate {direction, wait: true}.
+layer.addMask {layer, shape: rect|ellipse, rect: [x, y, w, h] in layer pixels}; mask.new {layer, vertices: [[x,y]...]} for a polygon; mask properties: masks/#1/feather, masks/#1/opacity, masks/#1/expansion (or layer.mask.set {layer, mask, field, value}); mode with layer.mask.mode {layer, mask, mode: None|Add|Subtract|Intersect|Lighten|Darken|Difference}, invert with layer.mask.invert. Roto Paint: roto.stroke {layer, kind: fg|bg, points (layer px)} then roto.propagate {direction, wait: true}.
 
 ### 3d
 

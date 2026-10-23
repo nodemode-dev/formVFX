@@ -14,7 +14,7 @@ pub fn specs() -> Vec<EffectSpec> {
         EffectSpec { id: "fx.face.measurements", name: "Face Measurements", category: CAT, params: meas, render: pass, pad: no_pad },
         EffectSpec {
             id: "fx.distort.warpStabilizer",
-            name: "Warp Stabilizer",
+            name: "Wrap Stabilization",
             category: "Distort",
             params: vec![
                 popup("result", "Result", 0, &["Smooth Motion", "No Motion"]),

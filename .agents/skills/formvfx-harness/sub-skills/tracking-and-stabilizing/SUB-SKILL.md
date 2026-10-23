@@ -1,6 +1,6 @@
 ---
 name: tracking-and-stabilizing
-description: Motion tracking in formvfx. Use to point-track footage and attach text, graphics or nulls to it, track position, rotation and scale or corner-pin a screen, sign or wall with the planar tracker, stabilize shaky footage with Warp Stabilizer or a stabilize track, solve a 3D camera from footage and place layers in the solved scene, track masks, or track faces.
+description: Motion tracking in formvfx. Use to point-track footage and attach text, graphics or nulls to it, track position, rotation and scale or corner-pin a screen, sign or wall with the planar tracker, stabilize shaky footage with Wrap Stabilization or a stabilize track, solve a 3D camera from footage and place layers in the solved scene, track masks, or track faces.
 ---
 
 # tracking-and-stabilizing
@@ -25,7 +25,7 @@ Verified sequence, attaching a null to a moving feature:
 - `track.status {layer}` shows the points and how many frames have keys. `track.options {layer, channel: rgb|luminance|saturation, adaptEveryFrame, threshold, action: continue|stop|extrapolate|adapt}` tunes a track that drifts.
 - `track.apply` writes position (and rotation, scale) keys on the target, one per frame. Parent graphics to that null rather than applying to them directly, so they can be offset and animated on top of the track.
 - Screen replacement: use the planar tracker below. A `kind: perspective` point track (four points on the screen corners, analyze, target, apply) works when all four corners stay visible and distinct.
-- People run the same steps from the Tracker panel (`ui {action: panel, panel: tracker}`), which offers Track Camera, Warp Stabilize, Track Motion, Stabilize Motion; Motion Source, Current Track, Track Type, Position / Rotation / Scale, Motion Target, Options, Analyze (one frame or all, either way), Stop, Reset, Apply. With a mask on the source selected, the panel tracks the mask instead (Mask Method shows). Point the person at it when they want to adjust a track by hand.
+- People run the same steps from the Tracker panel (`ui {action: panel, panel: tracker}`), which offers Track Camera, Wrap Stabilize, Track Motion, Stabilize Motion; Motion Source, Current Track, Track Type, Position / Rotation / Scale, Motion Target, Options, Analyze (one frame or all, either way), Stop, Reset, Apply. With a mask on the source selected, the panel tracks the mask instead (Mask Method shows). Point the person at it when they want to adjust a track by hand.
 
 ## Planar tracking (screens, signs, walls, tabletops)
 
@@ -40,7 +40,7 @@ Check: `contact_sheet` across the shot with the insert visible; the insert's edg
 
 ## Stabilizing
 
-- Warp Stabilizer: `track.warpStabilizer {layer, wait: true}` applies the effect and analyzes. Its settings (smoothness, method, framing) are properties under the effect (`get_layer`).
+- Wrap Stabilization: `track.warpStabilizer {layer, wait: true}` applies the effect and analyzes. Its settings (smoothness, method, framing) are properties under the effect (`get_layer`).
 - Point stabilize: `track.new {layer, kind: stabilize}`, set the point, analyze, `track.apply` (the layer itself moves).
 
 ## 3D camera tracking

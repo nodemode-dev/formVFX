@@ -277,10 +277,10 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `angle` = 0 (angle); `radius` = 30 (slider 0..100); `center` = {"relative": [0.5, 0.5]} (point)
 - **Warp** `fx.distort.warp`
   `style` = 0 (menu Arc|Arc Lower|Arc Upper|Arch|Bulge|Shell Lower|Shell Upper|Flag|Wave|Fish|...); `axis` = 0 (menu Horizontal|Vertical); `bend` = 50 (slider -100..100); `horizontal` = 0 (slider -100..100); `vertical` = 0 (slider -100..100)
-- **Warp Stabilizer** `fx.distort.warpStabilizer`
-  `result` = 0 (menu Smooth Motion|No Motion); `smoothness` = 50 (slider 0..100); `method` = 3 (menu Position|Position, Scale, Rotation|Perspective|Subspace Warp); `preserveScale` = false (checkbox); `framing` = 2 (menu Stabilize Only|Stabilize, Crop|Stabilize, Crop, Auto-scale|Stabilize, Synthesize Edges); `maxScale` = 150 (slider 100..200); `actionSafe` = 0 (slider 0..50); `additionalScale` = 100 (slider 50..150); `detailed` = false (checkbox); `synthRange` = 0.3 (slider 0..30); `synthFeather` = 0 (slider 0..100); `analysis` = "" (hidden)
 - **Wave Warp** `fx.distort.waveWarp`
   `type` = 0 (menu Sine|Square|Triangle|Sawtooth|Circle|Semicircle|Noise); `height` = 10 (slider -100..100); `width` = 40 (slider 1..1000); `direction` = 90 (angle); `speed` = 1 (slider -10..10); `pinning` = 0 (menu None|All Edges); `phase` = 0 (angle)
+- **Wrap Stabilization** `fx.distort.warpStabilizer`
+  `result` = 0 (menu Smooth Motion|No Motion); `smoothness` = 50 (slider 0..100); `method` = 3 (menu Position|Position, Scale, Rotation|Perspective|Subspace Warp); `preserveScale` = false (checkbox); `framing` = 2 (menu Stabilize Only|Stabilize, Crop|Stabilize, Crop, Auto-scale|Stabilize, Synthesize Edges); `maxScale` = 150 (slider 100..200); `actionSafe` = 0 (slider 0..50); `additionalScale` = 100 (slider 50..150); `detailed` = false (checkbox); `synthRange` = 0.3 (slider 0..30); `synthFeather` = 0 (slider 0..100); `analysis` = "" (hidden)
 
 ## Expression Controls
 
@@ -417,7 +417,7 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `edgeRadius` = 2 (slider 0..30); `viewEdgeRegion` = false (checkbox); `smooth` = 0 (slider 0..100); `feather` = 50 (slider 0..100); `contrast` = 50 (slider 0..100); `shiftEdge` = 0 (slider -100..100); `reduceChatter` = 0 (slider 0..100); `decontaminate` = true (checkbox); `decontaminationAmount` = 100 (slider 0..100)
 - **Refine Soft Matte** `fx.matte.refineSoftMatte`
   `edgeRadius` = 10 (slider 0..30); `viewEdgeRegion` = false (checkbox); `smooth` = 0 (slider 0..100); `feather` = 0 (slider 0..100); `contrast` = 0 (slider 0..100); `shiftEdge` = 0 (slider -100..100); `reduceChatter` = 0 (slider 0..100); `decontaminate` = true (checkbox); `decontaminationAmount` = 100 (slider 0..100)
-- **Roto Brush & Refine Edge** `fx.matte.rotoBrush`
+- **Roto Paint & Refine Edge** `fx.matte.rotoBrush`
   `model` = 0 (menu Classic|MobileSAM|SAM 2|SAM 2 Full Resolution); `renderRefineEdge` = false (checkbox); `baseRefineRadius` = 2 (slider 0..30); `rotoMatte/feather` = 0 (slider 0..100); `rotoMatte/contrast` = 0 (slider 0..100); `rotoMatte/shiftEdge` = 0 (slider -100..100); `rotoMatte/reduceChatter` = 0 (slider 0..100); `refineMatte/smooth` = 0 (slider 0..100); `refineMatte/feather` = 0 (slider 0..100); `refineMatte/contrast` = 50 (slider 0..100); `refineMatte/shiftEdge` = 0 (slider -100..100); `refineMatte/decontaminate` = true (checkbox); `refineMatte/decontaminationAmount` = 50 (slider 0..100); `strokes` = "[]" (hidden); `span` = "" (hidden); `mattes` = "" (hidden); `frozen` = "" (hidden)
 - **Simple Choker** `fx.matte.simpleChoker`
   `view` = 0 (menu Final Output|Matte); `choke` = 0 (slider -100..100)

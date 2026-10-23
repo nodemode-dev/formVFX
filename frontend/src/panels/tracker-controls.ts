@@ -179,7 +179,7 @@ export class MotionTracker {
   constructor(private readonly ctx: Ctx) {
     this.el = el('<section class="fx-assist fx-planar fx-tracker" data-automation-id="tracker.motion"><div class="fx-planar-head">Tracker</div><div class="fx-tracker-grid"></div></section>');
     const grid = q(this.el, '.fx-tracker-grid');
-    for (const [cmd, label] of [['track.camera', 'Track Camera'], ['track.warpStabilizer', 'Warp Stabilize'], ['track.motion', 'Track Motion'], ['track.stabilize', 'Stabilize Motion']]) {
+    for (const [cmd, label] of [['track.camera', 'Track Camera'], ['track.warpStabilizer', 'Wrap Stabilize'], ['track.motion', 'Track Motion'], ['track.stabilize', 'Stabilize Motion']]) {
       const b = el<HTMLButtonElement>(`<button class="cv-btn fx-tracker-btn" type="button" data-automation-id="tracker.motion.${cmd}"></button>`);
       setText(b, label);
       b.addEventListener('click', () => void this.act(cmd, {}));

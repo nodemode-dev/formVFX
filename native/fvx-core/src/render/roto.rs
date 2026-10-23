@@ -54,7 +54,7 @@ pub fn installed_of(m: &ModelInfo) -> bool {
     std::fs::metadata(path_of(m)).map(|x| x.len() == m.size).unwrap_or(false)
 }
 
-pub const NEEDS_SAM2: &str = "the SAM 2 Roto Brush uses the SAM 2.1 tiny model: install it in Settings > Roto Brush (Download), or run roto.model.download {id: sam2}";
+pub const NEEDS_SAM2: &str = "the SAM 2 Roto Paint uses the SAM 2.1 tiny model: install it in Settings > Roto Paint (Download), or run roto.model.download {id: sam2}";
 
 type Sam2Slot = Mutex<Option<Arc<super::sam2::Sam2>>>;
 
@@ -67,7 +67,7 @@ pub fn load_sam2() -> Result<Arc<super::sam2::Sam2>, String> {
     }
     let bytes = std::fs::read(path_of(&SAM2)).map_err(|_| NEEDS_SAM2.to_string())?;
     if sha256_hex(&bytes) != SAM2.sha256 {
-        return Err("the installed SAM 2 file does not match its checksum: download it again in Settings > Roto Brush".into());
+        return Err("the installed SAM 2 file does not match its checksum: download it again in Settings > Roto Paint".into());
     }
     let w = super::ptload::read(&bytes)?;
     let m = Arc::new(super::sam2::Sam2::load(&w)?);
@@ -75,7 +75,7 @@ pub fn load_sam2() -> Result<Arc<super::sam2::Sam2>, String> {
     Ok(m)
 }
 
-pub const NEEDS: &str = "Object Matte and the MobileSAM Roto Brush use the MobileSAM model: install it in Settings > Roto Brush (Download), or run roto.model.download {id: mobilesam}";
+pub const NEEDS: &str = "Object Matte and the MobileSAM Roto Paint use the MobileSAM model: install it in Settings > Roto Paint (Download), or run roto.model.download {id: mobilesam}";
 
 pub fn models_dir() -> PathBuf {
     if let Ok(d) = std::env::var("FORMVFX_MODELS") {
@@ -153,7 +153,7 @@ pub fn load_sam() -> Result<Arc<Sam>, String> {
     }
     let bytes = std::fs::read(&path).map_err(|_| NEEDS.to_string())?;
     if sha256_hex(&bytes) != MOBILESAM.sha256 {
-        return Err("the installed MobileSAM file does not match its checksum: download it again in Settings > Roto Brush".into());
+        return Err("the installed MobileSAM file does not match its checksum: download it again in Settings > Roto Paint".into());
     }
     let w = super::ptload::read(&bytes)?;
     let m = Arc::new(Sam::load(&w)?);

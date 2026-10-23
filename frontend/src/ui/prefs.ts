@@ -53,19 +53,19 @@ const LANG_KEY = 'formvfx_lang';
 const TITLES: Record<string, string> = {
   interface: 'Interface', general: 'General', startup: 'Startup & Repair', project: 'Project', composition: 'Composition', previews: 'Previews', appearance: 'Appearance',
   grids: 'Grids & Guides', labels: 'Labels', type: 'Type', import: 'Import', export: 'Export', audio: 'Audio', disk: 'Disk & Cache', memory: 'Memory & CPU',
-  video: 'Video', '3d': '3D', scripting: 'Scripting & Expressions', roto: 'Roto Brush', face: 'Face Tracking',
+  video: 'Video', '3d': '3D', scripting: 'Scripting & Expressions', roto: 'Roto Paint', face: 'Face Tracking',
 };
 
 const SECTIONS: Array<[string, string]> = [
   ['General', 'pfGeneral'], ['Interface', 'pfInterface'], ['Composition', 'pfComposition'], ['Type', 'pfType'], ['File Handling', 'pfFile'],
   ['History & Cache', 'pfHistory'], ['Performance', 'pfPerformance'], ['Guides & Grid', 'pfGuides'], ['Audio', 'pfAudio'], ['3D', 'pfCube'],
-  ['Roto Brush', 'pfRoto'], ['Face Tracking', 'pfFace'], ['Labels', 'pfLabel'], ['Plugins', 'pfPlugins'],
+  ['Roto Paint', 'pfRoto'], ['Face Tracking', 'pfFace'], ['Labels', 'pfLabel'], ['Plugins', 'pfPlugins'],
 ];
 
 const SECTION_OF: Record<string, string> = {
   general: 'General', startup: 'General', interface: 'Interface', appearance: 'Interface', composition: 'Composition', previews: 'Composition', type: 'Type',
   project: 'File Handling', import: 'File Handling', export: 'File Handling', disk: 'History & Cache', memory: 'Performance', video: 'Performance',
-  grids: 'Guides & Grid', audio: 'Audio', '3d': '3D', roto: 'Roto Brush', face: 'Face Tracking', labels: 'Labels', scripting: 'Plugins',
+  grids: 'Guides & Grid', audio: 'Audio', '3d': '3D', roto: 'Roto Paint', face: 'Face Tracking', labels: 'Labels', scripting: 'Plugins',
 };
 
 const slug = (name: string): string => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');

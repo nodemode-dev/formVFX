@@ -45,9 +45,9 @@ Alpha needs both a format that carries it (PNG, ProRes 4444, WebM, EXR, TIFF) an
 - Lottie: `file.exportLottie {comp, path (.json or .lottie), includeExpressions, textAsShapes}`. It reports warnings for anything Lottie cannot carry (most effects, expressions unless included); read them and tell the person.
 - A frame for yourself to look at: `render_frame` (returns the image, writes nothing).
 
-## Dynamic Link (a live comp in another app)
+## Live Link (a live comp in another app)
 
-When an editor (formcut, a script) should use a composition without a render, save the project and run `dynamic_link {action: "export", comp}`: it writes `<project> - <comp>.fvxlink` beside the project, naming the project, the comp and the frame and audio URLs. The other app fetches `GET /api/link/frame.png?project=&comp=&time=` and `/api/link/audio?project=&comp=&start=&seconds=` from the running engine with the `x-formvfx-local: 1` header, so every saved change shows up on its next frame, with no render and no intermediate file. `dynamic_link {action: "info" | "frame", project, comp, time}` reads or renders a comp from any saved project without opening it in the window (useful to check a linked comp the person is not editing). People export the descriptor from a composition's context menu in the Project panel (Export Dynamic Link Clip).
+When an editor (formcut, a script) should use a composition without a render, save the project and run `dynamic_link {action: "export", comp}`: it writes `<project> - <comp>.fvxlink` beside the project, naming the project, the comp and the frame and audio URLs. The other app fetches `GET /api/link/frame.png?project=&comp=&time=` and `/api/link/audio?project=&comp=&start=&seconds=` from the running engine with the `x-formvfx-local: 1` header, so every saved change shows up on its next frame, with no render and no intermediate file. `dynamic_link {action: "info" | "frame", project, comp, time}` reads or renders a comp from any saved project without opening it in the window (useful to check a linked comp the person is not editing). People export the descriptor from a composition's context menu in the Project panel (Export Live Link Clip).
 
 ## Projects
 

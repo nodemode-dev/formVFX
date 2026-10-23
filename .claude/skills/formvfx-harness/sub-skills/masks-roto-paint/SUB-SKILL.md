@@ -1,6 +1,6 @@
 ---
 name: masks-roto-paint
-description: Isolating and drawing on layers in formvfx. Use for masks (rectangles, ellipses, free shapes, feather, expansion, opacity, modes, inverting, animating the mask path), Roto Brush segmentation and propagation, one-click Object Matte, paint, clone and eraser strokes with write-on, Puppet pins, Liquify, Auto-trace and Content-Aware Fill for removing objects from footage.
+description: Isolating and drawing on layers in formvfx. Use for masks (rectangles, ellipses, free shapes, feather, expansion, opacity, modes, inverting, animating the mask path), Roto Paint segmentation and propagation, one-click Object Matte, paint, clone and eraser strokes with write-on, Puppet pins, Liquify, Auto-trace and Selection-Aware-Fill for removing objects from footage.
 ---
 
 # masks-roto-paint
@@ -32,7 +32,7 @@ Tangents are relative to their vertex. Keep the same vertex count on every key; 
 
 A mask with mode `None` changes nothing by itself and is how a path is given to Stroke, text on a path or other effects that read a mask.
 
-## Roto Brush
+## Roto Paint
 
 For separating a subject from footage:
 
@@ -41,11 +41,11 @@ For separating a subject from footage:
 3. Refine with more strokes on frames where it drifted, then `roto.freeze {layer, wait: true}` to lock the result.
 4. `roto.status {layer, frame}` reports progress and can return the matte; `roto.options {view: alphaOverlay}` changes what the window shows.
 
-The model is chosen in Settings > Roto Brush or with `roto.model.select {id}`: `classical` (built in), `mobilesam` (propagated by optical flow), `sam2` (SAM 2.1 tiny, which remembers the stroked frames and the frames just before, so it holds an object through motion and occlusion far better; under a second a frame) or `sam2full` (the same at full resolution, several seconds a frame, for the final pass). `roto.models` shows which are installed; `roto.model.download {id: sam2}` installs SAM 2 (about 156 MB). The effect's Version shows the model a matte was made with.
+The model is chosen in Settings > Roto Paint or with `roto.model.select {id}`: `classical` (built in), `mobilesam` (propagated by optical flow), `sam2` (SAM 2.1 tiny, which remembers the stroked frames and the frames just before, so it holds an object through motion and occlusion far better; under a second a frame) or `sam2full` (the same at full resolution, several seconds a frame, for the final pass). `roto.models` shows which are installed; `roto.model.download {id: sam2}` installs SAM 2 (about 156 MB). The effect's Version shows the model a matte was made with.
 
 ## Object Matte (one click)
 
-For one whole object (a person, a car, a product), skip the strokes: `object_matte {action: "preview", layer, point: [x, y], time}` shows what one point on it selects (bounding box, coverage, the model's confidence) without changing anything; move the point if the box is wrong. Then `object_matte {action: "select", layer, point, time, wait: true}` seeds a Roto Brush at that point, spans the whole layer and propagates both ways; the layer's alpha is the object. It needs the MobileSAM model (`roto.models` shows it; `roto.model.download {id: mobilesam, wait: true}` installs it, about 40 MB). Correct a drifted frame with `roto.stroke` as above. People do the same with the Object Matte tool (Alt+W cycles to it): hover shows the object tinted, click selects it.
+For one whole object (a person, a car, a product), skip the strokes: `object_matte {action: "preview", layer, point: [x, y], time}` shows what one point on it selects (bounding box, coverage, the model's confidence) without changing anything; move the point if the box is wrong. Then `object_matte {action: "select", layer, point, time, wait: true}` seeds a Roto Paint at that point, spans the whole layer and propagates both ways; the layer's alpha is the object. It needs the MobileSAM model (`roto.models` shows it; `roto.model.download {id: mobilesam, wait: true}` installs it, about 40 MB). Correct a drifted frame with `roto.stroke` as above. People do the same with the Object Matte tool (Alt+W cycles to it): hover shows the object tinted, click selects it.
 
 ## Paint
 
@@ -58,11 +58,11 @@ For one whole object (a person, a car, a product), skip the strokes: `object_mat
 3. `puppet.mesh {layer, density, expansion}` adjusts the mesh; `puppet.info {layer, time}` reads pins and the deformed mesh.
 4. `puppet.recordPin` records a drag; `puppet.follow` makes pins trail a leader.
 
-## Liquify, Content-Aware Fill
+## Liquify, Selection-Aware-Fill
 
 - `liquify.stroke {layer, points: [[x, y]] (layer pixels), tool: warp|turbulence|twirlClockwise|pucker|bloat|..., brushSize, brushPressure}` after applying the Liquify effect; `liquify.clear` removes the strokes.
 - Object removal: mask the object on the footage layer (mode Subtract or an animated mask), then `layer.newContentAwareFill {layer, method: object|surface|edgeBlend, range: workArea, wait: true}`. It renders a fill layer above the footage.
 
 ## Check
 
-`render_frame {transparent: true}` shows the alpha a mask or matte leaves. For Roto Brush and Content-Aware Fill, check several frames across the span with `contact_sheet`, because drift shows up over time, not on the frame you stroked.
+`render_frame {transparent: true}` shows the alpha a mask or matte leaves. For Roto Paint and Selection-Aware-Fill, check several frames across the span with `contact_sheet`, because drift shows up over time, not on the frame you stroked.

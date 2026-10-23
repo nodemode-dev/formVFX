@@ -2280,7 +2280,7 @@ pub fn match_alias(name: &str) -> &str {
         "ADBE Text Animators" => "animators",
         "ADBE Text Path Options" => "pathOptions",
         "ADBE Marker" => "marker",
-        "ADBE Layer Overrides" | "Essential Properties" => "essentialProperties",
+        "ADBE Layer Overrides" | "Essential Properties" | "Primary Properties" => "essentialProperties",
         "ADBE Mask Shape" => "path",
         "ADBE Mask Feather" => "feather",
         "ADBE Mask Opacity" => "opacity",

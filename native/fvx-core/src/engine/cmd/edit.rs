@@ -419,22 +419,22 @@ pub fn prefs_pages(e: &mut Engine, _: &Json) -> Res {
         _ => "Classic",
     };
     let status = format!(
-        "Roto Brush uses the {using} model. MobileSAM ({} MB) also drives Object Matte; SAM 2.1 tiny ({} MB) follows the object from frame to frame with a memory of earlier frames. Both are {} licensed and downloaded once into {}.",
+        "Roto Paint uses the {using} model. MobileSAM ({} MB) also drives Object Matte; SAM 2.1 tiny ({} MB) follows the object from frame to frame with a memory of earlier frames. Both are {} licensed and downloaded once into {}.",
         roto::MOBILESAM.size / 1_000_000,
         roto::SAM2.size / 1_000_000,
         roto::MOBILESAM.licence,
         roto::models_dir().display()
     );
-    let mut roto_items = vec![json!({"section": "Roto Brush and Object Matte"}), json!({"note": status})];
-    roto_items.push(json!({"button": "Use Classic for Roto Brush", "command": "roto.model.select", "params": {"id": "classical"}}));
+    let mut roto_items = vec![json!({"section": "Roto Paint and Object Matte"}), json!({"note": status})];
+    roto_items.push(json!({"button": "Use Classic for Roto Paint", "command": "roto.model.select", "params": {"id": "classical"}}));
     if installed {
-        roto_items.push(json!({"button": "Use MobileSAM for Roto Brush", "command": "roto.model.select", "params": {"id": "mobilesam", "wait": true}}));
+        roto_items.push(json!({"button": "Use MobileSAM for Roto Paint", "command": "roto.model.select", "params": {"id": "mobilesam", "wait": true}}));
         roto_items.push(json!({"button": "Remove MobileSAM", "command": "roto.model.remove", "params": {"id": "mobilesam"}}));
     } else {
         roto_items.push(json!({"button": "Download MobileSAM", "command": "roto.model.download", "params": {"id": "mobilesam"}}));
     }
     if has2 {
-        roto_items.push(json!({"button": "Use SAM 2 for Roto Brush", "command": "roto.model.select", "params": {"id": "sam2", "wait": true}}));
+        roto_items.push(json!({"button": "Use SAM 2 for Roto Paint", "command": "roto.model.select", "params": {"id": "sam2", "wait": true}}));
         roto_items.push(json!({"button": "Use SAM 2 at Full Resolution", "command": "roto.model.select", "params": {"id": "sam2full", "wait": true}}));
         roto_items.push(json!({"button": "Remove SAM 2", "command": "roto.model.remove", "params": {"id": "sam2"}}));
     } else {

@@ -8,13 +8,13 @@ pub const MODELS: [&str; 4] = ["Classic", "MobileSAM", "SAM 2", "SAM 2 Full Reso
 pub fn specs() -> Vec<EffectSpec> {
     vec![EffectSpec {
         id: ID,
-        name: "Roto Brush & Refine Edge",
+        name: "Roto Paint & Refine Edge",
         category: "Matte",
         params: vec![
             popup("model", "Version", 0, &MODELS),
             check("renderRefineEdge", "Render Refine Edge", false),
             num("baseRefineRadius", "Base Refine Edge Radius", 2.0, 0.0, 100.0, 0.0, 30.0),
-            grp("rotoMatte", "Roto Brush Matte"),
+            grp("rotoMatte", "Roto Paint Matte"),
             num("rotoMatte/feather", "Feather", 0.0, 0.0, 100.0, 0.0, 100.0),
             num("rotoMatte/contrast", "Contrast", 0.0, 0.0, 100.0, 0.0, 100.0),
             num("rotoMatte/shiftEdge", "Shift Edge", 0.0, -100.0, 100.0, -100.0, 100.0),

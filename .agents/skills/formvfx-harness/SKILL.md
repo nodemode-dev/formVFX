@@ -1,6 +1,6 @@
 ---
 name: formvfx-harness
-description: Drive formvfx, the motion graphics and visual effects compositor, through its formvfx MCP server or the formvfx command line. Use whenever the person wants a composition, animation, title, lower third, logo reveal, kinetic type, transition, shape animation, 3D scene, camera move, light, effect, glow, blur, colour grade, keying, mask, rotoscoping, paint, puppet pins, tracking, stabilizing, face tracking, expression, script, ScriptUI tool, Essential Graphics template, effect plug-in, EXR render pass or a render to MP4, ProRes, GIF, PNG sequence, EXR or Lottie made or changed in formvfx; when formvfx tools such as status, batch, set_keyframes, apply_effect, render_frame or contact_sheet are available; when the person describes a compositing technique and wants it done here; or when a formvfx tool fails and the next step is unclear. Not for editing formvfx's own source code (use formvfx-skillset for that).
+description: Drive formvfx, the motion graphics and visual effects compositor, through its formvfx MCP server or the formvfx command line. Use whenever the person wants a composition, animation, title, lower third, logo reveal, kinetic type, transition, shape animation, 3D scene, camera move, light, effect, glow, blur, colour grade, keying, mask, rotoscoping, paint, puppet pins, tracking, stabilizing, face tracking, expression, script, ScriptUI tool, Template Controls template, effect plug-in, EXR render pass or a render to MP4, ProRes, GIF, PNG sequence, EXR or Lottie made or changed in formvfx; when formvfx tools such as status, batch, set_keyframes, apply_effect, render_frame or contact_sheet are available; when the person describes a compositing technique and wants it done here; or when a formvfx tool fails and the next step is unclear. Not for editing formvfx's own source code (use formvfx-skillset for that).
 ---
 
 # formvfx harness
@@ -42,11 +42,11 @@ Load the sub-skill for the part of the job in front of you. For a whole piece (a
 | --- | --- |
 | A whole piece, a brief, anything broad or unscoped | `sub-skills/harness-director/SUB-SKILL.md` |
 | Connecting: the MCP server, the command line, permission prompts, the engine not running | `sub-skills/session-and-connection/SUB-SKILL.md` |
-| Compositions, layers, footage, precomps, parenting, track mattes, blend modes, switches, timing, Essential Graphics templates | `sub-skills/compositions-and-layers/SUB-SKILL.md` |
+| Compositions, layers, footage, precomps, parenting, track mattes, blend modes, switches, timing, Template Controls templates | `sub-skills/compositions-and-layers/SUB-SKILL.md` |
 | Keyframes, easing, the Graph Editor, motion paths, sequencing, time remapping, wiggle | `sub-skills/animation-and-keyframes/SUB-SKILL.md` |
 | Effects, their parameters, layer styles, animation presets, colour work, keying, the 3D Channel effects on EXR passes, WebAssembly effect plug-ins | `sub-skills/effects-and-presets/SUB-SKILL.md` |
 | Text layers, type styling, text animators, text presets, shape layers, Trim Paths, repeaters | `sub-skills/text-and-shapes/SUB-SKILL.md` |
-| Masks, feathering, Roto Brush, paint strokes, puppet pins, Content-Aware Fill | `sub-skills/masks-roto-paint/SUB-SKILL.md` |
+| Masks, feathering, Roto Paint, paint strokes, puppet pins, Selection-Aware-Fill | `sub-skills/masks-roto-paint/SUB-SKILL.md` |
 | 3D layers, cameras, lights, shadows, materials, primitives, 3D models, views | `sub-skills/camera-lights-3d/SUB-SKILL.md` |
 | Point tracking, stabilizing, the 3D camera tracker, mask tracking, face tracking | `sub-skills/tracking-and-stabilizing/SUB-SKILL.md` |
 | Expressions, the expression language, control rigs, scripts and ScriptUI windows | `sub-skills/expressions-and-scripting/SUB-SKILL.md` |
@@ -62,7 +62,7 @@ Load the sub-skill for the part of the job in front of you. For a whole piece (a
 - **One idea, one undo step.** Group the steps of one change in `batch`, so the person can undo it as a unit.
 - **Composition seconds by default.** Tools take composition time. Raw keyframe commands (`prop.addKey`, `keys.set`, `keys.select`) take layer time; `set_keyframes` converts for you, so prefer it.
 - **Absolute paths for files.** Imports, saves and renders take absolute paths. Renders default to the workspace's `renders` folder.
-- **Background work is asynchronous.** Rendering, tracking, stabilizing, Roto Brush propagation and Content-Aware Fill run in the background. Pass `wait: true` where a command accepts it, or call `wait`, before reading results.
+- **Background work is asynchronous.** Rendering, tracking, stabilizing, Roto Paint propagation and Selection-Aware-Fill run in the background. Pass `wait: true` where a command accepts it, or call `wait`, before reading results.
 - **Respect the person's project.** Do not save over a project file, close a project with unsaved changes, or delete layers you did not create without saying so first. Prefer building in a new composition when the request is additive.
 
 ## References

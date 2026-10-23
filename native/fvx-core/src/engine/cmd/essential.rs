@@ -30,7 +30,7 @@ fn ctrl_index(e: &Engine, cid: u64, p: &Json) -> Result<usize, String> {
         Json::String(s) => comp.essential.iter().position(|c| &c.id == s).or_else(|| comp.essential.iter().position(|c| &c.name == s)),
         _ => None,
     };
-    found.ok_or_else(|| "no such Essential Graphics controller (essential.list shows them)".into())
+    found.ok_or_else(|| "no such Template Controls controller (essential.list shows them)".into())
 }
 
 fn next_id(list: &[Controller]) -> String {
@@ -59,7 +59,7 @@ pub fn add_property(e: &mut Engine, p: &Json) -> Res {
     let l = e.layer_ref(cid, lid)?;
     let pr = l.props.find(uid).ok_or("only properties can be added, not groups")?;
     if matches!(pr.ui, Ui::Hidden | Ui::Mask | Ui::Path) {
-        return Err(format!("{} cannot be added to Essential Graphics", pr.name));
+        return Err(format!("{} cannot be added to Template Controls", pr.name));
     }
     let comp = e.project.comp(cid).ok_or("no composition")?;
     if let Some(c) = comp.essential.iter().find(|c| c.layer == lid && c.prop == uid) {
@@ -71,7 +71,7 @@ pub fn add_property(e: &mut Engine, p: &Json) -> Res {
     start_template(e, cid);
     let c = e.proj().comp_mut(cid).ok_or("no composition")?;
     c.essential.push(Controller { id: id.clone(), name: name.clone(), kind: "property".into(), layer: lid, prop: uid, group, text: String::new() });
-    e.set_label(format!("Add {name} to Essential Graphics"));
+    e.set_label(format!("Add {name} to Template Controls"));
     Ok(json!({"controller": id, "name": name}))
 }
 
@@ -367,7 +367,7 @@ pub fn sync(e: &mut Engine) {
                     Some(g) => g.children = children,
                     None => {
                         uid += 1;
-                        let g = Group::new(uid, GROUP, "Essential Properties", GroupKind::Essential).with(children);
+                        let g = Group::new(uid, GROUP, "Primary Properties", GroupKind::Essential).with(children);
                         let at = l.props.children.iter().position(|c| c.id() == "transform").unwrap_or(l.props.children.len());
                         l.props.children.insert(at, Node::Group(g));
                     }
@@ -796,14 +796,14 @@ fn addable(e: &Engine, cid: u64, lid: u64, uid: u64) -> Result<(), String> {
     let l = e.layer_ref(cid, lid)?;
     let pr = l.props.find(uid).ok_or("only properties can be added, not groups")?;
     if matches!(pr.ui, Ui::Hidden | Ui::Mask | Ui::Path | Ui::Layer | Ui::Gradient) {
-        return Err(format!("{} is not a type Essential Graphics supports", pr.name));
+        return Err(format!("{} is not a type Template Controls supports", pr.name));
     }
     if l.props.path_of(uid).is_some_and(|x| x.starts_with(GROUP)) {
-        return Err("Essential Properties of a precomp cannot be added again".into());
+        return Err("Primary Properties of a precomp cannot be added again".into());
     }
     let comp = e.project.comp(cid).ok_or("no composition")?;
     if comp.essential.iter().any(|c| c.kind == "property" && c.layer == lid && c.prop == uid) {
-        return Err(format!("{} is already in Essential Graphics", pr.name));
+        return Err(format!("{} is already in Template Controls", pr.name));
     }
     Ok(())
 }
@@ -847,13 +847,13 @@ pub fn instance(e: &mut Engine, p: &Json) -> Res {
 fn instance_prop(e: &Engine, cid: u64, lid: u64, p: &Json) -> Result<u64, String> {
     let key = p.get("controller").ok_or("pass `controller` (its id or name)")?;
     let l = e.layer_ref(cid, lid)?;
-    let g = l.props.sub(GROUP).ok_or("this layer has no Essential Properties")?;
+    let g = l.props.sub(GROUP).ok_or("this layer has no Primary Properties")?;
     g.children
         .iter()
         .filter_map(|c| if let Node::Prop(pr) = c { Some(pr) } else { None })
         .find(|pr| key.as_str().is_some_and(|k| pr.id == k || pr.name == k) || key.as_u64().is_some_and(|n| pr.uid == n))
         .map(|pr| pr.uid)
-        .ok_or_else(|| "no such Essential Property on this layer".into())
+        .ok_or_else(|| "no such Primary Property on this layer".into())
 }
 
 pub fn set(e: &mut Engine, p: &Json) -> Res {
@@ -899,7 +899,7 @@ pub fn push_to_comp(e: &mut Engine, p: &Json) -> Res {
         }
     }
     if pushes.is_empty() {
-        return Err("this instance has no overridden Essential Properties to push".into());
+        return Err("this instance has no overridden Primary Properties to push".into());
     }
     let mut skipped = vec![];
     let mut done = vec![];
@@ -972,7 +972,7 @@ pub fn unlink_property(e: &mut Engine, p: &Json) -> Res {
     let pr = l.props.find_mut(uid).ok_or("that is a group, not a property")?;
     match &pr.expr {
         Some(x) if refs.iter().any(|r| r == x.text.trim()) => pr.expr = None,
-        _ => return Err(format!("{} is not linked to an Essential Graphics control", pr.name)),
+        _ => return Err(format!("{} is not linked to a Template Controls control", pr.name)),
     }
     e.set_label("Unlink Property");
     Ok(json!({"layer": lid, "prop": uid}))

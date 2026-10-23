@@ -43,7 +43,7 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 - `file.importLottie` Lottie · File > Import
   `{path (.json or .lottie)} -> a composition with shape, solid, image, text, null and precomp layers, keyframes and easing`
 - `file.importAep` AEP Project · File > Import
-  `{path (.aep), open?: bool} -> {folder, comps, warnings} · folders, compositions, solids and footage; text, shape, solid, null, adjustment, camera and light layers with their timing, switches, parents, transforms, keyframes, expressions, effects, text animators and Essential Graphics controls; warnings name what was not read`
+  `{path (.aep), open?: bool} -> {folder, comps, warnings} · folders, compositions, solids and footage; text, shape, solid, null, adjustment, camera and light layers with their timing, switches, parents, transforms, keyframes, expressions, effects, text animators and template controls; warnings name what was not read`
 - `file.exportLottie` Lottie JSON · File > Export
   `{comp?, path (.json or .lottie), includeExpressions?: bool (otherwise expressions are baked to keyframes), textAsShapes?: bool}`
 - `file.setProxy` File · File > Set Proxy
@@ -252,7 +252,7 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 - `comp.responsiveTime` Responsive Design
   `{op: intro|outro|workArea}`
 - `comp.miniFlowchart` Composition Mini-Flowchart · Composition · Tab
-- `comp.openInEssentialGraphics` Open in Essential Graphics · Composition
+- `comp.openInEssentialGraphics` Open in Template Controls · Composition
   `{comp?}`
 - `comp.vr.createEnvironment` Create VR Environment · Composition > VR
   `{comp? (a 3D composition), width? (equirectangular, default 2048), faceSize? (cube face px), name?, yaw?, pitch?, roll?} -> {comp} · a 2:1 composition that renders the scene around the active camera`
@@ -355,7 +355,7 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `{layers?, enabled: bool}`
 - `layer.revealExpressionErrors` Reveal Expression Errors
   `{comp?}`
-- `layer.newContentAwareFill` Content-Aware Fill Layer · Layer > New
+- `layer.newContentAwareFill` Selection-Aware-Fill Layer · Layer > New
   `{layer?, method?: object|surface|edgeBlend, range?: workArea|entire, alphaExpansion? (px), lightingCorrection?: none|subtle|moderate|strong, referenceLayer?, referenceTime? (s), outputDir?, wait?: bool}`
 - `layer.mask.featherFalloff` Mask Feather Falloff
   `{layer?, mask?, falloff: smooth|linear}`
@@ -885,8 +885,8 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 - `track.optionsDialog` Options
 - `track.status` Tracker Status
   `{layer?, tracker?}`
-- `track.warpStabilizer` Warp Stabilizer · Animation
-  `{layer?, wait?: block until analyzed} → adds a Warp Stabilizer (or reuses the layer's) and analyzes the footage`
+- `track.warpStabilizer` Wrap Stabilization · Animation
+  `{layer?, wait?: block until analyzed} → adds a Wrap Stabilization (or reuses the layer's) and analyzes the footage`
 - `track.camera` Track Camera · Animation
   `{layer?, shotType?: fixed|variable|specify, aov?: degrees, solveMethod?: auto|typical|flat|tripod, detailed?, wait?} → adds a 3D Camera Tracker (or reuses the layer's), tracks features and solves the camera`
 - `track.mask` Track Mask · Animation
@@ -901,23 +901,23 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 - `warp.analyze` Analyze
   `{layer?, effect?: uid, wait?}`
 - `warp.cancel` Cancel
-- `warp.status` Warp Stabilizer Status
+- `warp.status` Wrap Stabilization Status
   `{layer?, effect?: uid}`
 
 ## roto
 
-- `roto.models` Roto Brush Models
-- `roto.model.select` Use Roto Brush Model
-  `{id: classical|mobilesam, wait?} (Roto Brush and Object Matte use it; wait: loaded before returning)`
-- `roto.model.install` Install Roto Brush Model
+- `roto.models` Roto Paint Models
+- `roto.model.select` Use Roto Paint Model
+  `{id: classical|mobilesam, wait?} (Roto Paint and Object Matte use it; wait: loaded before returning)`
+- `roto.model.install` Install Roto Paint Model
   `{path: weights file, id?, wait?} · verified against the official SHA-256`
-- `roto.model.download` Download Roto Brush Model
+- `roto.model.download` Download Roto Paint Model
   `{id, wait?} · the official weights, verified (uses the system curl)`
-- `roto.model.remove` Remove Roto Brush Model
+- `roto.model.remove` Remove Roto Paint Model
   `{id}`
-- `roto.stroke` Roto Brush Stroke
+- `roto.stroke` Roto Paint Stroke
   `{layer?, kind?: fg|bg|refine|refineErase, points: [[x, y], ...] (layer pixels), frame? (layer frame; default current), radius? (layer px; default the tool's diameter / 2), effect?, noPropagate?}`
-- `roto.propagate` Propagate Roto Brush
+- `roto.propagate` Propagate Roto Paint
   `{layer?, effect?, direction?: forward|backward|both, to? (layer frame: extend the span), wait?: block until done}`
 - `roto.span` Set Segmentation Span
   `{layer?, effect?, start?, end? (layer frames)}`
@@ -925,12 +925,12 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `{layer?, effect?, wait?}`
 - `roto.unfreeze` Unfreeze
   `{layer?, effect?}`
-- `roto.clearStrokes` Remove Roto Brush Strokes
+- `roto.clearStrokes` Remove Roto Paint Strokes
   `{layer?, effect?, frame? (only this layer frame), kind?}`
-- `roto.cancel` Stop Roto Brush
-- `roto.options` Roto Brush Options
+- `roto.cancel` Stop Roto Paint
+- `roto.options` Roto Paint Options
   `{diameter?, refineDiameter?, view?: alphaBoundary|alpha|alphaOverlay|none, overlayColor?: [r,g,b], overlayOpacity?, boundaryColor?: [r,g,b], autoPropagate?}`
-- `roto.status` Roto Brush Status
+- `roto.status` Roto Paint Status
   `{layer?, effect?, frame? (layer frame: also report its matte), matte?: include the matte (RLE, base64), compute?: compute the frame if needed, compareTo?: RLE matte to report the IoU against}`
 
 ## paint
@@ -979,7 +979,7 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 
 ## contentFill
 
-- `contentFill.set` Content-Aware Fill Settings
+- `contentFill.set` Selection-Aware-Fill Settings
   `{method?: object|surface|edgeBlend, range?: workArea|entire, alphaExpansion? (px), lightingCorrection?: none|subtle|moderate|strong, referenceLayer?: layer|null, referenceTime? (s)}`
 - `contentFill.generate` Generate Fill Layer
   `{layer?, method?: object|surface|edgeBlend, range?: workArea|entire, alphaExpansion? (px), lightingCorrection?: none|subtle|moderate|strong, referenceLayer?, referenceTime? (s), outputDir?, wait?: bool}`
@@ -999,8 +999,8 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
 
 ## essential
 
-- `essential.addProperty` Add Property to Essential Graphics · Animation
-  `{layer?, path|prop, comp?, name? (controller name, default the property's), group? (a group controller id)} · the property becomes a controller of the composition's template; every precomp layer of the composition gets it under Essential Properties`
+- `essential.addProperty` Add Property to Template Controls · Animation
+  `{layer?, path|prop, comp?, name? (controller name, default the property's), group? (a group controller id)} · the property becomes a controller of the composition's template; every precomp layer of the composition gets it under Primary Properties`
 - `essential.addComment` Add Comment
   `{comp?, text}`
 - `essential.addGroup` Add Group
@@ -1013,12 +1013,12 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `{comp?, controller, index (1-based), group? (a group controller id, or "" for none)}`
 - `essential.setTemplateName` Set Template Name
   `{comp?, name}`
-- `essential.open` Open in Essential Graphics
+- `essential.open` Open in Template Controls
   `{comp?}`
-- `essential.list` Essential Graphics Controllers
-  `{comp? (default: the composition open in Essential Graphics, else the active one)} -> {comp, templateName, controllers: [{id, name, kind: property|comment|group, group, layer, path, value, ui}], instances}`
+- `essential.list` Template Controllers
+  `{comp? (default: the composition open in Template Controls, else the active one)} -> {comp, templateName, controllers: [{id, name, kind: property|comment|group, group, layer, path, value, ui}], instances}`
 - `essential.revertToMaster` Revert to Master
-  `{layers?, controller? (default: all)} · precomp layers: Essential Properties follow the master values again`
+  `{layers?, controller? (default: all)} · precomp layers: Primary Properties follow the master values again`
 - `essential.exportTemplate` Export as Motion Graphics Template · Composition
   `{comp?, path? (.fvxtemplate), folder? (default the Templates folder; the file is named after the template), name?, overwrite?: bool} · formvfx's own template: the composition, what it uses, its media and a poster frame in one file`
 - `essential.importTemplate` Motion Graphics Template · File > Import
@@ -1031,9 +1031,9 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `{layer (a footage or precomp layer in the primary composition), comp?, name?, group?} · each instance can swap that layer's source`
 - `essential.addMirror` Add Mirror
   `{comp?, controller} · a second control for the same property`
-- `essential.canAdd` Can Add Property to Essential Graphics
+- `essential.canAdd` Can Add Property to Template Controls
   `{layer?, path|prop} -> {can, reason?}`
-- `essential.instance` Essential Properties of a precomp layer
+- `essential.instance` Primary Properties of a precomp layer
   `{layer (a precomp layer), comp?} -> {source, properties: [{controller, name, kind, value, master, overridden}]}`
 - `essential.linkProperty` Link Property to Control
   `{comp?, controller, layer?, path|prop} · the property follows the control by expression`
@@ -1043,14 +1043,14 @@ Generated from the formvfx engine by `./formvfx agents sync`; do not edit by han
   `{layer (an instance), comp?, controller?} · the instance's overrides become the master values`
 - `essential.revert` Revert
   `{layers?, controller?} · instances follow the master values again`
-- `essential.set` Set Essential Property
+- `essential.set` Set Primary Property
   `{layer (an instance), comp?, controller (id or name), value (a media control takes an item id or name)}`
-- `essential.setName` Essential Graphics Name
+- `essential.setName` Template Controls Name
   `{comp?, name}`
 - `essential.setPrimary` Primary Composition
   `{comp}`
 - `essential.soloSupported` Solo Supported Properties
-  `{comp?, layers?} · shows in the Timeline only the properties Essential Graphics can take`
+  `{comp?, layers?} · shows in the Timeline only the properties Template Controls can take`
 - `essential.templateInfo` Template Information
   `{path (.fvxtemplate or .mogrt)} -> {name, madeIn, opens, size, duration, controls, poster}`
 

@@ -82,7 +82,7 @@ pub fn generate(e: &mut Engine, p: &Json) -> Res {
         let c = e.project.comp(cid).ok_or("no composition")?;
         let l = c.layer(lid).ok_or("no layer")?;
         if !matches!(l.kind, LayerKind::Footage | LayerKind::Precomp | LayerKind::Solid) {
-            return Err("Content-Aware Fill works on a footage or composition layer".into());
+            return Err("Selection-Aware-Fill works on a footage or composition layer".into());
         }
         let (a, b) = match get("range").as_ref().and_then(Json::as_str) {
             Some("entire") => (l.in_point, l.out_point),
@@ -107,7 +107,7 @@ pub fn generate(e: &mut Engine, p: &Json) -> Res {
     let settings = Settings { method, expansion, lighting };
     let wait = pb(p, "wait").unwrap_or(false);
     let label_name = format!("{name} Fill");
-    jobs::run(e, "fill", lid, "Content-Aware Fill", wait, move |ctx| {
+    jobs::run(e, "fill", lid, "Selection-Aware-Fill", wait, move |ctx| {
         let src = Source::new(&ctx.project, &ctx.media, cid, lid, 4096.0).ok_or("the layer is gone")?;
         let total = times.len() * 3;
         let mut frames = Vec::with_capacity(times.len());
@@ -162,7 +162,7 @@ pub fn generate(e: &mut Engine, p: &Json) -> Res {
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .status()
-            .map_err(|_| "Content-Aware Fill needs FFmpeg to write the fill layer".to_string())?;
+            .map_err(|_| "Selection-Aware-Fill needs FFmpeg to write the fill layer".to_string())?;
         if !status.success() {
             return Err("FFmpeg could not write the fill layer".into());
         }

@@ -1,6 +1,6 @@
 ---
 name: compositions-and-layers
-description: Compositions and layers in formvfx. Use to create or change a composition (size, frame rate, duration, background, work area), add solids, text, shapes, nulls, adjustment layers or footage, import files, arrange and time layers, parent them, set track mattes, blend modes and switches, duplicate, split, delete or precompose layers, or build, use, export and import Essential Graphics templates.
+description: Compositions and layers in formvfx. Use to create or change a composition (size, frame rate, duration, background, work area), add solids, text, shapes, nulls, adjustment layers or footage, import files, arrange and time layers, parent them, set track mattes, blend modes and switches, duplicate, split, delete or precompose layers, or build, use, export and import Template Controls templates.
 ---
 
 # compositions-and-layers
@@ -80,13 +80,13 @@ Trimming before editing in: `footage.open {item}`, `footage.setIn {time}` and `f
 - **Solid settings**: `layer.settings {layer, name, color, width, height}` changes a solid's colour or size.
 - **Labels and comments**: `edit.label {label: Red|Yellow|Aqua|..., layers}`; `project.setComment {items, comment}` on project items.
 
-## Essential Graphics templates
+## Template Controls templates
 
 A template is a composition with some of its properties exposed, so each use of it can be changed without opening it (a lower third whose name, colour and bar width differ per shot).
 
 1. In the template composition: `essential.canAdd {comp, layer, path}` says whether a property can be exposed; `essential.addProperty {comp, layer, path, name}` for each one (`text/sourceText`, `effects/#1/color`, `transform/opacity`...). `essential.addMedia {comp, layer}` lets each use swap a footage or precomp layer's source (a photo or logo slot). `essential.addMirror {comp, controller}` shows a control twice; `essential.linkProperty {comp, controller, layer, path}` makes another property follow a control. `essential.addComment` and `essential.addGroup` organise the panel; `essential.rename`, `essential.move`, `essential.remove`; `essential.list {comp}` shows the controllers.
-2. Use it: add the composition to other compositions (`layer.addItem {item}`). Each of those layers gets an Essential Properties group. `essential.set {comp, layer, controller, value}` overrides one instance (a media slot takes an item name or id); `essential.instance {comp, layer}` lists what is overridden; `essential.revert {layers}` drops the overrides; `essential.pushToComp {comp, layer}` makes one instance's overrides the template's own values.
-3. Share it: `essential.exportTemplate {comp, path}` writes a `.fvxtemplate`, or a `.mogrt` when the path ends in `.mogrt` (the composition, everything it uses, its media and a poster frame); `essential.importTemplate {path, addToComp: true}` brings one into another project; `essential.installTemplate` puts it in the Essential Graphics panel's Browse tab. `essential.templateInfo {path}` reads any `.mogrt`: one that carries an `.aep` project opens (`opens: true`) through that project, and `essential.importTemplate` builds it with its controls linked; one without a project lists its controls but does not open. A bare `.aep` project imports with `file.importAep {path}`, and an `.ffx` preset applies with `anim.applyPreset {path, layers}`. Read the `warnings` either returns: they name what was not carried across (masks, time remapping, effects formvfx does not have).
+2. Use it: add the composition to other compositions (`layer.addItem {item}`). Each of those layers gets a Primary Properties group. `essential.set {comp, layer, controller, value}` overrides one instance (a media slot takes an item name or id); `essential.instance {comp, layer}` lists what is overridden; `essential.revert {layers}` drops the overrides; `essential.pushToComp {comp, layer}` makes one instance's overrides the template's own values.
+3. Share it: `essential.exportTemplate {comp, path}` writes a `.fvxtemplate`, or a `.mogrt` when the path ends in `.mogrt` (the composition, everything it uses, its media and a poster frame); `essential.importTemplate {path, addToComp: true}` brings one into another project; `essential.installTemplate` puts it in the Template Controls panel's Browse tab. `essential.templateInfo {path}` reads any `.mogrt`: one that carries an `.aep` project opens (`opens: true`) through that project, and `essential.importTemplate` builds it with its controls linked; one without a project lists its controls but does not open. A bare `.aep` project imports with `file.importAep {path}`, and an `.ffx` preset applies with `anim.applyPreset {path, layers}`. Read the `warnings` either returns: they name what was not carried across (masks, time remapping, effects formvfx does not have).
 
 ## Check
 

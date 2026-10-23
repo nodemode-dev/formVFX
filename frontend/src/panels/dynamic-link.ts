@@ -26,14 +26,14 @@ const base = (p: string | null): string => (p ? p.split(/[\\/]/).pop() ?? p : 't
 
 export class DynamicLinkPanel implements Panel {
   readonly id = 'dynamicLink';
-  readonly title = 'Dynamic Link';
+  readonly title = 'Live Link';
   readonly el: HTMLElement;
   private timer = 0;
 
   constructor(private readonly ctx: Ctx) {
     this.el = el(`<div class="fx-dl">
       <div class="fx-term-bar">
-        <span class="fx-term-title">${icon('link', 14)}<span>Dynamic Link</span></span>
+        <span class="fx-term-title">${icon('link', 14)}<span>Live Link</span></span>
         <span class="fx-dl-version"></span>
         <span class="fx-flex"></span>
         <button class="cv-btn" type="button" data-act="export" data-automation-id="dynamicLink.export">Export Link for Active Comp</button>
@@ -62,7 +62,7 @@ export class DynamicLinkPanel implements Panel {
     if (!comp) return;
     try {
       const r = await this.ctx.client.call<{ path: string }>('link.export', { comp: comp.id });
-      toast(`Dynamic Link clip saved: ${r.path}`, 'info');
+      toast(`Live Link clip saved: ${r.path}`, 'info');
       void this.poll();
     } catch (e) {
       toast((e as Error).message, 'error');

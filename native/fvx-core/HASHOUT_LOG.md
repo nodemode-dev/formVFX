@@ -338,3 +338,9 @@ Masks, time remapping and shape path vertices from `.aep` projects (each named i
 - The match-name literals in the .aep, .ffx and .mogrt readers and the host runtime object in `backend/app/routers/extensions.py` are interop byte tokens that third-party files and panels carry; they stay as code literals only, and `INTEROP` in the lint lists the one file allowed to carry a hashed name.
 - Content-Aware Scale (seam carving) and skin-tone protection are declined for patent reasons; the lint fails any source file that brings either back.
 - `setup/lint_text.py` fails the build on any other occurrence, by hash.
+
+## Feature names (0.51.3)
+
+- The owner's approved renames are labels only: Template Controls and Template Controllers (the `essential.*` commands), Primary Properties and Set Primary Property (the precomp layer's group and `essential.set`), Live Link (`link.*`, the `dynamic_link` agent tool), Selection-Aware-Fill (`layer.newContentAwareFill`, `contentFill.*`), Roto Paint (`roto.*`, the `fx.matte.rotoBrush` effect, shown as Roto Paint & Refine Edge with its Roto Paint Matte group) and Wrap Stabilization (`track.warpStabilizer`, `warp.*`, the `fx.distort.warpStabilizer` effect). Command ids, effect ids, panel ids, agent tool names and project fields keep their names, so projects, shortcuts and scripts are unchanged.
+- Effects are found by id, so the new display names change no lookup. Expressions that name the precomp layer's group accept "Primary Properties" beside the earlier name (`expr/script.rs`); an expression that names one of the renamed effects by its old display name finds the effect only when the layer kept that name.
+- The undo labels, job names, error messages, Settings section and agent tool descriptions use the new names; the 31 English keys, plus Set Primary Property, were renamed in place in every main and `more` table with new translations.
