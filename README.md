@@ -83,3 +83,7 @@ Non-blank lines in tracked files; generated skill references excluded. `./formvf
 ## Trademarks
 
 formvfx names file formats by their extension and no other product. Product names a person may associate with those formats are the trademarks of their owners; formvfx is not affiliated with or endorsed by any of them. See `NOTICE.md`.
+
+## License
+
+Apache-2.0. Copyright 2026 NodeAgentc, Inc. See `LICENSE` and `NOTICE.md`.
