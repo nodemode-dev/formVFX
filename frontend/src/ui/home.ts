@@ -66,7 +66,7 @@ export class HomeScreen {
     const formats = FORMATS.map((f) => `<span class="cv-home-format">${f}</span>`).join('');
     const sizes = PRESETS.map((p) => `<button class="cv-home-size" type="button" data-preset="${p.id}"><span class="cv-home-size-box"><span style="aspect-ratio: ${p.w} / ${p.h}"></span></span><span class="cv-home-size-name">${p.name}</span><span class="cv-home-size-meta">${p.w} × ${p.h} px · ${p.fps} fps</span></button>`).join('');
     this.root.innerHTML = `<nav class="cv-home-nav" aria-label="Home">
-      <div class="cv-home-brand">formvfx <span>by NodeMode</span></div>
+      <div class="cv-home-brand">formvfx <span>by nodemode.ai</span></div>
       ${navItem('start', 'image', 'Start')}${navItem('recent', 'history', 'Recent')}${navItem('projects', 'folder', 'Projects')}
       <div class="cv-home-nav-sep"></div>
       <div class="cv-home-nav-title">Create</div>
