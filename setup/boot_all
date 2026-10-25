@@ -8,5 +8,5 @@ pids+=($!)
 ( cd frontend && ./boot_frontend ) &
 pids+=($!)
 trap 'kill "${pids[@]}" 2>/dev/null' EXIT INT TERM
-fx_say "interface http://localhost:5230 · engine http://127.0.0.1:${FORMVFX_PORT:-8230}"
+fx_say "interface http://localhost:5250 · engine http://127.0.0.1:${FORMVFX_PORT:-8250}"
 wait

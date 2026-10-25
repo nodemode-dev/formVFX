@@ -7,8 +7,8 @@ description: How an agent reaches formvfx. Use when the formvfx MCP server or it
 
 ## The pieces
 
-- **The engine** is a local service (default `http://127.0.0.1:8230`) that holds the open project. The formvfx window, the MCP server and the command line all talk to the same engine, so they all see the same project.
-- **The MCP server** `formvfx` is reachable two ways: `./formvfx mcp` (stdio; Claude Code, Codex and Cursor configs in this repository and in the agent workspace use it) and Streamable HTTP at `http://127.0.0.1:8230/mcp`. The stdio relay finds the running engine (the `FORMVFX_URL` variable, then the discovery record the engine writes, then the default port) and starts one in the background when none is running.
+- **The engine** is a local service (default `http://127.0.0.1:8250`) that holds the open project. The formvfx window, the MCP server and the command line all talk to the same engine, so they all see the same project.
+- **The MCP server** `formvfx` is reachable two ways: `./formvfx mcp` (stdio; Claude Code, Codex and Cursor configs in this repository and in the agent workspace use it) and Streamable HTTP at `http://127.0.0.1:8250/mcp`. The stdio relay finds the running engine (the `FORMVFX_URL` variable, then the discovery record the engine writes, then the default port) and starts one in the background when none is running.
 - **The command line** `formvfx` (or `./formvfx` in the repository) exposes the same surface: `formvfx state`, `formvfx commands FILTER`, `formvfx describe ID`, `formvfx exec ID 'JSON'`, `formvfx batch 'JSON'`, `formvfx frame OUT.png --time S`, `formvfx render --wait`. Use it when MCP tools are not loaded in this session.
 
 ## Where agents run

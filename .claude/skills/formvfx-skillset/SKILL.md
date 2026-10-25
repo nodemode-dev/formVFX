@@ -45,7 +45,7 @@ desktop shell (Tauri) -> frozen engine sidecar (serves the built interface)
 
 ```bash
 ./formvfx install        # venv, the compositing engine (release), interface packages
-./formvfx                # engine 8230 + interface 5230
+./formvfx                # engine 8250 + interface 5250
 ./formvfx install-native --dev   # quick engine rebuild after Rust changes
 ./formvfx serve          # the built interface from the engine
 ./formvfx desktop dev    # the Tauri shell with the frozen sidecar

@@ -85,7 +85,7 @@ async def gate(source: str, token: str | None, mutating: bool, detail: str = "")
     if _declined.get(key, 0) > time.monotonic():
         return "The person declined edits from this agent a moment ago. Ask them in chat before trying again."
     if not host.bus.windows():
-        return ("No formvfx window is open to ask the person for permission. Open formvfx (./formvfx boot, then http://localhost:5230, "
+        return ("No formvfx window is open to ask the person for permission. Open formvfx (./formvfx boot, then http://localhost:5250, "
                 "or the desktop app) and allow this agent, start the agent from formvfx's Terminal panel, or set FORMVFX_AGENTS=allow.")
     reply = await host.bus.ask_window({"type": "consent", "client": source, "detail": detail}, timeout=180)
     if not reply:

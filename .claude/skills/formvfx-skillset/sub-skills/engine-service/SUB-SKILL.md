@@ -23,7 +23,7 @@ description: The FastAPI engine service in backend/app. Use for the engine threa
 | `/api/extensions/[folder]/[path]`, `/api/extensions/_csinterface.js` | `app/routers/extensions.py` | an installed CEP extension's files (installed ids only, no path escape), HTML with the CEP runtime object and `CSInterface` shim injected |
 | `/mcp`, `/api/agents/*` | `app/routers/mcp.py`, `app/routers/agents.py` | see `agent-substrate` |
 | Security | `app/core/security.py` | `LocalOnly`: loopback clients and local origins only, `x-formvfx-local: 1` for non-browser callers |
-| Config | `app/core/config.py` | ports (8230), data dir `~/Formvfx` or `FORMVFX_DATA_DIR`, `FORMVFX_DIST`, `FORMVFX_AGENTS`, frozen bundle paths |
+| Config | `app/core/config.py` | ports (8250), data dir `~/Formvfx` or `FORMVFX_DATA_DIR`, `FORMVFX_DIST`, `FORMVFX_AGENTS`, frozen bundle paths |
 | Discovery | `app/core/discovery.py` | `engine.json` so the CLI and the stdio relay find a running engine |
 | Entry | `formvfx_engine.py` | `--selfcheck`, `--headless`, `--cli`, `--mcp`; binds a socket (port 0 in the desktop app) and prints `Uvicorn running on http://127.0.0.1:N` for the shell |
 

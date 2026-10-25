@@ -76,7 +76,7 @@ def serve(headless: bool) -> None:
         os.environ.setdefault("FORMVFX_DIST", str(dist))
     if not headless:
         os.environ["FORMVFX_DESKTOP"] = "1"
-    port = int(os.environ.get("FORMVFX_PORT") or ("8230" if headless else "0"))
+    port = int(os.environ.get("FORMVFX_PORT") or ("8250" if headless else "0"))
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind(("127.0.0.1", port))

@@ -2,8 +2,8 @@ import os
 import sys
 from pathlib import Path
 
-FRONTEND_PORT = 5230
-BACKEND_PORT = 8230
+FRONTEND_PORT = 5250
+BACKEND_PORT = 8250
 
 
 def _load_env_file() -> None:

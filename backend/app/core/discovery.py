@@ -55,5 +55,5 @@ def running_engine(timeout: float = 1.0) -> str | None:
         url = None
     if isinstance(url, str) and url.startswith("http://127.0.0.1:") and healthy(url, timeout):
         return url
-    default = f"http://127.0.0.1:{os.environ.get('FORMVFX_PORT', '8230') or '8230'}"
+    default = f"http://127.0.0.1:{os.environ.get('FORMVFX_PORT', '8250') or '8250'}"
     return default if healthy(default, timeout) else None

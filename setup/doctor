@@ -19,7 +19,7 @@ if [ -d "$FORMVFX_ROOT/frontend/node_modules" ]; then ok "interface node_modules
 for a in claude codex cursor-agent; do
   if command -v "$a" >/dev/null 2>&1; then ok "agent $a"; else warn "agent $a" "not on PATH (optional)"; fi
 done
-for port in 5230 "${FORMVFX_PORT:-8230}"; do
+for port in 5250 "${FORMVFX_PORT:-8250}"; do
   if (exec 3<>"/dev/tcp/127.0.0.1/$port") 2>/dev/null; then warn "port $port" "already in use"; else ok "port $port free"; fi
 done
 if [ "$fail" = 0 ]; then fx_say "ready"; else fx_say "fix the FAIL lines above"; fi

@@ -5,5 +5,5 @@ source "$(dirname "$0")/lib.sh"
 fx_venv
 cd "$FORMVFX_ROOT/backend"
 export FORMVFX_DIST="$FORMVFX_ROOT/frontend/dist"
-fx_say "serving http://127.0.0.1:${FORMVFX_PORT:-8230}"
-exec uvicorn app.main:app --host "${FORMVFX_HOST:-127.0.0.1}" --port "${FORMVFX_PORT:-8230}"
+fx_say "serving http://127.0.0.1:${FORMVFX_PORT:-8250}"
+exec uvicorn app.main:app --host "${FORMVFX_HOST:-127.0.0.1}" --port "${FORMVFX_PORT:-8250}"

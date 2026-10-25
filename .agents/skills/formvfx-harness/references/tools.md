@@ -2,7 +2,7 @@
 
 Generated from the formvfx engine by `./formvfx agents sync`; do not edit by hand.
 
-The `formvfx` MCP server has 27 tools. `./formvfx mcp` serves them over stdio (it starts the engine when it is not running); the engine also serves them over Streamable HTTP at `http://127.0.0.1:8230/mcp`. The shell equivalents are in the last section.
+The `formvfx` MCP server has 27 tools. `./formvfx mcp` serves them over stdio (it starts the engine when it is not running); the engine also serves them over Streamable HTTP at `http://127.0.0.1:8250/mcp`. The shell equivalents are in the last section.
 
 ## Contents
 

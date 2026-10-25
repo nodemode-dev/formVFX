@@ -2,7 +2,7 @@
 
 ```text
 fvx_core                   native/fvx-core        the compositing engine, Rust and PyO3: project, commands, renderer, jobs
-  -> engine service        backend/app            FastAPI on 127.0.0.1:8230, one engine thread
+  -> engine service        backend/app            FastAPI on 127.0.0.1:8250, one engine thread
     -> /api/live, /api/viewer, /api/rpc, /mcp, /api/terminal
       -> interface         frontend/src           TypeScript and Vite, formvis Studio Dark
       -> agents            MCP tools, stdio relay, CLI
