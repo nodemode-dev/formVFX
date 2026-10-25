@@ -233,3 +233,8 @@ Living context for the interface. Code carries almost no comments; the reasoning
 
 - Labels only, per the owner's approved renames: the Template Controls panel (dock id `essential`, `EssentialGraphicsPanel`), the Live Link panel (`dynamicLink`, `DynamicLinkPanel`) and Window menu item, Export Live Link Clip and its toast, the Selection-Aware-Fill panel (`contentAwareFill`), the Roto Paint tool (`roto`), the Tracker panel's Wrap Stabilize button (`track.warpStabilizer`) and the Roto Paint Settings card (the `SECTIONS` label and `SECTION_OF` stay in step, since one looks up the other by name). The essential panel's hint text says Primary Properties and Add Property to Template Controls.
 - Every key that carried an old name was renamed in place in the 25 main tables and the `more` tables, with new translations that use each language's own words instead of the other vendor's localized feature names; `everyday` held none.
+
+## Vite 8.3.5 clears the dev server advisories (0.51.7)
+
+- Family rule from `FAMILY_DEV_PLAN.md` v0.4.x Phase 2b (formai_dev sidecar): every frontend installs with zero `npm audit` findings. Vite 8.3.0 carries a `launch-editor` with two command-injection advisories in the dev server (ledger FB-004); 8.3.5 clears them. The pin stays exact (`"vite": "8.3.5"`). Dev dependency only, nothing in the shipped bundle changed.
+- Verified: `npm install --no-fund` then `npm audit` reports 0 vulnerabilities; `npm run typecheck` passes; `vite build` completes into a directory outside the repo; the dev server started on localhost, answered 200 and printed no Network address. The window was not opened.
