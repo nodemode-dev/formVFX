@@ -36,6 +36,8 @@ class LocalOnly:
         try:
             host = urlsplit("http://" + headers.get("host", "")).hostname or ""
             allowed = loopback(client) and loopback(host) and local_origin(headers.get("origin"))
+            if "origin" not in headers and headers.get("sec-fetch-site", "").strip().lower() == "cross-site":
+                allowed = False
         except ValueError:
             allowed = False
         path = scope.get("path", "")
