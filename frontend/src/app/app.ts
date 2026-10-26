@@ -105,7 +105,7 @@ class App {
       <header class="cv-titlebar fx-titlebar">
         <div class="cv-brand fx-brand" title="formvfx ${VERSION}">${brandMark()}<span class="cv-brand-name">formvfx</span></div>
         <div class="fx-menubar-host"></div>
-        <div class="fx-doc-title"><span class="fx-doc-dot"></span><span class="fx-doc-name"></span></div>
+        <div class="fx-doc-title"><span class="fx-doc-dot"></span><span class="fx-doc-name">Untitled Project</span></div>
         <div class="fx-title-tools">
           <select class="fx-select fx-ws" title="Workspace" data-automation-id="workspace.select"></select>
           <button class="cv-icon-btn" type="button" data-t="undo" title="Undo">${icon('undo', 16)}</button>

@@ -250,3 +250,9 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - Wrong: the panel asked for the effect list and the text preset library separately and rendered after each answer, so the Animation Presets row was inserted above the category rows when the second answer landed and moved them (8.3e-4 on five `.fx-efx-cat` rows).
 - Changed: `shown()` waits for both answers (a failed preset library counts as empty) and renders once.
 - Verified: the window smoke named the five category rows before and reported 0 for them after.
+
+## Title bar document name and timecode start filled (0.52.3, ledger FB-142)
+
+- Wrong: the centred document title was empty until the first `history` event and then gained its name (4.5e-4), and the Timeline's timecode button was empty until the first state, so the search box beside it moved 100 px right (4.0e-4).
+- Changed: the markup starts with `Untitled Project` and `0:00:00:00`, the same text the code sets when there is no project, so the first event changes nothing.
+- Verified: the window smoke named `DIV.fx-doc-title` and then `INPUT.cv-input` (the Timeline search, 37 px to 139 px) before; after both, three runs pass with shift 0.

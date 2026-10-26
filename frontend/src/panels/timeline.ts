@@ -87,7 +87,7 @@ export class TimelinePanel implements Panel {
   constructor(private readonly ctx: Ctx) {
     this.el = el(`<div class="fx-tl">
       <div class="fx-tl-top">
-        <button class="fx-tl-tc" type="button" title="Current time as hours:minutes:seconds:frames. Click to type a time and jump straight to it (Alt+Shift+J)" aria-label="Current time, click to type a time" data-automation-id="timeline.timecode"></button>
+        <button class="fx-tl-tc" type="button" title="Current time as hours:minutes:seconds:frames. Click to type a time and jump straight to it (Alt+Shift+J)" aria-label="Current time, click to type a time" data-automation-id="timeline.timecode">0:00:00:00</button>
         <span class="fx-tl-frames" title="The current frame number, and how many frames play each second"></span>
         <input class="cv-input fx-tl-search" placeholder="Search layers and properties" title="Type to show only the layers and properties whose names match" aria-label="Search layers and properties" spellcheck="false" data-automation-id="timeline.search">
         <span class="fx-tl-flex"></span>
