@@ -34,6 +34,7 @@ formvfx is licensed under the Apache License 2.0 (`LICENSE`). It includes or dep
 | pywinpty (Windows only) | the terminal on Windows | MIT |
 | Vite, TypeScript, Tauri API and plugins | build and desktop | MIT, Apache-2.0 |
 | pytest 9.1.1 (with iniconfig, packaging, pluggy, pygments) and httpx 0.28.1 | runs `backend/tests` in CI (`backend/requirements-test.txt`); development only, never installed in the app | MIT (pytest, iniconfig, pluggy), Apache-2.0 OR BSD-2-Clause (packaging), BSD-2-Clause (pygments), BSD-3-Clause (httpx) |
+| Playwright for Python 1.63.0 (with its Chromium) | runs `frontend/tests/window` (the window smoke) in CI; development only, never installed in the app | Apache-2.0 |
 
 ## Python packages frozen into the engine
 
