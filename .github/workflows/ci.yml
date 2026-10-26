@@ -22,6 +22,7 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
+      - run: npm audit --audit-level=low
       - run: npm run build
 
   engine:
@@ -70,6 +71,31 @@ jobs:
           assert any(c['type'] == 'image' for c in lines[3]['result']['content']), lines[3]
           print('mcp ok:', len(tools), 'tools')
           PY
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: native/fvx-core
+      - name: ffmpeg for the movie render test
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+      - name: Engine venv and the compositing engine (dev profile)
+        run: |
+          (cd backend && ./oc_install)
+          ./formvfx install-native --dev
+      - name: Engine and compositing tests
+        working-directory: backend
+        run: |
+          venv/bin/pip install -r requirements-test.txt
+          venv/bin/python -m pytest tests -q
 
   scripts:
     runs-on: ubuntu-latest
