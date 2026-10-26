@@ -238,3 +238,9 @@ Living context for the interface. Code carries almost no comments; the reasoning
 
 - Family rule from `FAMILY_DEV_PLAN.md` v0.4.x Phase 2b (formai_dev sidecar): every frontend installs with zero `npm audit` findings. Vite 8.3.0 carries a `launch-editor` with two command-injection advisories in the dev server (ledger FB-004); 8.3.5 clears them. The pin stays exact (`"vite": "8.3.5"`). Dev dependency only, nothing in the shipped bundle changed.
 - Verified: `npm install --no-fund` then `npm audit` reports 0 vulnerabilities; `npm run typecheck` passes; `vite build` completes into a directory outside the repo; the dev server started on localhost, answered 200 and printed no Network address. The window was not opened.
+
+## Home Recent slot and the splash keep their box (0.52.3, ledger FB-140)
+
+- Wrong: the Home Start page's compact files list (`.cv-hf.is-compact`) was empty until the first `home` listing answered, then grew by its empty message or its cards, pushing the New composition section down (layout shift 0.023 under 4x CPU and a slow network). The splash centred the logo together with the line and bar under it, so a paint that landed after the logo and before the rest centred the logo alone and it jumped when the rest arrived.
+- Changed: `.cv-hf.is-compact` reserves 200 px, enough for the empty message, so the slot has its box from first paint. The splash stack is now a fixed size (the line has a 16 px height) placed with a fixed top padding of `50vh - 63.5px` instead of being centred as its children arrive. A populated list taller than 200 px still grows the slot once when the listing answers.
+- Verified: the window smoke (F7) reported 2.30e-2 on `SECTION.cv-home-section` before and 0 after; the splash streamed up to the logo, then 1 s later the rest, measured 1.05e-4 before and 0 after.

@@ -135,6 +135,7 @@ body { font-size: var(--fs-12); line-height: 1.35; }
 .cv-hf { width: 100%; text-align: left; }
 .cv-hf.is-fixed .cv-hf-tabs { display: none; }
 .cv-hf.is-compact .cv-hf-bar { display: none; }
+.cv-hf.is-compact { min-height: 200px; }
 .cv-hf:not(.is-list) .cv-hf-open { padding: 6px 6px 10px; border: 1px solid var(--line-1); border-radius: var(--radius-xl); background: var(--surface-0); }
 .cv-hf:not(.is-list) .cv-hf-open:hover { border-color: var(--accent-color); }
 .cv-hf:not(.is-list) .cv-hf-open:hover .cv-hf-thumb { border-color: transparent; }
