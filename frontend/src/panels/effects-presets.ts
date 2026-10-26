@@ -70,14 +70,12 @@ export class EffectsPresetsPanel implements Panel {
   shown(): void {
     if (this.loaded) return;
     this.loaded = true;
-    void this.ctx.effects().then((s) => {
+    const presets = this.ctx.client.call<TextPresetInfo[]>('text.library').catch(() => [] as TextPresetInfo[]);
+    void Promise.all([this.ctx.effects(), presets]).then(([s, p]) => {
       this.specs = s;
-      this.render();
-    });
-    void this.ctx.client.call<TextPresetInfo[]>('text.library').then((p) => {
       this.presets = p;
       this.render();
-    }).catch(() => undefined);
+    });
   }
 
   refresh(): void {

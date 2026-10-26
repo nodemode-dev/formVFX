@@ -244,3 +244,9 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - Wrong: the Home Start page's compact files list (`.cv-hf.is-compact`) was empty until the first `home` listing answered, then grew by its empty message or its cards, pushing the New composition section down (layout shift 0.023 under 4x CPU and a slow network). The splash centred the logo together with the line and bar under it, so a paint that landed after the logo and before the rest centred the logo alone and it jumped when the rest arrived.
 - Changed: `.cv-hf.is-compact` reserves 200 px, enough for the empty message, so the slot has its box from first paint. The splash stack is now a fixed size (the line has a 16 px height) placed with a fixed top padding of `50vh - 63.5px` instead of being centred as its children arrive. A populated list taller than 200 px still grows the slot once when the listing answers.
 - Verified: the window smoke (F7) reported 2.30e-2 on `SECTION.cv-home-section` before and 0 after; the splash streamed up to the logo, then 1 s later the rest, measured 1.05e-4 before and 0 after.
+
+## Effects & Presets draws once (0.52.3, ledger FB-141)
+
+- Wrong: the panel asked for the effect list and the text preset library separately and rendered after each answer, so the Animation Presets row was inserted above the category rows when the second answer landed and moved them (8.3e-4 on five `.fx-efx-cat` rows).
+- Changed: `shown()` waits for both answers (a failed preset library counts as empty) and renders once.
+- Verified: the window smoke named the five category rows before and reported 0 for them after.
