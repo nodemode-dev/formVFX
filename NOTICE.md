@@ -33,6 +33,7 @@ formvfx is licensed under the Apache License 2.0 (`LICENSE`). It includes or dep
 | FastAPI, Starlette, Uvicorn, python-multipart | the engine service | MIT (FastAPI), BSD-3-Clause (Starlette, Uvicorn), Apache-2.0 (python-multipart) |
 | pywinpty (Windows only) | the terminal on Windows | MIT |
 | Vite, TypeScript, Tauri API and plugins | build and desktop | MIT, Apache-2.0 |
+| pytest 9.1.1 (with iniconfig, packaging, pluggy, pygments) and httpx 0.28.1 | runs `backend/tests` in CI (`backend/requirements-test.txt`); development only, never installed in the app | MIT (pytest, iniconfig, pluggy), Apache-2.0 OR BSD-2-Clause (packaging), BSD-2-Clause (pygments), BSD-3-Clause (httpx) |
 
 ## Python packages frozen into the engine
 

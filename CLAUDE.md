@@ -15,7 +15,7 @@ A motion graphics and visual effects compositor in the form family beside formvi
 - `frontend/src/` · the interface: `engine/` (client, store, frames, playback; no DOM), `ui/` (dock, menus, palette, widgets, formvis design files), `panels/`, `app/`.
 - `setup/` · install, boot, build, freeze and desktop scripts behind the `./formvfx` dispatcher; `setup/agents.py` regenerates the harness skill's references from the engine.
 - Planning documents (DEV_PLAN, BUILD_NOTES, TEST_PLAN, the root HASHOUT_LOG) ship in the planning sidecar zip, not in this tree.
-- Tests live in `tests/` folders and run in CI; write only tests this plan or its successor names (`FAMILY_TEST_PLAN.md` in the formai_dev sidecar): `backend/tests` and `native/fvx-core/tests`.
+- Tests live in `tests/` folders and run in CI; write only tests this plan or its successor names (`FAMILY_TEST_PLAN.md` in the formai_dev sidecar): `backend/tests` (pytest, which drives the Rust engine through its Python module).
 
 ## Roto Paint propagation and Selection-Aware-Fill (declined for patent risk, 2026-10-23)
 
