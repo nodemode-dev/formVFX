@@ -174,6 +174,7 @@ pub static COMMANDS: &[Cmd] = &[
     c("comp.close", "Close Composition", "", "", "{comp?}", N, comp::close),
     c("comp.settings", "Composition Settings...", "Composition", "", "{comp?, name?, width?, height?, anchor? 0-8 (4 = centre), frameRate?, duration?, background?, pixelAspect?, startTime?, shutterAngle?, shutterPhase?, motionBlurSamples?, preserveFrameRate?: bool, preserveResolution?: bool}", U, comp::settings),
     c("comp.info", "Composition Info", "", "", "{comp?}", Q, comp::info),
+    c("comp.list", "Compositions", "", "", "{} -> {comps: [{id, name, width, height, frameRate, duration, workArea, layers, active}]}", Q, comp::list),
     c("comp.workArea", "Set Work Area", "", "", "{start?, end?, set?: begin|end, merge?}", U, comp::work_area),
     c("comp.setSwitch", "Composition Switch", "", "", "{switch: motionBlur|frameBlending|draft3d|hideShy, value?: bool}", U, comp::set_switch),
     c("comp.duplicate", "Duplicate Composition", "Edit", "", "{comp?}", U, comp::duplicate),

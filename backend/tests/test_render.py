@@ -3,6 +3,7 @@ import json
 import shutil
 import struct
 import subprocess
+import time
 
 import pytest
 
@@ -153,3 +154,66 @@ def test_mp4_follows_a_shorter_work_area(core, tmp_path):
     info = probe(out, "nb_read_frames")
     assert int(info["streams"][0]["nb_read_frames"]) == 5
     assert float(info["format"]["duration"]) == pytest.approx(0.5, abs=1.5 / FPS)
+
+
+def test_light_sweep_lights_a_band_not_the_whole_layer(core):
+    core.comp(width=200, height=100, fps=FPS, duration=SECONDS, background="#000000")
+    layer = core.solid("Red", "#ff0000", width=200, height=100)["layer"]
+    core.run("effect.apply", effect="fx.generate.ccLightSweep", layers=[layer])
+    for shape in (0, 1, 2):
+        core.run("prop.set", layer=layer, path="effects/#1/shape", value=shape)
+        frame = core.frame(0.0)
+        assert pixel(frame, 100, 50)[1] > 60, shape
+        assert pixel(frame, 2, 2)[:3] == (255, 0, 0), shape
+        assert pixel(frame, 197, 97)[:3] == (255, 0, 0), shape
+
+
+def test_a_relative_output_resolves_from_the_saved_project_folder(core, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    build(core)
+    project = tmp_path / "projects" / "shot.fvxproj"
+    project.parent.mkdir()
+    core.run("file.saveAs", path=str(project))
+    result = queue(core, "png", "plates/f_[#####].png")
+    expected = project.parent / "plates"
+    assert result["results"][0]["output"] == str(expected / "f_[#####].png")
+    assert len(list(expected.glob("f_*.png"))) == FRAMES
+    assert not (tmp_path / "plates").exists()
+
+
+def test_a_relative_output_without_a_saved_project_is_refused(core, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    build(core)
+    core.run("renderQueue.add", format="png", output="plates/f_[#####].png")
+    assert "absolute output path" in core.fails("renderQueue.render", wait=True)
+    assert not (tmp_path / "plates").exists()
+
+
+def test_sequence_files_are_numbered_by_composition_frame(core, tmp_path):
+    build(core)
+    core.run("renderQueue.add", format="png", output=str(tmp_path / "f_[#####].png"), timeSpan="custom", start=0.5, end=0.8)
+    core.run("renderQueue.render", wait=True)
+    assert [f.name for f in sorted(tmp_path.glob("f_*.png"))] == ["f_00005.png", "f_00006.png", "f_00007.png"]
+
+
+def test_comp_list_names_every_composition(core):
+    first = core.comp(name="One")
+    second = core.comp(name="Two", width=32, height=32)
+    comps = core.run("comp.list")["comps"]
+    assert [(c["id"], c["name"]) for c in comps] == [(first, "One"), (second, "Two")]
+    assert comps[1]["width"] == 32 and comps[1]["active"] is True
+
+
+def test_a_background_render_keeps_its_results_for_polling(core, tmp_path):
+    build(core)
+    core.run("renderQueue.add", format="png", output=str(tmp_path / "f_[#####].png"))
+    item = core.run("renderQueue.render", wait=False)["started"][0]
+    deadline = time.monotonic() + 120
+    finished = []
+    while time.monotonic() < deadline and not finished:
+        core.engine.tick(time.time())
+        listing = core.run("renderQueue.list")
+        finished = [r for r in listing["finished"] if r["item"] == item]
+        time.sleep(0.05)
+    assert finished and finished[0]["ok"] is True, listing
+    assert len(list(tmp_path.glob("f_*.png"))) == FRAMES

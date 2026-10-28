@@ -364,7 +364,7 @@ impl<'a> Renderer<'a> {
                 continue;
             }
             if l.switches.adjustment {
-                let mut c = g.download(&canvas);
+                let mut c = g.download(&canvas)?;
                 self.adjust(&ev, l, &mut c, s, cam.as_ref(), 0);
                 self.pipe.quantize(&mut c);
                 g.write(&canvas, &c);
@@ -419,7 +419,7 @@ impl<'a> Renderer<'a> {
                 }
             }
         }
-        let mut img = g.download(&canvas);
+        let mut img = g.download(&canvas)?;
         self.pipe.quantize(&mut img);
         Some(img)
     }

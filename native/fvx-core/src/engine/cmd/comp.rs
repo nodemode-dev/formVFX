@@ -168,6 +168,16 @@ pub fn settings(e: &mut Engine, p: &Json) -> Res {
     Ok(json!({"comp": id}))
 }
 
+pub fn list(e: &mut Engine, _: &Json) -> Res {
+    let comps: Vec<Json> = e
+        .project
+        .items
+        .iter()
+        .filter_map(|i| e.project.comp(i.id).map(|c| json!({"id": i.id, "name": i.name, "width": c.width, "height": c.height, "frameRate": c.frame_rate, "duration": c.duration, "workArea": c.work_area, "layers": c.layers.len(), "active": e.state.active_comp == Some(i.id)})))
+        .collect();
+    Ok(json!({"comps": comps}))
+}
+
 pub fn info(e: &mut Engine, p: &Json) -> Res {
     let (id, c) = e.comp_of(p)?;
     let name = e.project.item(id).map(|i| i.name.clone()).unwrap_or_default();

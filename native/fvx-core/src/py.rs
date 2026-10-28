@@ -33,21 +33,22 @@ impl Engine {
         Engine { e: engine::Engine::new(), gesture: 0 }
     }
 
-    fn execute(&mut self, id: &str, params: &str) -> PyResult<String> {
+    fn execute(&mut self, py: Python<'_>, id: &str, params: &str) -> PyResult<String> {
         let p = parse(params)?;
-        self.e.execute(id, p).map(|v| v.to_string()).map_err(err)
+        let e = &mut self.e;
+        py.detach(move || e.execute(id, p)).map(|v| v.to_string()).map_err(err)
     }
 
-    fn execute_checked(&mut self, id: &str, params: &str) -> PyResult<String> {
-        self.execute(id, params)
+    fn execute_checked(&mut self, py: Python<'_>, id: &str, params: &str) -> PyResult<String> {
+        self.execute(py, id, params)
     }
 
-    fn apply_text_preset(&mut self, params: &str) -> PyResult<String> {
-        self.execute("text.applyLibraryPreset", params)
+    fn apply_text_preset(&mut self, py: Python<'_>, params: &str) -> PyResult<String> {
+        self.execute(py, "text.applyLibraryPreset", params)
     }
 
-    fn paste_svg(&mut self, params: &str) -> PyResult<String> {
-        self.execute("clipboard.pasteSvg", params)
+    fn paste_svg(&mut self, py: Python<'_>, params: &str) -> PyResult<String> {
+        self.execute(py, "clipboard.pasteSvg", params)
     }
 
     fn set_gpu(&mut self, py: Python<'_>, on: bool) -> String {

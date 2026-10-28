@@ -844,7 +844,7 @@ fn light_sweep(c: &FxCtx, img: &mut Img) {
             let band = match shape {
                 0 => (1.0 - d).max(0.0),
                 2 => if d < 1.0 { 1.0 } else { 0.0 },
-                _ => smooth(1.0, 0.0, d as f32) as f64,
+                _ => (1.0 - smooth(0.0, 1.0, d as f32)) as f64,
             } as f32;
             if band <= 0.0 {
                 continue;

@@ -23,6 +23,8 @@ pub const FORMATS: [(&str, &str, &str); 12] = [
     ("aiff", "aif", "AIFF Audio"),
 ];
 
+const RESULTS_KEPT: usize = 64;
+
 #[derive(Default)]
 pub struct Progress {
     pub item: u64,
@@ -35,6 +37,7 @@ pub struct Progress {
 #[derive(Default)]
 pub struct Queue {
     pub progress: Arc<Mutex<Progress>>,
+    pub results: Vec<Json>,
     pub stop: Arc<AtomicBool>,
     pub thread: Option<std::thread::JoinHandle<()>>,
 }
@@ -136,7 +139,7 @@ pub fn list(e: &mut Engine, _: &Json) -> Res {
             row
         })
         .collect();
-    Ok(json!({"items": rows, "rendering": pr.running, "notify": rq::notify_on()}))
+    Ok(json!({"items": rows, "rendering": pr.running, "notify": rq::notify_on(), "finished": e.render.results}))
 }
 
 fn item_mut<'a>(e: &'a mut Engine, p: &Json) -> Result<&'a mut RenderItem, String> {
@@ -197,10 +200,11 @@ pub fn render(e: &mut Engine, p: &Json) -> Res {
     if e.render.busy() {
         return Err("the Render Queue is already rendering".into());
     }
-    let items: Vec<RenderItem> = e.project.render_queue.iter().filter(|r| r.render && r.status != "Done").cloned().collect();
+    let mut items: Vec<RenderItem> = e.project.render_queue.iter().filter(|r| r.render && r.status != "Done").cloned().collect();
     if items.is_empty() {
         return Err("nothing is queued (renderQueue.add)".into());
     }
+    resolve_outputs(e.path.as_deref(), &mut items)?;
     let project = e.project.clone();
     let media = e.media.clone();
     let progress = e.render.progress.clone();
@@ -214,6 +218,7 @@ pub fn render(e: &mut Engine, p: &Json) -> Res {
     let wait = pb(p, "wait").unwrap_or(true);
     let batch = if e.multi_frame { rayon::current_num_threads().clamp(1, 16) } else { 1 };
     let ids: Vec<u64> = items.iter().map(|r| r.id).collect();
+    e.render.results.retain(|r| r["item"].as_u64().is_none_or(|i| !ids.contains(&i)));
     let handle = std::thread::spawn(move || {
         for it in items {
             {
@@ -237,6 +242,23 @@ pub fn render(e: &mut Engine, p: &Json) -> Res {
     }
     e.render.thread = Some(handle);
     Ok(json!({"started": ids}))
+}
+
+pub fn resolve_outputs(project: Option<&str>, items: &mut [RenderItem]) -> Result<(), String> {
+    let base = project.and_then(|p| Path::new(p).parent()).filter(|d| d.is_absolute());
+    for it in items.iter_mut() {
+        for m in it.modules.iter_mut() {
+            let out = Path::new(&m.output);
+            if m.output.is_empty() || out.is_absolute() || out.parent().is_none_or(|d| d.as_os_str().is_empty()) {
+                continue;
+            }
+            let Some(dir) = base else {
+                return Err(format!("the output `{}` is a relative path and the project is not saved, so it has no folder to resolve from: pass an absolute output path, or save the project first (relative paths resolve from the project's folder)", m.output));
+            };
+            m.output = dir.join(out).to_string_lossy().to_string();
+        }
+    }
+    Ok(())
 }
 
 pub fn poll(e: &mut Engine) -> Vec<Json> {
@@ -283,6 +305,9 @@ pub fn poll(e: &mut Engine) -> Vec<Json> {
             e.frontend("renderQueue.notify", json!({"message": msg, "error": r.is_err()}));
         }
     }
+    e.render.results.extend(out.iter().cloned());
+    let extra = e.render.results.len().saturating_sub(RESULTS_KEPT);
+    e.render.results.drain(..extra);
     out
 }
 
