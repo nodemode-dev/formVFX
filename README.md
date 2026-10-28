@@ -6,7 +6,13 @@ Version 0.52.3 · Apache-2.0 · compositing engine: formvfx's own, in Rust (`nat
 
 ## Quick start
 
-Needs Node 20.19+ or 22.12+, Python 3.12+, and Rust 1.95+ (`https://rustup.rs`). `./formvfx doctor` checks them.
+Needs Node 20.19+ or 22.12+, Python 3.12+, and Rust 1.95 or newer for the compositing engine. A stock Mac has no Rust; install it with rustup, then open a new terminal so `cargo` is on PATH (the scripts also find it in `~/.cargo/bin`):
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh   # first time
+rustup update stable                                             # Rust older than 1.95
+./formvfx doctor                                                 # checks Node, Python, the Rust version and the ports
+```
 
 ```bash
 ./formvfx install      # engine venv, the Rust compositing engine (the first build takes a few minutes), interface packages
@@ -27,7 +33,8 @@ Open http://localhost:5250, choose **Open the demo project** on the start screen
 - **From this repository**: `.mcp.json`, `.codex/config.toml` and `.cursor/mcp.json` run `./formvfx mcp`. The first change asks once in the formvfx window.
 - **From anywhere**: `./formvfx agents install` (or the Agents panel) sets the three clients up for your account.
 - **Live Link**: Export Live Link Clip (Project panel) writes a `.fvxlink` that an editor such as formcut plays live with no render. Links keep working when the project is moved or renamed (found again by its project id beside the `.fvxlink`, in its old folder or among recent projects) and when a comp is renumbered (found by name). `POST /api/link/check` reports and fixes a link, `POST /api/link/render` renders the comp for Render and Replace, and Window > Live Link shows what is being served.
-- **Command line**: `./formvfx state`, `commands FILTER`, `describe ID`, `exec ID 'JSON'`, `batch 'JSON'`, `frame OUT.png --time S`, `render --wait`.
+- **Command line**: `./formvfx state`, `commands FILTER`, `describe ID`, `exec ID 'JSON'`, `batch 'JSON'`, `frame OUT.png --time S`, `render --wait`. `exec comp.list` lists the compositions. `exec`, `batch` and `render` print JSON with `"ok": true` and exit 0 on success, or `{"ok": false, "error": "..."}` and exit 1; a field named `error` inside a successful result belongs to that command (`prop.setExpression` reports the expression's own error there, `null` when it is fine). Renders run in the engine in the background: `render --wait` (or `exec renderQueue.render`) polls their progress, `render --status` and `render --stop` follow or cancel one, and a closed command line leaves the render running. Relative output paths resolve from the folder you run the command in.
+- **Headless agents** (no formvfx window open): the first change from an outside agent is refused with `No formvfx window is open to ask the person for permission`, because the default policy asks in the window. Start the engine with agents allowed instead: `FORMVFX_AGENTS=allow ./formvfx serve` (`deny` refuses outside agents; Terminal panel agents always work). The engine reads `FORMVFX_AGENTS` when it starts. If the port is taken, `serve` and the command line say so instead of starting a second engine.
 
 ## Desktop
 
@@ -69,14 +76,14 @@ Pushing a `compile_vX.Y.Z` branch has formcompiler (`nodemode-ai/formcompiler`) 
 
 | Area | Files | Lines |
 | --- | ---: | ---: |
-| Compositing engine (Rust, fvx-core) | 170 | 84,535 |
-| Engine service (Python) | 38 | 3,602 |
-| Interface (TypeScript) | 60 | 14,263 |
-| Interface styles (CSS) | 11 | 2,088 |
-| Desktop shell (Rust, Tauri) | 1 | 141 |
-| Setup and CLI | 35 | 1,121 |
-| Agent skill (Markdown, hand-written) | 16 | 786 |
-| Total | 331 | 106,536 |
+| Compositing engine (Rust, fvx-core) | 170 | 84,582 |
+| Engine service (Python) | 38 | 3,759 |
+| Interface (TypeScript) | 62 | 14,782 |
+| Interface styles (CSS) | 11 | 2,208 |
+| Desktop shell (Rust, Tauri) | 3 | 314 |
+| Setup and CLI | 35 | 1,142 |
+| Agent skill (Markdown, hand-written) | 16 | 788 |
+| Total | 335 | 107,575 |
 
 Non-blank lines in tracked files; generated skill references excluded. `./formvfx counts` prints this table.
 

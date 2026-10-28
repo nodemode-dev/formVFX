@@ -7,7 +7,9 @@ description: Getting work out of formvfx. Use to render a composition to H.264, 
 
 ## The quick path
 
-`render {comp, format, output, wait: true}` adds the composition to the Render Queue, renders it, and returns when the file is written. Formats: `h264` (default), `hevc`, `av1`, `prores`, `webm`, `gif`, `png`, `jpeg`, `tiff`, `exr`, `wav`, `aiff`. `output` is an absolute path; for image sequences put a frame-number template in it, `.../shot_[#####].png` writes `shot_00000.png` onwards. Without `output` the file goes to the agent workspace's `renders` folder.
+`render {comp, format, output, wait: true}` adds the composition to the Render Queue, renders it, and returns when the file is written. Formats: `h264` (default), `hevc`, `av1`, `prores`, `webm`, `gif`, `png`, `jpeg`, `tiff`, `exr`, `wav`, `aiff`. `output` is an absolute path; for image sequences put a frame-number template in it, `.../shot_[#####].png` writes `shot_00000.png` onwards. The number is the composition frame, not a count from the start of the render: rendering 3 to 4 s at 30 fps writes `shot_00090.png` to `shot_00119.png`. A relative output resolves from the saved project's folder (a bare file name goes to the renders folder; an unsaved project refuses a relative path); from the command line it resolves from the folder the command runs in. Without `output` the file goes to the agent workspace's `renders` folder.
+
+Renders run in the engine in the background, independent of the call that started them. `render` with `wait: true` waits up to 10 minutes and then returns `running: true` with the next step; follow a long render with `wait {timeout}` or `execute renderQueue.list` (status and progress per item, `finished` results with output paths) and stop it with `renderQueue.stop`. The engine keeps answering while it renders. From a shell, `formvfx render --wait` polls until it is done, `formvfx render --status` and `formvfx render --stop` follow or cancel it.
 
 The work area decides the frames: `comp.workArea {start, end}` first if only part should render.
 
@@ -32,7 +34,7 @@ The work area decides the frames: `comp.workArea {start, end}` first if only par
 | Output module (codec options, channels, bitrate, audio) | `renderQueue.setOutputModule {item, format, channels: rgb|rgba|alpha, quality, bitrate, proresProfile, audio}` |
 | A second output from the same render | `render.addOutputModule {item, format, output}` |
 | Output path | `renderQueue.setOutput {item, path}` |
-| Render everything queued | `renderQueue.render {wait: true}` |
+| Render everything queued | `renderQueue.render {wait: true}` (or `wait: false` to return at once; then `renderQueue.list`) |
 | Inspect, reorder, remove | `renderQueue.list`, `renderQueue.move`, `renderQueue.remove`, `renderQueue.setRender {item, render: false}` |
 | Templates | `renderQueue.templates`, `renderQueue.saveTemplate`, `renderQueue.applyTemplate` |
 
