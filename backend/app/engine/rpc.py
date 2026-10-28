@@ -26,6 +26,9 @@ def _dumps(params: Any) -> str:
 async def execute(command: str, params: Any = None, source: str = "ui") -> Any:
     if not isinstance(command, str) or not command:
         raise RpcError("missing `command`", -32602)
+    if command == "renderQueue.render" and (params if isinstance(params, dict) else {}).get("wait", True) is not False:
+        started = await execute(command, {**(params if isinstance(params, dict) else {}), "wait": False}, source)
+        return await wait_for_render(started.get("started") or [])
     from ..agent.consent import query_command
 
     query = query_command(command)
@@ -44,6 +47,26 @@ async def execute(command: str, params: Any = None, source: str = "ui") -> Any:
         global _effects_cache
         _effects_cache = None
     return json.loads(raw) if raw else None
+
+
+async def render_queue() -> dict:
+    return json.loads(await host.call(lambda e: e.execute("renderQueue.list", "{}")))
+
+
+async def wait_for_render(ids: list, timeout: float | None = None, settle: float = 5.0) -> dict:
+    loop = asyncio.get_running_loop()
+    deadline = None if timeout is None else loop.time() + timeout
+    idle_since = None
+    while True:
+        queue = await render_queue()
+        done = {r.get("item"): r for r in queue.get("finished") or [] if r.get("item") in ids}
+        if len(done) == len(ids) or (not queue.get("rendering") and idle_since is not None and loop.time() - idle_since > settle):
+            return {"rendered": ids, "results": [done[i] for i in ids if i in done]}
+        if deadline is not None and loop.time() >= deadline:
+            return {"started": ids, "running": True, "items": [r for r in queue.get("items") or [] if r.get("id") in ids]}
+        if not queue.get("rendering") and idle_since is None:
+            idle_since = loop.time()
+        await asyncio.sleep(0.25)
 
 
 async def _native_edit(name: str, fn, source: str) -> Any:
@@ -202,6 +225,8 @@ async def dispatch(method: str, params: Any, source: str = "ui") -> Any:
                 if "gpu" in p:
                     await host.call(lambda e: host.attach_gpu(), source, touches=True)
             return {**performance.describe(), "gpuStatus": host.gpu}
+        if method == "render.status":
+            return await render_queue()
         if method == "activity.list":
             n = int(p.get("limit") or 50)
             return list(host.activity)[-n:]

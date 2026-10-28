@@ -8,7 +8,12 @@ fx_say "doctor · $(fx_os)"
 if command -v node >/dev/null 2>&1 && node -e 'const [m,n]=process.versions.node.split(".").map(Number);process.exit((m===20&&n>=19)||(m===22&&n>=12)||m>=23?0:1)'; then ok "node $(node -v)"; else bad "node" "Node 20.19+ or 22.12+ is required"; fi
 if command -v npm >/dev/null 2>&1; then ok "npm"; else bad "npm" "install npm"; fi
 if py="$(fx_python)"; then ok "python $("$py" -V 2>&1 | awk '{print $2}')"; else bad "python" "Python 3.12+ is required"; fi
-if command -v cargo >/dev/null 2>&1; then ok "rust $(rustc --version | awk '{print $2}')"; else bad "rust" "the compositing engine needs Rust 1.95+ from https://rustup.rs"; fi
+if command -v cargo >/dev/null 2>&1; then
+  rv="$(rustc --version | awk '{print $2}')"
+  if printf '%s\n' "$rv" | awk -F. '{exit !($1 > 1 || ($1 == 1 && $2 >= 95))}'; then ok "rust $rv"; else bad "rust $rv" "the compositing engine needs Rust 1.95+: rustup update stable (without rustup: $FX_RUST_GET)"; fi
+else
+  bad "rust" "the compositing engine needs Rust 1.95+: $FX_RUST_GET"
+fi
 if [ -f "$FORMVFX_ROOT/backend/venv/bin/activate" ]; then ok "engine venv"; else warn "engine venv" "run ./formvfx install"; fi
 vpy="$FORMVFX_ROOT/backend/venv/bin/python"
 if [ -x "$vpy" ]; then

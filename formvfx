@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -e
+export FORMVFX_CALLER_DIR="${FORMVFX_CALLER_DIR:-$PWD}"
 cd "$(dirname "$0")"
 usage() {
   printf 'formvfx %s · motion graphics and visual effects\n' "$(sed -n "s/^export const VERSION = '\(.*\)';$/\1/p" frontend/src/version.ts 2>/dev/null)"
@@ -14,7 +15,9 @@ usage: ./formvfx [command] [options]
   backend               boot the engine only
   frontend              boot the interface only
   build                 production build of the interface into frontend/dist
-  serve                 serve the built interface from the engine on 127.0.0.1:8250
+  serve                 serve the built interface from the engine on 127.0.0.1:8250 (FORMVFX_PORT changes the port)
+                        headless agents: FORMVFX_AGENTS=allow ./formvfx serve lets outside agents edit with no window open
+                        (ask is the default and needs a window to answer; deny refuses outside agents)
   freeze                freeze the engine service and the compositing engine into the Tauri sidecar binary
   desktop dev|build     run the desktop app, or build and install it (build is the same as ./build_app)
   doctor                check the toolchain, installs and ports
@@ -25,7 +28,7 @@ usage: ./formvfx [command] [options]
   describe ID           one command with its JSON Schema
   state                 the open project, active comp, selection and time
   frame OUT.png [--time S] [--comp C] [--max N]  save a rendered frame
-  render [--wait]       render the Render Queue
+  render [--wait|--status|--stop]  render the Render Queue in the background; --wait polls until it is done
 
   claude [ARGS]         start Claude Code here, connected to formvfx over MCP (starts the engine when needed)
   mcp                   formvfx over MCP's stdio transport (starts the engine when needed)

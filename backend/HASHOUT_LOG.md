@@ -116,3 +116,13 @@ Living context for the engine service. Code carries almost no comments; the reas
 ## Known gaps
 
 - None recorded at 0.3.0; the desktop sidecar freeze and the Tauri shell shipped in 0.2.0.
+
+## Renders that outlive the request, and one engine per port (agent render reliability)
+
+- A waiting `renderQueue.render` used to join the render thread inside `Engine.execute` on the engine thread with the GIL held, so the whole process stopped answering (health, the live socket, MCP) for the length of the render. A CLI whose 900 s request timed out then saw no healthy engine, started a second one, and that one failed to bind (`[Errno 48]`) and dropped its `Engine` on the main thread (`unsendable ... dropped on another thread`).
+- Now `Engine.execute` releases the GIL while a command runs (the Rust engine is `Send`; the `unsendable` pyclass still pins the object to the engine thread), and `rpc.execute` turns a waiting render into a background one (`wait: false`) and polls `renderQueue.list` with `asyncio.sleep`, so the engine thread is free between polls. The render thread never depends on the request: a dropped client leaves it running. `render.status` is the read-only RPC that polls without writing to the Activity list.
+- The Render Queue keeps the last 64 finished results (`finished` in `renderQueue.list`) because the tick's `export::poll` consumes them; a poller matches them by item id.
+- The CLI never holds one long request for a render: `exec renderQueue.render` and `render --wait` start it in the background and poll `render.status` every second, printing progress on stderr. Ctrl+C leaves the render running (`render --status`, `render --stop`). The MCP `render` tool waits up to 10 minutes, below the stdio relay's 900 s timeout, then returns `running` with the next step.
+- `client.engine_url` checks whether the port is held before starting an engine. A held port that does not answer health within 10 s is reported with the `lsof` line to find it; no second engine starts. `setup/serve` and `backend/boot_backend` refuse a held port before importing anything. `host._run` drops the `Engine` on its own thread at shutdown.
+- CLI contract: `exec`, `batch` and `render` print `"ok": true` on success (added to object results that have no `ok` of their own) and `{"ok": false, "error": ...}` with exit status 1 on failure. A command's own `error` field (`prop.setExpression` reports the expression's error there, `null` when it compiled) is part of its result, not a failure.
+- The `./formvfx` dispatcher `cd`s into the repository, so the CLI resolves relative render outputs (`output`, `path` on `renderQueue.*` and `render.*`) against `FORMVFX_CALLER_DIR`, the folder the person ran it from.

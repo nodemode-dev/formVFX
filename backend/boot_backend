@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -e
 cd "$(dirname "$0")"
+port="${FORMVFX_PORT:-8250}"
+if (exec 3<>"/dev/tcp/127.0.0.1/$port") 2>/dev/null; then
+  echo "[formvfx] error: port $port is already in use (a formvfx engine that is still running or busy, or another app); not starting a second engine. Find it with: lsof -nP -iTCP:$port -sTCP:LISTEN. Or pick another port: FORMVFX_PORT=8251" >&2
+  exit 1
+fi
 [ -f venv/bin/activate ] || { echo "[formvfx] engine venv missing, run ./formvfx install" >&2; exit 1; }
 # shellcheck disable=SC1091
 source venv/bin/activate

@@ -32,7 +32,10 @@ def forward(line: str) -> str | None:
     if not url:
         if msg.get("id") is None:
             return None
-        return json.dumps({"jsonrpc": "2.0", "id": msg.get("id"), "error": {"code": -32000, "message": "The formvfx engine is not running and could not be started: run ./formvfx boot in the formvfx folder (or open the desktop app), then retry."}})
+        message = "The formvfx engine is not running and could not be started: run ./formvfx boot in the formvfx folder (or open the desktop app), then retry."
+        if client.problem() != client.NOT_RUNNING:
+            message = f"The formvfx engine cannot be reached: {client.problem()}."
+        return json.dumps({"jsonrpc": "2.0", "id": msg.get("id"), "error": {"code": -32000, "message": message}})
     h = client.headers(_name["value"] or "mcp:agent")
     h["MCP-Protocol-Version"] = version
     req = urllib.request.Request(url, data=line.encode(), method="POST", headers=h)
