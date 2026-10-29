@@ -16,7 +16,7 @@ Window > Chat with Claude (Alt+Cmd or Ctrl+J) opens a chat that answers in forma
 
 - In the repository, `.mcp.json` (Claude Code), `.codex/config.toml` (Codex) and `.cursor/mcp.json` (Cursor) run `./formvfx mcp`.
 - `./formvfx agents install` (or Install in the Agents panel) adds the MCP server and the skill to your Claude Code, Codex and Cursor setup, backing up any file it changes.
-- The first change from an outside agent asks once in the formvfx window: Allow, Allow Always or Don't Allow. `FORMVFX_AGENTS=allow` or `deny` on the engine changes the policy.
+- The first change from an outside agent asks once in the formvfx window: Allow, Allow Always or Don't Allow. `FORMVFX_AGENTS=allow` or `deny` on the engine changes the policy; for headless agents with no window, start the engine with `FORMVFX_AGENTS=allow ./formvfx serve`.
 
 ## The tools
 

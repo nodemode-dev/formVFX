@@ -11,7 +11,7 @@ TOKEN = secrets.token_urlsafe(24)
 _session: set[str] = set()
 _declined: dict[str, float] = {}
 _QUERY_IDS = {
-    "app.capabilities", "cache.diskStats", "camera.points", "camera.solveStatus", "command.describe", "command.list", "comp.info",
+    "app.capabilities", "cache.diskStats", "camera.points", "camera.solveStatus", "command.describe", "command.list", "comp.info", "comp.list",
     "effect.list", "expr.errors", "item.metadata", "keys.info", "layer.style.list", "layer.tree", "markers.list",
     "mask.featherPoint.list", "paint.presets", "prefs.get", "prefs.pages",
     "project.summary", "project.usage", "prop.get", "puppet.info", "renderQueue.formats", "renderQueue.list",
@@ -19,7 +19,7 @@ _QUERY_IDS = {
     "track.status", "warp.status", "text.fonts", "text.fontFeatures", "view.get3D",
     "essential.list", "essential.templates", "effect.plugins.list", "face.models", "file.scripts.list", "scriptui.list",
 }
-_READ_RPC = {"command.list", "command.describe", "ui.state", "ui.overlays", "ui.graph", "ui.flowchart", "text.library", "roto.objectPreview", "menu.bar", "menu.titles", "effects.catalog", "frame.png", "engine.info", "activity.list", "project.json", "link.info"}
+_READ_RPC = {"command.list", "command.describe", "ui.state", "ui.overlays", "ui.graph", "ui.flowchart", "text.library", "roto.objectPreview", "menu.bar", "menu.titles", "effects.catalog", "frame.png", "engine.info", "activity.list", "project.json", "link.info", "render.status"}
 
 
 def _store():
@@ -86,7 +86,9 @@ async def gate(source: str, token: str | None, mutating: bool, detail: str = "")
         return "The person declined edits from this agent a moment ago. Ask them in chat before trying again."
     if not host.bus.windows():
         return ("No formvfx window is open to ask the person for permission. Open formvfx (./formvfx boot, then http://localhost:5250, "
-                "or the desktop app) and allow this agent, start the agent from formvfx's Terminal panel, or set FORMVFX_AGENTS=allow.")
+                "or the desktop app) and allow this agent, or start the agent from formvfx's Terminal panel. For headless agent work, "
+                "the person can start the engine with agents allowed: stop this engine, then run FORMVFX_AGENTS=allow ./formvfx serve "
+                "in the formvfx folder (FORMVFX_AGENTS is read by the engine when it starts, not by the agent's command).")
     reply = await host.bus.ask_window({"type": "consent", "client": source, "detail": detail}, timeout=180)
     if not reply:
         return "Nobody answered the permission request in the formvfx window. Ask the person to allow the agent there, then retry."

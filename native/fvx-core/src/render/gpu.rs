@@ -11,6 +11,8 @@ use super::image::Img;
 use super::ocio::{Fixed, Interp, Neg, Op, Proc};
 use crate::geom::Mat3;
 
+const READBACK_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);
+
 struct ThreadWaker(std::thread::Thread);
 
 impl Wake for ThreadWaker {
@@ -134,7 +136,7 @@ pub fn probe() -> String {
         Ok(g) => {
             let mut img = Img::new(4, 4);
             img.px.iter_mut().enumerate().for_each(|(i, v)| *v = (i % 7) as f32 / 7.0);
-            let ok = g.upload(&img).map(|b| g.download(&b).px == img.px).unwrap_or(false);
+            let ok = g.upload(&img).and_then(|b| g.download(&b)).is_some_and(|d| d.px == img.px);
             serde_json::json!({"ok": ok, "built": true, "adapter": g.adapter, "backend": g.backend, "error": if ok { serde_json::Value::Null } else { "the GPU read back the wrong values".into() }}).to_string()
         }
         Err(e) => serde_json::json!({"ok": false, "built": true, "adapter": null, "error": e}).to_string(),
@@ -238,26 +240,36 @@ impl Gpu {
         self.queue.write_buffer(&buf.b, 0, &bytes_of(&img.px));
     }
 
-    pub fn download(&self, buf: &Buf) -> Img {
+    pub fn download(&self, buf: &Buf) -> Option<Img> {
         let size = (buf.w.max(1) * buf.h.max(1) * 16) as u64;
         let staging = self.device.create_buffer(&wgpu::BufferDescriptor { label: None, size, usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST, mapped_at_creation: false });
         let mut enc = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
         enc.copy_buffer_to_buffer(&buf.b, 0, &staging, 0, size);
-        self.queue.submit([enc.finish()]);
+        let index = self.queue.submit([enc.finish()]);
         let slice = staging.slice(..);
         let done = Arc::new(Mutex::new(None));
         let d2 = done.clone();
         slice.map_async(wgpu::MapMode::Read, move |r| *d2.lock() = Some(r.is_ok()));
-        let _ = self.device.poll(wgpu::PollType::wait_indefinitely());
-        let mut out = Img::new(buf.w, buf.h);
-        if done.lock().unwrap_or(false)
-            && let Ok(data) = slice.get_mapped_range()
-        {
-            for (o, c) in out.px.iter_mut().zip(data.chunks_exact(4)) {
-                *o = f32::from_le_bytes([c[0], c[1], c[2], c[3]]);
+        let deadline = std::time::Instant::now() + READBACK_TIMEOUT;
+        let mapped = loop {
+            if let Some(ok) = *done.lock() {
+                break ok;
             }
+            if std::time::Instant::now() > deadline {
+                break false;
+            }
+            let _ = self.device.poll(wgpu::PollType::Wait { submission_index: Some(index.clone()), timeout: Some(std::time::Duration::from_millis(100)) });
+            std::thread::yield_now();
+        };
+        if !mapped {
+            return None;
         }
-        out
+        let data = slice.get_mapped_range().ok()?;
+        let mut out = Img::new(buf.w, buf.h);
+        for (o, c) in out.px.iter_mut().zip(data.chunks_exact(4)) {
+            *o = f32::from_le_bytes([c[0], c[1], c[2], c[3]]);
+        }
+        Some(out)
     }
 
     fn dispatch(&self, pipe: &wgpu::ComputePipeline, entries: &[wgpu::BindGroupEntry], gx: u32, gy: u32) {

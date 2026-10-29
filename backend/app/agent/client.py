@@ -13,6 +13,15 @@ from pathlib import Path
 from ..core import discovery
 
 _started = False
+HEALTH_RETRY_SECONDS = 10.0
+
+
+_problem = {"text": ""}
+NOT_RUNNING = "no engine is running and it could not be started: run ./formvfx boot (or open the desktop app)"
+
+
+def problem() -> str:
+    return _problem["text"] or NOT_RUNNING
 
 
 def engine_url(autostart: bool = True) -> str | None:
@@ -20,7 +29,17 @@ def engine_url(autostart: bool = True) -> str | None:
     url = discovery.running_engine()
     if url:
         return url
+    held = discovery.held_port()
+    if held:
+        if discovery.healthy(held, HEALTH_RETRY_SECONDS):
+            return held
+        port = held.rsplit(":", 1)[-1]
+        _problem["text"] = (f"something is listening on {held} but does not answer {held}/api/health within {HEALTH_RETRY_SECONDS:g} s: the engine there may be stuck. "
+                            f"A second engine was not started because the port is taken; find the process with lsof -nP -iTCP:{port} -sTCP:LISTEN and stop it, "
+                            "or set FORMVFX_PORT to a free port, then retry")
+        return None
     if explicit:
+        _problem["text"] = f"no engine answers at FORMVFX_URL={explicit}"
         return None
     if autostart and start_engine():
         return discovery.running_engine(timeout=2)
@@ -66,7 +85,7 @@ def headers(source: str | None = None) -> dict:
 def rpc(method: str, params: dict | None = None, source: str | None = None, timeout: float = 900) -> object:
     url = engine_url()
     if not url:
-        raise SystemExit("[formvfx] no engine is running and it could not be started: run ./formvfx boot (or open the desktop app)")
+        raise SystemExit(f"[formvfx] {problem()}")
     body = json.dumps({"jsonrpc": "2.0", "id": 1, "method": method, "params": params or {}}).encode()
     req = urllib.request.Request(f"{url}/api/rpc", data=body, method="POST", headers=headers(source))
     try:

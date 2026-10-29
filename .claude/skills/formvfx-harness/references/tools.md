@@ -194,7 +194,7 @@ Note: read-only.
 
 ## render
 
-Renders a composition to a file through the Render Queue and waits for it: format h264, prores, hevc, av1, webm, gif, png, jpeg, tiff, exr, wav or aiff; output is an absolute path (default: the renders folder).
+Renders a composition to a file through the Render Queue: format h264, prores, hevc, av1, webm, gif, png, jpeg, tiff, exr, wav or aiff; output is an absolute path (default: the renders folder). The render runs in the engine in the background; with wait it waits up to 10 minutes and returns the output, or running with the next step for a longer render (wait, renderQueue.list, renderQueue.stop). Sequence frame numbers are composition frames.
 
 - `comp`: id or name; Composition id or name; omit for the active composition.
 - `format`: string; default "h264"
@@ -313,7 +313,7 @@ Point track: track.new {layer, kind: transform|stabilize|affine|perspective, tar
 
 ### render
 
-render {comp, format: h264|prores|hevc|av1|webm|gif|png|jpeg|tiff|exr|wav, output: absolute path, wait: true}. Or renderQueue.add {comp, format, output} then renderQueue.render {wait: true}. Single frame: execute comp.saveFrameAs {path, time}. Lottie: execute file.exportLottie {comp, path}.
+render {comp, format: h264|prores|hevc|av1|webm|gif|png|jpeg|tiff|exr|wav, output: absolute path, wait: true}. Or renderQueue.add {comp, format, output} then renderQueue.render {wait: true}. Renders run in the engine in the background: render waits up to 10 minutes, then returns running with the next step; wait or renderQueue.list follows it, renderQueue.stop cancels. A relative output resolves from the saved project's folder. Sequence frame numbers are composition frames: rendering 3 to 4 s at 30 fps writes _00090 to _00119. Single frame: execute comp.saveFrameAs {path, time}. Lottie: execute file.exportLottie {comp, path}.
 
 ### ui
 

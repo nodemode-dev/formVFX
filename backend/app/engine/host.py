@@ -109,6 +109,7 @@ class EngineHost:
             except queue.Empty:
                 item = None
             if item is _STOP:
+                self.engine = None
                 break
             if item is not None:
                 fn, fut, source, touches = item

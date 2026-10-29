@@ -186,7 +186,7 @@ The reference compositor's side comes from its vendor's public documentation and
 
 ## Where formvfx leads
 
-Lottie export without a plug-in, editor timelines in four open formats, OpenFX plug-in hosting and MaterialX materials, an interface in 26 languages, Linux and the browser, an Apache-2.0 licence, and an agent surface: every one of its 699 engine commands is reachable from Claude Code, Codex or Cursor through MCP or the command line, with a skill that teaches the workflow, and Claude Code and a Chat panel run inside the window.
+Lottie export without a plug-in, editor timelines in four open formats, OpenFX plug-in hosting and MaterialX materials, an interface in 26 languages, Linux and the browser, an Apache-2.0 licence, and an agent surface: every one of its 700 engine commands is reachable from Claude Code, Codex or Cursor through MCP or the command line, with a skill that teaches the workflow, and Claude Code and a Chat panel run inside the window.
 
 ## Declined
 

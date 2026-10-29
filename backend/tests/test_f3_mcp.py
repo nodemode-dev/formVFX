@@ -1,7 +1,8 @@
 import json
 import subprocess
+import sys
 
-from conftest import MCP_PATH, READ_TOOL, STDIO_CMD, tool_catalogue
+from conftest import MCP_PATH, READ_TOOL, REPO, STDIO_CMD, TOKEN_HEADER, inapp_token, tool_catalogue
 
 
 def initialize(client, headers=None):
@@ -66,3 +67,48 @@ def test_stdio_relay_finds_the_engine_through_engine_json(engine):
     replies = {m.get("id"): m for m in (json.loads(l) for l in proc.stdout.splitlines() if l.strip().startswith("{"))}
     assert 2 in replies, f"relay gave no tools/list reply: {proc.stdout[-2000:]} {proc.stderr[-2000:]}"
     assert len(replies[2]["result"]["tools"]) == len(tool_catalogue())
+
+
+CLI = [sys.executable, str(REPO / "setup" / "fx.py")]
+
+
+def cli(engine, *args):
+    env = dict(engine["env"], FORMVFX_URL=engine["base"], FORMVFX_AUTOSTART="0")
+    return subprocess.run([*CLI, *args], capture_output=True, text=True, timeout=120, env=env)
+
+
+def test_cli_success_says_ok_and_lists_compositions(engine):
+    proc = cli(engine, "exec", "comp.list")
+    assert proc.returncode == 0, proc.stderr
+    out = json.loads(proc.stdout)
+    assert out["ok"] is True and isinstance(out["comps"], list)
+
+
+def test_cli_failure_says_not_ok_with_the_error(engine):
+    proc = cli(engine, "exec", "comp.info", '{"comp": "no such comp"}')
+    assert proc.returncode == 1
+    out = json.loads(proc.stdout)
+    assert out["ok"] is False and out["error"]
+
+
+def test_cli_resolves_relative_render_outputs_from_the_current_folder(tmp_path, monkeypatch):
+    from app.agent.cli import absolute_outputs
+
+    monkeypatch.chdir(tmp_path)
+    params = absolute_outputs("renderQueue.add", {"output": "plates/f_[#####].png", "comp": "Main"})
+    assert params == {"output": str(tmp_path / "plates" / "f_[#####].png"), "comp": "Main"}
+    assert absolute_outputs("renderQueue.setOutput", {"path": "/abs/out.mp4"}) == {"path": "/abs/out.mp4"}
+    assert absolute_outputs("layer.newText", {"path": "x"}) == {"path": "x"}
+    monkeypatch.setenv("FORMVFX_CALLER_DIR", str(tmp_path / "caller"))
+    assert absolute_outputs("renderQueue.setOutput", {"path": "out.mp4"}) == {"path": str(tmp_path / "caller" / "out.mp4")}
+
+
+def test_the_render_tool_renders_in_the_background_and_reports_the_output(client, tmp_path):
+    token = {TOKEN_HEADER: inapp_token()}
+    call = lambda name, args: client.post(MCP_PATH, json={"jsonrpc": "2.0", "id": 9, "method": "tools/call", "params": {"name": name, "arguments": args}}, headers=token).json()["result"]
+    assert not call("execute", {"command": "comp.new", "params": {"name": "Tool render", "width": 32, "height": 32, "frameRate": 10, "duration": 0.5}}).get("isError")
+    result = call("render", {"format": "png", "output": str(tmp_path / "t_[#####].png")})
+    assert not result.get("isError"), result
+    body = json.loads(result["content"][0]["text"])
+    assert body["result"]["results"][0]["ok"] is True, body
+    assert len(list(tmp_path.glob("t_*.png"))) == 5

@@ -1,5 +1,6 @@
 @echo off
 setlocal
+if not defined FORMVFX_CALLER_DIR set "FORMVFX_CALLER_DIR=%CD%"
 cd /d "%~dp0"
 set "CMD=%~1"
 if "%CMD%"=="" set "CMD=boot"

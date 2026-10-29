@@ -1304,6 +1304,10 @@ fn plan(o: usize, start: f64, src_fps: f64, s: &RenderSettings) -> Plan {
     if s.field_render != "off" { Plan::Fields(t, t + 0.5 / src_fps) } else { Plan::Frame(t) }
 }
 
+fn blank(img: &Img) -> bool {
+    img.px.iter().all(|v| *v == 0.0)
+}
+
 pub fn render_item(project: &Project, media: &Media, it: &RenderItem, progress: &Mutex<Progress>, stop: &AtomicBool, batch: usize) -> Result<String, String> {
     let mut it = it.clone();
     it.fix();
@@ -1358,17 +1362,16 @@ pub fn render_item(project: &Project, media: &Media, it: &RenderItem, progress: 
                 return Err("stopped".into());
             }
             use rayon::prelude::*;
-            let imgs: Vec<Img> = chunk
-                .par_iter()
-                .map(|o| match plan(*o, start, src_fps, &s) {
-                    Plan::Frame(t) => r.comp_frame(it.comp, t),
-                    Plan::Fields(a, b) => {
-                        let fa = r.comp_frame(it.comp, a);
-                        let fb = r.comp_frame(it.comp, b);
-                        interleave(&fa, &fb, s.field_render == "upper")
-                    }
-                })
-                .collect();
+            let frame_at = |o: usize| match plan(o, start, src_fps, &s) {
+                Plan::Frame(t) => r.comp_frame(it.comp, t),
+                Plan::Fields(a, b) => {
+                    let fa = r.comp_frame(it.comp, a);
+                    let fb = r.comp_frame(it.comp, b);
+                    interleave(&fa, &fb, s.field_render == "upper")
+                }
+            };
+            let imgs: Vec<Img> = chunk.par_iter().map(|o| frame_at(*o)).collect();
+            let imgs: Vec<Img> = imgs.into_iter().zip(chunk).map(|(img, o)| if blank(&img) { frame_at(*o) } else { img }).collect();
             for (img, o) in imgs.iter().zip(chunk) {
                 for wr in writers.iter_mut() {
                     if let Err(e) = wr.push(img, n0 + o, &overflow) {

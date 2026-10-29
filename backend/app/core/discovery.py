@@ -4,6 +4,7 @@ import atexit
 import datetime
 import json
 import os
+import socket
 import urllib.error
 import urllib.request
 
@@ -57,3 +58,31 @@ def running_engine(timeout: float = 1.0) -> str | None:
         return url
     default = f"http://127.0.0.1:{os.environ.get('FORMVFX_PORT', '8250') or '8250'}"
     return default if healthy(default, timeout) else None
+
+
+def candidates() -> list[str]:
+    urls = []
+    env = os.environ.get("FORMVFX_URL", "").strip().rstrip("/")
+    if env:
+        urls.append(env)
+    try:
+        url = json.loads(record_path().read_text(encoding="utf-8")).get("url")
+    except (OSError, ValueError):
+        url = None
+    if isinstance(url, str) and url.startswith("http://127.0.0.1:"):
+        urls.append(url)
+    urls.append(f"http://127.0.0.1:{os.environ.get('FORMVFX_PORT', '8250') or '8250'}")
+    return list(dict.fromkeys(urls))
+
+
+def listening(url: str, timeout: float = 1.0) -> bool:
+    host, _, port = url.split("://", 1)[-1].split("/", 1)[0].rpartition(":")
+    try:
+        with socket.create_connection((host or "127.0.0.1", int(port)), timeout=timeout):
+            return True
+    except (OSError, ValueError):
+        return False
+
+
+def held_port(timeout: float = 1.0) -> str | None:
+    return next((u for u in candidates() if listening(u, timeout)), None)
