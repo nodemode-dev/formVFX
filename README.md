@@ -55,7 +55,7 @@ Pushing a `compile_vX.Y.Z` branch has formcompiler (`nodemode-ai/formcompiler`) 
 | `./formvfx` / `boot` | engine and interface for development |
 | `install`, `install-native` | everything, or only the Rust compositing engine (`--dev` for a quicker debug build) |
 | `serve` | the built interface from the engine |
-| `install-desktop`, `freeze`, `desktop dev`, `desktop build` | the desktop app (`desktop build` runs `./build_app`) |
+| `install-desktop`, `freeze`, `desktop dev`, `desktop build` | the desktop app (`desktop build` runs `./build_app`; `formvfx.bat desktop build` builds the interface, freezes and bundles without installing again, and passes the rest of its arguments to `tauri build`) |
 | `doctor` | checks the toolchain and ports |
 | `claude [ARGS]` | Claude Code in this folder, connected to formvfx |
 | `mcp` | the MCP server over stdio |

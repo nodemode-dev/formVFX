@@ -15,7 +15,7 @@ if /i "%CMD%"=="build" ( call setup\build_frontend.bat & goto :eof )
 if /i "%CMD%"=="serve" ( call setup\serve.bat & goto :eof )
 if /i "%CMD%"=="freeze" ( call setup\freeze_backend.bat & goto :eof )
 if /i "%CMD%"=="desktop" (
-  if /i "%~2"=="build" ( call build_app.bat ) else ( call setup\desktop_dev.bat )
+  if /i "%~2"=="build" ( call setup\desktop_build.bat %3 %4 %5 %6 %7 %8 %9 ) else ( call setup\desktop_dev.bat )
   goto :eof
 )
 if /i "%CMD%"=="doctor" ( call setup\doctor.bat & goto :eof )
@@ -35,7 +35,8 @@ exit /b %errorlevel%
 :usage
 echo formvfx.bat [command]
 echo   boot ^| install [--dev] ^| install-native [--dev] ^| install-desktop ^| backend ^| frontend
-echo   build ^| serve ^| freeze ^| desktop dev ^| desktop build ^| doctor
+echo   build ^| serve ^| freeze ^| desktop dev ^| desktop build [TAURI ARGS] ^| doctor
+echo   desktop build runs the interface build, the freeze and tauri build; build_app.bat also installs first
 echo   exec ID [JSON] ^| batch JSON ^| commands [FILTER] ^| describe ID ^| state ^| frame OUT.png ^| render
 echo   mcp ^| agents install^|sync^|status ^| counts ^| presets ^| clean [--all] ^| help
 exit /b 0

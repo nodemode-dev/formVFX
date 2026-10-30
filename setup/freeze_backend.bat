@@ -14,5 +14,5 @@ if exist build\pyinstaller rmdir /s /q build\pyinstaller
 if exist dist-engine rmdir /s /q dist-engine
 pyinstaller --noconfirm --clean --onefile --name formvfx-engine --distpath dist-engine --workpath build\pyinstaller --specpath build\pyinstaller --add-data "%ROOT%\frontend\dist;frontend_dist" --add-data "%ROOT%\backend\app\agent\templates;agent_templates" --add-data "%ROOT%\.claude\skills;skills" --add-data "%ROOT%\presets;presets" --collect-all fvx_core --collect-submodules app --collect-submodules uvicorn --collect-submodules winpty "%ROOT%\backend\formvfx_engine.py" || exit /b 1
 if not exist "%ROOT%\src-tauri\binaries" mkdir "%ROOT%\src-tauri\binaries"
-copy /y dist-engine\formvfx-engine.exe "%ROOT%\src-tauri\binaries\formvfx-engine-%TRIPLE%.exe" >nul
-"%ROOT%\src-tauri\binaries\formvfx-engine-%TRIPLE%.exe" --selfcheck
+copy /y dist-engine\formvfx-engine.exe "%ROOT%\src-tauri\binaries\formvfx-engine-%TRIPLE%.exe" >nul || exit /b 1
+"%ROOT%\src-tauri\binaries\formvfx-engine-%TRIPLE%.exe" --selfcheck || exit /b 1

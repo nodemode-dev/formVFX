@@ -22,6 +22,7 @@ description: The formvfx desktop app and releases. Use for the Tauri 2 shell in 
 | `./formvfx install-desktop` | PyInstaller, the Tauri CLI, checks Rust and (Linux) webkit2gtk |
 | `./formvfx desktop dev` | freezes if needed, `tauri dev` |
 | `./formvfx desktop build` | builds the interface, freezes, `tauri build`; bundles in `src-tauri/target/release/bundle` |
+| `formvfx.bat desktop build [ARGS]` | `setup\desktop_build.bat`: builds the interface, freezes, `tauri build ARGS` (formcompiler passes `--config`); no install, which `build_app.bat` does first |
 
 Linux needs `libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf`.
 
