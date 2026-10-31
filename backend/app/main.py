@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from . import __version__
+from . import __version__, ffmpeg_fetch
 from .agent import workspace
 from .core import config, discovery
 from .core.security import LocalOnly
@@ -19,6 +19,7 @@ from .routers import agents, chat, extensions, files, link, live, mcp, rpc, syst
 mimetypes.add_type("text/javascript", ".js")
 mimetypes.add_type("text/javascript", ".mjs")
 mimetypes.add_type("text/css", ".css")
+ffmpeg_fetch.start()
 
 ROUTERS = (system.router, rpc.router, live.router, viewer.router, files.router, terminal.router, chat.router, mcp.router, agents.router, link.router, extensions.router)
 
