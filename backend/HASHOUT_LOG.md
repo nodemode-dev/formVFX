@@ -141,3 +141,9 @@ Living context for the engine service. Code carries almost no comments; the reas
 - `main.py` pins `.js` and `.mjs` to `text/javascript` and `.css` to `text/css` with three `mimetypes.add_type` calls, which covers `StaticFiles`, `FileResponse` and any direct `guess_type`. They sit after the last import, not above the imports: a module that re-reads the registry while importing cannot undo them, and no import follows a statement (E402). They look redundant off Windows; keep them.
 - Repro on a Windows PC: `reg add "HKCU\Software\Classes\.js" /v "Content Type" /d "text/plain" /f`, then launch the rebuilt app; restore with `/d "text/javascript"`.
 - Checked here: with the table poisoned to `text/plain` for js, mjs and css through `mimetypes.init(files=...)`, the three calls return `text/javascript`, `text/javascript` and `text/css`; `py_compile` passes. Not yet run on a Windows PC.
+
+## Media plugins on Linux (0.52.5)
+
+- Footage audio is decoded in the window (`frontend/src/engine/playback.ts`, AudioContext and decodeAudioData), which on Linux is WebKitGTK decoding with GStreamer. `src-tauri/tauri.conf.json` `bundle.linux` now follows formdeck: the deb recommends `gstreamer1.0-plugins-base`, `gstreamer1.0-plugins-good` and `gstreamer1.0-libav`, the rpm recommends `gstreamer1-plugins-base` and `gstreamer1-plugins-good`, and the AppImage bundles the media framework; formcompiler installs the base and good sets on the Linux runner so the AppImage step finds them.
+- apt and dnf install recommends by default; `dpkg -i` and `--no-install-recommends` skip them. On Ubuntu 24.04 `libwebkit2gtk-4.1-0` already depends on base and good but only suggests `gstreamer1.0-libav` (the AAC and H.264 decoders), so the deb recommends it. The AppImage carries base and good only, since libav would copy the runner's own FFmpeg into the app.
+- Checked: the config parses and formcompiler's `registry.py check` passes; no Linux build was run here.
