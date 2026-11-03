@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "formvfx",
+  "productName": "FormVFX",
   "version": "0.52.5",
   "identifier": "ai.nodemode.formvfx",
   "build": {
@@ -10,7 +10,7 @@
     "windows": [
       {
         "label": "splash",
-        "title": "formvfx",
+        "title": "FormVFX",
         "url": "splash.html",
         "width": 360,
         "height": 200,
@@ -32,7 +32,7 @@
     "targets": "all",
     "category": "Video",
     "shortDescription": "Motion graphics and visual effects",
-    "longDescription": "formvfx is a motion graphics and visual effects compositor: compositions, layers, keyframes, effects, text and shape animation, masks, 3D cameras and lights, tracking, expressions and a render queue, with an agent terminal that drives every tool.",
+    "longDescription": "FormVFX is a motion graphics and visual effects compositor: compositions, layers, keyframes, effects, text and shape animation, masks, 3D cameras and lights, tracking, expressions and a render queue, with an agent terminal that drives every tool.",
     "copyright": "Copyright 2026 nodemode-ai.",
     "externalBin": ["binaries/formvfx-engine"],
     "resources": {
