@@ -256,3 +256,9 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - Wrong: the centred document title was empty until the first `history` event and then gained its name (4.5e-4), and the Timeline's timecode button was empty until the first state, so the search box beside it moved 100 px right (4.0e-4).
 - Changed: the markup starts with `Untitled Project` and `0:00:00:00`, the same text the code sets when there is no project, so the first event changes nothing.
 - Verified: the window smoke named `DIV.fx-doc-title` and then `INPUT.cv-input` (the Timeline search, 37 px to 139 px) before; after both, three runs pass with shift 0.
+
+## The About box names NodeAgentc, Inc. and links the licence (0.52.6)
+
+- The launch punch list (2026-11-03): the About of a downloaded app says NodeAgentc, Inc., not nodemode-ai, and lists the licence. The head line in `app.ts` `about()` reads "Version x · Apache-2.0 · NodeAgentc, Inc." and a note under the NOTICE line carries the copyright and links the LICENSE file on GitHub (`nodemode-dev/formvfx/blob/main/LICENSE`) with `target="_blank"`, the path the GitHub and Report an Issue menu items already take through `window.open`.
+- The bundle (`src-tauri/tauri.conf.json`) names the publisher, carries the SPDX id in its copyright line, and sets `license` and `licenseFile`; `src-tauri/Cargo.toml` `authors` is the company (the .deb's Maintainer; tauri-build writes `CompanyName` from `bundle.publisher`).
+- Verified: the JSON parses; `python3 setup/lint_text.py .` passes. No desktop build was run.
