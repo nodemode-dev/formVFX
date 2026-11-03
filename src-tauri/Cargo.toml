@@ -1,6 +1,6 @@
 [package]
 name = "formvfx"
-version = "0.52.5"
+version = "0.52.6"
 description = "formvfx desktop shell"
 authors = ["nodemode-ai"]
 license = "Apache-2.0"
