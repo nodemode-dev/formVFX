@@ -29,7 +29,7 @@ Linux needs `libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf`.
 ## CI and release
 
 - `.github/workflows/ci.yml` on push (main and `compile_v*` branches) and pull request: interface build; engine (dev build of `native/fvx-core`, compile, selfcheck, `agents sync --check`, boot and probe HTTP and MCP); scripts (bash syntax, `lint_text.py`, Python syntax); desktop shell (`cargo check --locked` with a placeholder sidecar).
-- Releases are built by formcompiler (`nodemode-ai/formcompiler`), not here. It watches this repo every 8 hours, or when run by hand, for a branch `compile_vX.Y.Z`; once CI has passed on that commit it builds macOS arm64, Linux x64 and Windows x64 bundles and drafts `formvfx-vX.Y.Z` on its own release page, with `latest.json` in the `formvfx-updates` feed. The signing secrets live only in formcompiler.
+- Releases are built by formcompiler (`nodemode-dev/formcompiler`), not here. It watches this repo every 8 hours, or when run by hand, for a branch `compile_vX.Y.Z`; once CI has passed on that commit it builds macOS arm64, Linux x64 and Windows x64 bundles and drafts `formvfx-vX.Y.Z` on its own release page, with `latest.json` in the `formvfx-updates` feed. The signing secrets live only in formcompiler.
 
 ## Version bump
 
