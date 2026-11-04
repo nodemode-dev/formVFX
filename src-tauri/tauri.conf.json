@@ -33,7 +33,10 @@
     "category": "Video",
     "shortDescription": "Motion graphics and visual effects",
     "longDescription": "FormVFX is a motion graphics and visual effects compositor: compositions, layers, keyframes, effects, text and shape animation, masks, 3D cameras and lights, tracking, expressions and a render queue, with an agent terminal that drives every tool.",
-    "copyright": "Copyright 2026 nodemode-ai.",
+    "publisher": "NodeAgentc, Inc.",
+    "copyright": "Copyright 2026 NodeAgentc, Inc. Apache-2.0",
+    "license": "Apache-2.0",
+    "licenseFile": "../LICENSE",
     "externalBin": ["binaries/formvfx-engine"],
     "resources": {
       "../LICENSE": "LICENSE",

@@ -636,9 +636,10 @@ class App {
   private about(): void {
     const d = new Dialog('About formvfx', 480);
     d.body.appendChild(el(`<div class="fx-about">
-      <div class="fx-about-head">${brandMark(44)}<div><div class="fx-about-name">formvfx</div><div class="fx-note">Version ${VERSION} · Apache-2.0 · nodemode-ai</div></div></div>
+      <div class="fx-about-head">${brandMark(44)}<div><div class="fx-about-name">formvfx</div><div class="fx-note">Version ${VERSION} · Apache-2.0 · NodeAgentc, Inc.</div></div></div>
       <p class="fx-note">Motion graphics and visual effects in the form family, beside formvis and formcut, on formvfx's own compositing engine written in Rust. Every action is a command that a person or an agent can run.</p>
       <p class="fx-note">Third-party notices are in NOTICE.md.</p>
+      <p class="fx-note">Copyright 2026 NodeAgentc, Inc. Licensed under the Apache License 2.0: <a href="https://github.com/nodemode-dev/formvfx/blob/main/LICENSE" target="_blank" rel="noopener">LICENSE</a></p>
     </div>`));
     d.button('Close', 'primary', () => {
       d.close();

@@ -2,7 +2,7 @@
 name = "formvfx"
 version = "0.52.7"
 description = "formvfx desktop shell"
-authors = ["nodemode-ai"]
+authors = ["NodeAgentc, Inc."]
 license = "Apache-2.0"
 edition = "2021"
 rust-version = "1.77.2"
