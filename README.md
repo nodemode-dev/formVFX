@@ -100,6 +100,8 @@ Claude Code starts inside the app already connected, and the command line and MC
 
 ## Under the hood
 
+Version 0.52.7 · Apache-2.0 · compositing engine: FormVFX's own, in Rust (`native/fvx-core`)
+
 - **Engine:** `native/fvx-core` is the compositing engine, Rust with PyO3, loaded by the engine service as the `fvx_core` extension.
 - **Service:** a FastAPI engine service in `backend`, with the MCP server and the embedded terminal.
 - **Interface:** TypeScript and Vite in `frontend`, in 26 languages, with a Tauri 2 desktop shell in `src-tauri`.
