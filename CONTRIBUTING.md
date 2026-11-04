@@ -99,8 +99,22 @@ third-party code and its licence in the pull request.
 
 ## Patents and other people's IP
 
-A feature may be held back or removed if it would infringe someone else's patent or
-other intellectual property. The maintainers decide.
+Some features are deliberately not built, or were taken out, because they come too close to someone else's patent, trademark, copyright or design. The maintainers hold that line with counsel; contributors do not decide it, and nobody here redesigns a feature on their own reading of a patent. This is engineering diligence, not legal advice.
+
+### Features this project will not implement
+
+- Content-aware scale: resizing a picture by removing or inserting low-energy pixel paths (seam carving, retargeting, liquid rescale), and skin-tone protection or protected regions for it. Not built, and not to be added in any form, under any name, in this code or through a dependency, plug-in or model.
+- Roto propagation by search windows or regions placed along the object contour and sized by the local motion, or blended into a map that drives the next frame's search. Propagation stays whole-frame flow or the segmentation model.
+- Per-frame confidence scores in Selection-Aware-Fill, a threshold that flags a frame, any prompt asking the person to fix or supply a specific reference frame, and weighting boundary motion by a forward-and-backward flow consistency check. The reference frame stays an optional, unprompted choice.
+
+A pull request that adds one of these, under any name, through any dependency, plug-in, model, template, agent tool or plain code, is closed with a link to this section. Lifting a decline needs the maintainers' written decision after a review, recorded here first.
+
+### Rules for every contribution
+
+- Patents: do not add a feature, or a dependency that provides one, that reproduces a method you know to be patented. If you are unsure, open an issue that describes what the feature does, not which patent it resembles. Patent numbers stay out of code, commits, comments, logs and changelogs.
+- Trademarks: other vendors' product and feature names appear only to name a file format or compatibility ("opens <format> files", "for use with"). No command, menu, panel, tool, preset, template, theme or agent tool takes another product's feature name, and no text says "like X" or "the way X does it". Describe what the feature does.
+- Copyright: never copy another product's help, tooltip, dialog or documentation text (link to it instead); never trace or import vendor icons; never bundle vendor templates, themes, presets, brushes, swatches, LUTs, materials, sample files, sound libraries, stock media or fonts; colour-book names only when reading a person's file. Compatibility layers carry names and signatures only. Test fixtures come from this repository's own scripts.
+- Licences: every new dependency, binary, model, font, profile or data file gets a row in `NOTICE.md` before it is used. GPL stays outside the distributed bundle, AGPL nowhere, LGPL dynamically linked and replaceable, MPL files unedited. CC BY credited, CC BY-SA only unmodified, CC NC and ND never. Models with gated or non-commercial terms are optional downloads, never bundled.
 
 ## Conduct
 
