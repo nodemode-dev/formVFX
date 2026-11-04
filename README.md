@@ -1,96 +1,168 @@
-# formvfx
+<p align="center">
+  <img src="assets/app-icon/formvfx-256.png" width="128" height="128" alt="FormVFX icon">
+</p>
 
-A motion graphics and visual effects compositor for the desktop and the browser, in the form family beside formvis and formcut. Compositions, layers, keyframes and the Graph Editor, 306 effects, WebAssembly effect plug-ins and OpenFX plug-ins (the effects other OpenFX hosts load), Template Controls templates (`.mogrt` files and `.aep` projects open), text animators with 169 presets, shape layers and SVG paste, masks, Roto Paint, paint, puppet pins, 3D cameras and lights, tracking and stabilizing, expressions, scripts and ScriptUI panels, colour management and a Render Queue, with an agent harness so Claude Code, Codex and Cursor can drive every tool from formvfx's embedded terminal.
+<h1 align="center">FormVFX</h1>
 
-Version 0.52.6 · Apache-2.0 · compositing engine: formvfx's own, in Rust (`native/fvx-core`)
+<p align="center">
+  <b>Motion graphics and VFX; a compositor for the Form family.</b><br>
+  Compositions, keyframes, text animators, masks, tracking, 3D and a Render Queue,<br>
+  with OpenFX and WebAssembly plug-ins. It runs on your own machine, and agents composite over MCP.
+</p>
 
-## Quick start
+<p align="center">
+  <img alt="version 0.52.7" src="https://img.shields.io/badge/version-0.52.7-eef0f4?style=flat-square">
+  <img alt="Rust" src="https://img.shields.io/badge/Rust-engine-b7410e?style=flat-square&logo=rust&logoColor=white">
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-Vite-3178c6?style=flat-square&logo=typescript&logoColor=white">
+  <img alt="macOS, Windows, Linux" src="https://img.shields.io/badge/macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-native-2f7bf5?style=flat-square">
+  <img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-3a3a3a?style=flat-square">
+  <img alt="Status: in development" src="https://img.shields.io/badge/status-in%20development-d69e2e?style=flat-square">
+</p>
 
-Needs Node 20.19+ or 22.12+, Python 3.12+, and Rust 1.95 or newer for the compositing engine. A stock Mac has no Rust; install it with rustup, then open a new terminal so `cargo` is on PATH (the scripts also find it in `~/.cargo/bin`):
+<p align="center">
+  <a href="https://formvfx.formai.studio/"><b>Download FormVFX on formai.studio</b></a> ·
+  <a href="#run-it-from-source">Run it from source</a>
+</p>
 
-```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh   # first time
-rustup update stable                                             # Rust older than 1.95
-./formvfx doctor                                                 # checks Node, Python, the Rust version and the ports
+<br>
+
+<p align="center">
+  <img src="docs/images/formvfx-hero.jpg" alt="FormVFX with a Launch Week composition: a LAUNCH WEEK headline over a sunset field photo, Effect Controls, Effects and Presets searching for bounce, and the timeline with a text layer and an image layer" width="100%">
+  <br>
+  <sub>A Launch Week title comp: text over a photo, with the Bounce In Characters animation preset in the Effects and Presets panel.</sub>
+</p>
+
+<p align="center">
+  <a href="#features">Features</a> ·
+  <a href="#everything-in-the-box">In the box</a> ·
+  <a href="#built-for-agents">Agents</a> ·
+  <a href="#under-the-hood">Under the hood</a> ·
+  <a href="#download">Download</a> ·
+  <a href="#run-it-from-source">Run from source</a>
+</p>
+
+<br>
+
+<table>
+  <tr>
+    <td width="25%" valign="top"><h3>Its own engine</h3>A compositing engine written in Rust, rendering on the GPU through wgpu or on the CPU, whichever is faster for the comp.</td>
+    <td width="25%" valign="top"><h3>Plug-ins that load</h3>Loads OpenFX plug-ins and sandboxed WebAssembly effect plug-ins, with their on-screen handles in the viewer.</td>
+    <td width="25%" valign="top"><h3>Templates open</h3>Opens <code>.mogrt</code> templates and <code>.aep</code> projects, and keeps its own <code>.fvxproj</code> projects.</td>
+    <td width="25%" valign="top"><h3>Agent-ready</h3>The same commands from the interface, the command line and an MCP server, so Claude Code, Codex and Cursor can drive every tool.</td>
+  </tr>
+</table>
+
+<br>
+
+## Features
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/images/formvfx-graph-editor.webp" alt="FormVFX Graph Editor showing a scale curve with an ease on the Orb layer of the formvfx Intro composition" width="100%">
+      <br><sub>The Graph Editor beside the layer stack, with the Effects and Presets list on the right.</sub>
+      <h3>Keyframes and the Graph Editor</h3>
+      Shape every ease on a curve, with Hold, Linear, Ease In and Ease Out one click away. The work area renders into the preview cache while you work.
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/images/formvfx-flowchart.webp" alt="FormVFX Flowchart panel showing the Backdrop solid, its Glow and Gradient Ramp effects and the layers wired into the composition" width="100%">
+      <br><sub>The Flowchart: solids, effects and layers wired into a composition.</sub>
+      <h3>A node view of the comp</h3>
+      Drag a link to parent a layer or set a track matte, and drag effects to reorder a stack. It is the same project, seen as a graph.
+    </td>
+  </tr>
+</table>
+
+## Everything in the box
+
+<table>
+  <tr>
+    <td width="33%" valign="top"><h4>306 effects</h4>Keying · Color Grade · OCIO transforms · Blur and Sharpen · Distort · Particles and simulations · 3D Channel passes · Cryptomatte · 13 audio effects</td>
+    <td width="33%" valign="top"><h4>Animate and build</h4>Text animators with 169 presets · Shape layers · Masks · Roto Paint · Puppet pins · 3D cameras and lights · Tracking and stabilizing · Expressions · Scripts · Render Queue</td>
+    <td width="33%" valign="top"><h4>Formats</h4>Opens: stills, image sequences, OpenEXR, PSD, PDF and .ai, Lottie, <code>.mogrt</code>, <code>.aep</code> · Saves: H.264, HEVC, AV1, ProRes 4444, WebM, GIF, PNG, TIFF, EXR, WAV · Native: <code>.fvxproj</code></td>
+  </tr>
+</table>
+
+## Built for agents
+
+Claude Code starts inside the app already connected, and the command line and MCP server reach the same commands as the interface.
+
+```sh
+./formvfx state                 # the open project, active comp, selection and time
+./formvfx exec comp.list        # list the compositions
+./formvfx render --wait         # render the Render Queue and poll until it is done
+./formvfx mcp                   # MCP server on stdio for Claude Code, Codex and Cursor
 ```
 
-```bash
-./formvfx install      # engine venv, the Rust compositing engine (the first build takes a few minutes), interface packages
-./formvfx              # boots the engine on 127.0.0.1:8250 and the interface on http://localhost:5250
+`.mcp.json`, `.codex/config.toml` and `.cursor/mcp.json` are already wired in this repo. See [`AGENTS.md`](AGENTS.md).
+
+## Under the hood
+
+Version 0.52.7 · Apache-2.0 · compositing engine: FormVFX's own, in Rust (`native/fvx-core`)
+
+- **Engine:** `native/fvx-core` is the compositing engine, Rust with PyO3, loaded by the engine service as the `fvx_core` extension.
+- **Service:** a FastAPI engine service in `backend`, with the MCP server and the embedded terminal.
+- **Interface:** TypeScript and Vite in `frontend`, in 26 languages, with a Tauri 2 desktop shell in `src-tauri`.
+- **Color:** 8, 16 and 32-bit projects with colour management, OCIO and ACES.
+- **Tested:** backend and desktop-shell test suites under `backend/tests` and `frontend/tests`.
+
+## Download
+
+| Platform | Download | Release |
+|---|---|---|
+| macOS | [Download FormVFX for macOS](https://formai.studio/get/formvfx/macos) | [FormVFX releases on FormCompiler](https://github.com/nodemode-dev/formcompiler/releases?q=formvfx-v&expanded=true) |
+| Windows | [Download FormVFX for Windows](https://formai.studio/get/formvfx/windows) | [FormVFX releases on FormCompiler](https://github.com/nodemode-dev/formcompiler/releases?q=formvfx-v&expanded=true) |
+| Linux | [Download FormVFX for Linux](https://formai.studio/get/formvfx/linux) | [FormVFX releases on FormCompiler](https://github.com/nodemode-dev/formcompiler/releases?q=formvfx-v&expanded=true) |
+
+All FormVFX builds are compiled and released from [FormCompiler](https://github.com/nodemode-dev/formcompiler); this repo holds the source.
+
+## Run it from source
+
+Prefer it in your browser, or want to contribute? Run the web UI straight from this repo.
+
+**Requires:** Node 20.19+ or 22.12+, Python 3.12+, and Rust 1.95 or newer for the compositing engine.
+
+```sh
+git clone git@github.com:nodemode-dev/formvfx.git
+cd formvfx
+./formvfx doctor    # checks Node, Python, the Rust version and the ports
+./formvfx install   # engine venv, the Rust engine (the first build takes a few minutes), interface packages
+./formvfx           # engine on 127.0.0.1:8250, web UI at http://localhost:5250
 ```
 
-The GPU compositor is part of the default build and is used when the engine finds a working adapter (Settings > Memory & CPU shows which; `FORMVFX_GPU=0` keeps everything on the CPU). Windows: `formvfx.bat install`, then `formvfx.bat`. One process serving the built interface: `./formvfx serve` (http://127.0.0.1:8250).
+`./formvfx desktop dev` opens the desktop window instead.
 
-Open http://localhost:5250, choose **Open the demo project** on the start screen, and work in the panels: Project, Effect Controls, Composition viewer, Timeline, Effects and Presets, Preview, Character, Render Queue. Cmd or Ctrl+K searches every command and effect. The interface comes in 26 languages (Settings > Interface > Language), English by default. The Flowchart (Composition > Composition Flowchart) is also a node editor: turn on Layers, then drag a layer's link or matte port onto another layer to parent it or set its track matte. With Effects on, each effect is its own node between a layer's source and the layer: drag it onto another effect to reorder the stack, right-click a layer to add an effect, and drag an effect's link port onto a layer to use that layer in it (Displacement Map Layer, for example). While you work, the work area renders into the preview cache on its own (a green strip on the time ruler marks what is ready), scrubbing shows cached frames at once, and View > Fast Previews > Adaptive Resolution keeps scrubbing light on heavy comps.
+On Windows use `formvfx.bat install` then `formvfx.bat`. The interface is on port 5250 and the engine on 8250; `FORMVFX_GPU=0` keeps rendering on the CPU.
 
-## The engine
+> [!IMPORTANT]
+> **Status:** in development. [`docs/PARITY.md`](docs/PARITY.md) lists where FormVFX trails the reference compositor and what it does not do yet.
 
-`native/fvx-core` is formvfx's compositing engine, written for formvfx in Rust and loaded by the engine service as the `fvx_core` Python extension; `./formvfx install-native` rebuilds it. It saves projects as `.fvxproj` and opens `.ecproj` and `.ecprojx` projects from earlier formvfx releases as imports (they are never written). It renders on the GPU through wgpu or on the CPU, whichever is faster for each composition, reads footage through FFmpeg when FFmpeg is installed and stills, image sequences, OpenEXR, PSD (as footage, one layer or a composition), PDF and .ai pages and Lottie on its own, and covers compositions, precomps, solids, shapes, text with character styles, OpenType features and variable fonts, text animators with range, wiggly and expression selectors, text on a path and per-character 3D, the 169 text animation presets, shape layers with every standard operator and tapered, wavy and dashed strokes, SVG import and paste as shapes, shapes and masks from text, nulls, cameras with depth of field, lights with soft shadows, glTF, GLB and OBJ models and 3D primitives, MaterialX materials, extruded and bevelled text and shape layers with their own front, bevel and side colours (animatable per character), reflections of other layers and the environment, transparency and refraction, Classic and Advanced 3D, 360 VR environments and stereo 3D rigs, environment lights and the 3D views, point, planar and mask tracking, face tracking on the learned MediaPipe Face Landmarker (its own TensorFlow Lite interpreter), Wrap Stabilization and the 3D Camera Tracker, Roto Paint and Object Matte (with formvfx's own MobileSAM and SAM 2 runtimes, SAM 2 keeping a memory of earlier frames), paint, puppet pins, Selection-Aware-Fill, masks with variable feather and Smart Mask Interpolation, Pixel Motion frame blending, track mattes, 39 blend modes, layer styles, keyframes with eases, roving keys and the Graph Editor, the Keyframe Assistant, Wiggler, Smoother and Motion Sketch, time stretch, time remapping and freeze frames, markers with chapters and cue points, Responsive Design: Time, Collect Files and the other dependency tools, animation presets (`.ffx` among them), snapshots and a locked viewer, expressions on its own interpreter (with regular expressions, `sampleImage` and the text style API), scripts against the standard compositor scripting object model with ScriptUI windows, modal dialogs and dockable panels, CEP extension panels (`CSXS/manifest.xml` folders and `.zxp` files, with `CSInterface.evalScript`), viewer exposure, custom channels, Fast Previews, an Extended Viewer window and the Color Scopes as numbers, Template Controls templates (`.fvxtemplate` and `.mogrt`) with per-instance Primary Properties and Media Replacement, `.aep` projects and the `.mogrt` templates built on them, read by its own RIFX reader into compositions, layers, keyframes, expressions, effects and text animators, 306 effects (with the Expression Controls) including the 3D Channel set on OpenEXR passes and Cryptomatte, keying, Color Grade, the OCIO transforms, the CC set, particles and simulations, immersive video and the 13 audio effects, Liquify strokes, 8, 16 and 32-bit projects with colour management, OCIO and ACES (its own config reader and transforms), a disk cache, proxies, the Render Queue with Render Settings, several output modules, templates, field rendering and pulldown, multi-frame rendering and HDR output to H.264, HEVC, AV1, ProRes 4444, WebM, GIF, PNG, TIFF, EXR, WAV and AIFF, layered PSD and EXR frames, Lottie export, editor timelines in and out (xmeml 5 XML (.xml), FCPXML, OpenTimelineIO and CMX 3600 EDL, with placeholders for media it cannot find), project templates, an XML twin of the project file (`.fvxprojx`), auto-save, recent projects and footage, a render Watch Folder, a Footage panel with Overlay and Ripple Insert Edit, a Media Browser that sees numbered stills as sequences, background jobs you can list and cancel and in-app tutorials, stackable procedural behaviours (wiggle, oscillate, spring, bounce, loops), two-bone IK rigs with an FK switch, 2D physics baked to keyframes, cloners with live per-copy offsets, data-driven animation from CSV and JSON, Slices from Guides, Scene Edit Detection, Auto-trace, Create Nulls from Paths, work-area lift and extract and property-link copies, and loads sandboxed WebAssembly effect plug-ins and OpenFX plug-ins with their on-screen handles ([`docs/PLUGINS.md`](docs/PLUGINS.md)); [`docs/MANUAL.md`](docs/MANUAL.md) walks through the application and [`docs/PARITY.md`](docs/PARITY.md) grades it and lists what it does not do yet.
+**Contributing:** branch from `main`, keep changes to source here, and leave packaging and releases to FormCompiler. See [`.docs/BRANCHING.md`](.docs/BRANCHING.md) and [`AGENTS.md`](AGENTS.md).
 
-## Agents
+## Repository
 
-- **In formvfx**: Claude Code starts inside the app already connected, with no setup step: Window > Start Claude Code (Shift+Cmd or Ctrl+J) runs it in the Terminal panel, the Ask Claude Code field there sends it a request, and Window > Chat with Claude (Alt+Cmd or Ctrl+J) opens a Chat panel that runs it headless, streams the answer with each tool it uses, and hands the conversation to the terminal. It edits the open project live, every change undoable, without permission prompts. Claude Code is found wherever it is installed, also from the packaged app. Codex and Cursor start from the Terminal panel's buttons with the `formvfx` MCP server and the `formvfx-harness` skill.
-- **From this repository**: `.mcp.json`, `.codex/config.toml` and `.cursor/mcp.json` run `./formvfx mcp`. The first change asks once in the formvfx window.
-- **From anywhere**: `./formvfx agents install` (or the Agents panel) sets the three clients up for your account.
-- **Live Link**: Export Live Link Clip (Project panel) writes a `.fvxlink` that an editor such as formcut plays live with no render. Links keep working when the project is moved or renamed (found again by its project id beside the `.fvxlink`, in its old folder or among recent projects) and when a comp is renumbered (found by name). `POST /api/link/check` reports and fixes a link, `POST /api/link/render` renders the comp for Render and Replace, and Window > Live Link shows what is being served.
-- **Command line**: `./formvfx state`, `commands FILTER`, `describe ID`, `exec ID 'JSON'`, `batch 'JSON'`, `frame OUT.png --time S`, `render --wait`. `exec comp.list` lists the compositions. `exec`, `batch` and `render` print JSON with `"ok": true` and exit 0 on success, or `{"ok": false, "error": "..."}` and exit 1; a field named `error` inside a successful result belongs to that command (`prop.setExpression` reports the expression's own error there, `null` when it is fine). Renders run in the engine in the background: `render --wait` (or `exec renderQueue.render`) polls their progress, `render --status` and `render --stop` follow or cancel one, and a closed command line leaves the render running. Relative output paths resolve from the folder you run the command in.
-- **Headless agents** (no formvfx window open): the first change from an outside agent is refused with `No formvfx window is open to ask the person for permission`, because the default policy asks in the window. Start the engine with agents allowed instead: `FORMVFX_AGENTS=allow ./formvfx serve` (`deny` refuses outside agents; Terminal panel agents always work). The engine reads `FORMVFX_AGENTS` when it starts. If the port is taken, `serve` and the command line say so instead of starting a second engine.
+| Path | What it is |
+|---|---|
+| `native/`, `backend/`, `frontend/` | the Rust engine, the FastAPI engine service and the Vite interface |
+| `src-tauri/`, `presets/`, `docs/` | the desktop shell, text animation presets, [manual](docs/MANUAL.md) and [plug-in guide](docs/PLUGINS.md) |
 
-## Desktop
+Docs: [`.docs/wiki`](.docs/wiki) · Agents: [`CLAUDE.md`](CLAUDE.md), [`AGENTS.md`](AGENTS.md) · Contributing: [`.docs/BRANCHING.md`](.docs/BRANCHING.md)
 
-```bash
-./build_app                 # from a fresh clone to an installed app: tools check, install, interface build, engine freeze, bundle
-./build_app --open          # the same, then open it (--clean rebuilds from nothing; Linux: --install installs the .deb)
-./formvfx desktop dev       # the app, with the engine frozen as its sidecar
-```
+<br>
 
-`./formvfx desktop build` is the same as `./build_app`; on Windows run `build_app.bat`. On macOS the app is copied to Applications and a DMG is packed beside the bundle, and the desktop app puts formvfx's menus in the macOS menu bar.
+---
 
-Pushing a `compile_vX.Y.Z` branch has formcompiler (`nodemode-ai/formcompiler`) build macOS, Linux and Windows bundles and open a draft release `formvfx-vX.Y.Z` on its release page.
+## Maintainers
 
-## Commands
+| Maintainer | Role |
+|---|---|
+| [@nodemode-ai](https://github.com/nodemode-ai) | Owner |
+| [@gbarnai](https://github.com/gbarnai) | Co-owner |
 
-| Command | Does |
-| --- | --- |
-| `./formvfx` / `boot` | engine and interface for development |
-| `install`, `install-native` | everything, or only the Rust compositing engine (`--dev` for a quicker debug build) |
-| `serve` | the built interface from the engine |
-| `install-desktop`, `freeze`, `desktop dev`, `desktop build` | the desktop app (`desktop build` runs `./build_app`; `formvfx.bat desktop build` builds the interface, freezes and bundles without installing again, and passes the rest of its arguments to `tauri build`) |
-| `doctor` | checks the toolchain and ports |
-| `claude [ARGS]` | Claude Code in this folder, connected to formvfx |
-| `mcp` | the MCP server over stdio |
-| `agents install|sync|status` | client setup; regenerate the skill references from the engine |
-| `counts [--check]` | the code size table below |
-| `presets [--check]` | regenerate the text animation preset library (`presets/text-animators.json`) |
-| `clean [--all]` | remove build output |
-
-## Layout
-
-`native/fvx-core` (the compositing engine, Rust, PyO3) · `native/plugins` (an example WebAssembly effect plug-in) · `backend` (FastAPI engine service, MCP, terminal) · `frontend` (TypeScript and Vite interface) · `setup` (scripts) · `presets` (the text animation preset library) · `.claude/skills/formvfx-harness` (the agent skill, mirrored to `.agents/skills`).
-
-## Parity
-
-[`docs/PARITY.md`](docs/PARITY.md) grades formvfx against the reference compositor on 72 traced capability rows: 68 Full, 3 Partial, 1 None, a score of 69.5 of 72 (97%). It lists where formvfx trails, in priority order, and where it leads. The wiki (`.docs/wiki`) covers getting started, agents, the architecture, the desktop app and releasing.
-
-## Code size
-
-| Area | Files | Lines |
-| --- | ---: | ---: |
-| Compositing engine (Rust, fvx-core) | 170 | 84,582 |
-| Engine service (Python) | 38 | 3,759 |
-| Interface (TypeScript) | 62 | 14,782 |
-| Interface styles (CSS) | 11 | 2,208 |
-| Desktop shell (Rust, Tauri) | 3 | 314 |
-| Setup and CLI | 35 | 1,142 |
-| Agent skill (Markdown, hand-written) | 16 | 788 |
-| Total | 335 | 107,575 |
-
-Non-blank lines in tracked files; generated skill references excluded. `./formvfx counts` prints this table.
-
-## Trademarks
-
-formvfx names file formats by their extension and no other product. Product names a person may associate with those formats are the trademarks of their owners; formvfx is not affiliated with or endorsed by any of them. See `NOTICE.md`.
+Code owners are set in [`.github/CODEOWNERS`](.github/CODEOWNERS).
 
 ## License
 
-Apache-2.0. Copyright 2026 NodeAgentc, Inc. See `LICENSE` and `NOTICE.md`.
+FormVFX is licensed under the Apache License 2.0 ([`LICENSE`](LICENSE), SPDX `Apache-2.0`). Copyright 2026 NodeAgentc, Inc. Third-party notices: [`NOTICE.md`](NOTICE.md).
+
+<sub>Product names that people may associate with the file formats FormVFX reads are trademarks of their respective owners. FormVFX is an independent project and is not affiliated with or endorsed by them. See `NOTICE.md`.</sub>
