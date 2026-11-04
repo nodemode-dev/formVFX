@@ -212,7 +212,7 @@ pub fn system_report(e: &mut Engine, p: &Json) -> Res {
 }
 
 pub fn docs(e: &mut Engine, p: &Json) -> Res {
-    const BASE: &str = "https://github.com/nodemode-ai/formvfx/blob/main/";
+    const BASE: &str = "https://github.com/nodemode-dev/formVFX/blob/main/";
     let page = ps(p, "page").unwrap_or("help");
     let file = match page {
         "help" => ".docs/wiki/Home.md",

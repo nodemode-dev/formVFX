@@ -103,7 +103,7 @@ class App {
     const appEl = q(document, '#app');
     const shell = el(`<div class="cv-app fx-app">
       <header class="cv-titlebar fx-titlebar">
-        <div class="cv-brand fx-brand" title="formvfx ${VERSION}">${brandMark()}<span class="cv-brand-name">formvfx</span></div>
+        <div class="cv-brand fx-brand" title="FormVFX ${VERSION}">${brandMark()}<span class="cv-brand-name">FormVFX</span></div>
         <div class="fx-menubar-host"></div>
         <div class="fx-doc-title"><span class="fx-doc-dot"></span><span class="fx-doc-name">Untitled Project</span></div>
         <div class="fx-title-tools">
@@ -140,18 +140,18 @@ class App {
           { label: 'Maximize Panel', shortcut: '`', run: () => this.dock.toggleMaximizeFocused() },
         ],
         Help: [
-          { label: 'formvfx Manual', run: () => void ctx.run('help.docs', { page: 'manual' }) },
-          { label: 'formvfx on GitHub', run: () => window.open('https://github.com/nodemode-ai/formvfx', '_blank') },
-          { label: 'Report an Issue', run: () => window.open('https://github.com/nodemode-ai/formvfx/issues', '_blank') },
+          { label: 'FormVFX Manual', run: () => void ctx.run('help.docs', { page: 'manual' }) },
+          { label: 'FormVFX on GitHub', run: () => window.open('https://github.com/nodemode-dev/formVFX', '_blank') },
+          { label: 'Report an Issue', run: () => window.open('https://github.com/nodemode-dev/formVFX/issues', '_blank') },
           '-',
-          { label: 'About formvfx', run: () => this.about() },
+          { label: 'About FormVFX', run: () => this.about() },
         ],
       },
     };
     const menubar = new MenuBar(ctx, extras);
     q(shell, '.fx-menubar-host').appendChild(menubar.el);
     if (wantsNativeMenus()) {
-      this.native = new NativeMenus(ctx, extras, 'formvfx', () => this.about(), () => void this.prefs.open());
+      this.native = new NativeMenus(ctx, extras, 'FormVFX', () => this.about(), () => void this.prefs.open());
       this.keys.nativeOwned = this.native.owned;
       this.native.start();
     }
@@ -381,7 +381,7 @@ class App {
   }
 
   private buildStatus(): void {
-    this.status.innerHTML = `<span class="fx-st-engine"><span class="fx-st-dot"></span><span class="fx-st-engine-t">Connecting</span></span><span class="fx-st-busy"></span><span class="fx-st-act"></span><span class="fx-flex"></span><span class="fx-st-rev"></span><span class="fx-st-ver">formvfx ${VERSION}</span>`;
+    this.status.innerHTML = `<span class="fx-st-engine"><span class="fx-st-dot"></span><span class="fx-st-engine-t">Connecting</span></span><span class="fx-st-busy"></span><span class="fx-st-act"></span><span class="fx-flex"></span><span class="fx-st-rev"></span><span class="fx-st-ver">FormVFX ${VERSION}</span>`;
     ctx.client.events.on('open', (h) => {
       setClass(q(this.status, '.fx-st-dot'), 'is-on', h.core);
       setText(q(this.status, '.fx-st-engine-t'), h.core ? 'Engine ready' : `Engine: ${h.error ?? 'core missing'}`);
@@ -634,12 +634,12 @@ class App {
   }
 
   private about(): void {
-    const d = new Dialog('About formvfx', 480);
+    const d = new Dialog('About FormVFX', 480);
     d.body.appendChild(el(`<div class="fx-about">
-      <div class="fx-about-head">${brandMark(44)}<div><div class="fx-about-name">formvfx</div><div class="fx-note">Version ${VERSION} · Apache-2.0 · NodeAgentc, Inc.</div></div></div>
-      <p class="fx-note">Motion graphics and visual effects in the form family, beside formvis and formcut, on formvfx's own compositing engine written in Rust. Every action is a command that a person or an agent can run.</p>
+      <div class="fx-about-head">${brandMark(44)}<div><div class="fx-about-name">FormVFX</div><div class="fx-note">Version ${VERSION} · Apache-2.0 · NodeAgentc, Inc.</div></div></div>
+      <p class="fx-note">Motion graphics and visual effects in the form family, beside FormVis and FormCut, on FormVFX's own compositing engine written in Rust. Every action is a command that a person or an agent can run.</p>
       <p class="fx-note">Third-party notices are in NOTICE.md.</p>
-      <p class="fx-note">Copyright 2026 NodeAgentc, Inc. Licensed under the Apache License 2.0: <a href="https://github.com/nodemode-dev/formvfx/blob/main/LICENSE" target="_blank" rel="noopener">LICENSE</a></p>
+      <p class="fx-note">Copyright 2026 NodeAgentc, Inc. Licensed under the Apache License 2.0: <a href="https://github.com/nodemode-dev/formVFX/blob/main/LICENSE" target="_blank" rel="noopener">LICENSE</a></p>
     </div>`));
     d.button('Close', 'primary', () => {
       d.close();
