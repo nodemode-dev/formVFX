@@ -203,6 +203,10 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - app/app.ts `brandMark` is now `<img src="/formvfx-logo.png">` at the requested size with width and height set, so the title bar, Home and About marks match the owner's icon and nothing shifts; the per-copy gradient id table is gone with the inline SVG.
 - The desktop shell asks macOS for an overlay title bar with the traffic lights centred in a 38 px row (`traffic_lights.rs`). The page still has its own 40 px title bar with no left inset or drag region for macOS, so on macOS the lights overlap the brand until a titlebar inset and `data-tauri-drag-region` are added.
 
+## Splash page byte parity with formvis (0.53.2)
+
+- public/splash.html now matches formvis's page exactly apart from the app name, the icon file and the done hook: the `img` rule lost its `user-select: none` and the tag its `draggable="false"`, which the reference does not carry (the splash window has no drag or selection to guard). The shell side (reveal.rs timing, window settings, macOS corner mask, `macOSPrivateApi`, capability, `app_ready` after `revealApp`) was already equivalent and is unchanged.
+
 ## Page side of the macOS overlay title bar (0.49.0)
 
 - index.html adds `has-overlay-titlebar` to `<html>` in a small inline script before the theme boot (macOS inside the desktop app only; the page has no CSP, so inline is allowed), so the 38 px row exists from first paint and nothing jumps when the app mounts.
