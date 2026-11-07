@@ -96,6 +96,10 @@ Claude Code starts inside the app already connected, and the command line and MC
 
 `.mcp.json`, `.codex/config.toml` and `.cursor/mcp.json` are already wired in this repo. See [`AGENTS.md`](AGENTS.md).
 
+## Extensions
+
+FormVFX loads Form extensions (API 1): FormPortal installs them, form.ext makes them and runs them in the app while you work on them. The Extensions menu lists their commands, the Extensions panel shows each one with its source, permissions and state, and their panels dock beside FormVFX's own. Each runs in a sandboxed frame and changes the project only through FormVFX's commands, as one undo step, after you allow it once. Effect plug-ins, scripts and HTML panels keep working beside them. See [`docs/EXTENSIONS.md`](docs/EXTENSIONS.md).
+
 ## Under the hood
 
 Version 0.53.3 · Apache-2.0 · compositing engine: FormVFX's own, in Rust (`native/fvx-core`)

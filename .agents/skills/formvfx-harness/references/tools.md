@@ -2,11 +2,11 @@
 
 Generated from the formvfx engine by `./formvfx agents sync`; do not edit by hand.
 
-The `formvfx` MCP server has 27 tools. `./formvfx mcp` serves them over stdio (it starts the engine when it is not running); the engine also serves them over Streamable HTTP at `http://127.0.0.1:8250/mcp`. The shell equivalents are in the last section.
+The `formvfx` MCP server has 29 tools. `./formvfx mcp` serves them over stdio (it starts the engine when it is not running); the engine also serves them over Streamable HTTP at `http://127.0.0.1:8250/mcp`. The shell equivalents are in the last section.
 
 ## Contents
 
-`status` `list_commands` `describe_command` `execute` `batch` `get_comp` `get_layer` `get_property` `set_property` `set_keyframes` `apply_effect` `list_effects` `text_preset` `shapes_from_svg` `planar_track` `object_matte` `render_frame` `contact_sheet` `render` `dynamic_link` `project` `import_files` `run_script` `history` `ui` `wait` `guide`
+`status` `list_commands` `describe_command` `execute` `batch` `get_comp` `get_layer` `get_property` `set_property` `set_keyframes` `apply_effect` `list_effects` `text_preset` `shapes_from_svg` `planar_track` `object_matte` `render_frame` `contact_sheet` `render` `dynamic_link` `project` `import_files` `run_script` `history` `ui` `wait` `guide` `extensions_list` `extension_command`
 
 ## status
 
@@ -265,15 +265,35 @@ Note: read-only.
 
 ## guide
 
-formvfx know-how for agents: workflow, layers, animation, text, shapes, effects, masks, 3d, expressions, tracking, render, ui.
+formvfx know-how for agents: workflow, layers, animation, text, shapes, effects, masks, 3d, expressions, tracking, render, ui, extensions.
 
 - `topic`: string
 
 Note: read-only.
 
+## extensions_list
+
+The Form extensions loaded in formvfx (installed through FormPortal or run from form.ext): id, name, version, source (catalogue, sideload, development), state (ready, needs-permission, refused with the reason), permissions and the commands each one contributes. With no window open it lists what the window would load.
+
+- no parameters
+
+Note: read-only.
+
+## extension_command
+
+Runs a command an extension contributes (ids from extensions_list) in the open formvfx window and returns what the extension reports when it finishes. The first run of an extension version asks the person in the window to allow its permissions; if they choose Not Now the call fails. Changes it makes are undoable steps in History.
+
+- `id`: string; required; The extension id.
+- `command`: string; required; The command id within the extension.
+- `args`: object; default {}; Arguments passed to the extension with the command.
+
 ## Guide topics
 
 The `guide` tool returns these texts.
+
+### extensions
+
+Form extensions add panels and commands to formvfx (FormPortal installs them, form.ext makes them). extensions_list shows each one's state and commands; extension_command {id, command, args} runs a command in the open window, asking the person once per extension version to allow its permissions. A refused extension shows why (wrong product, newer API, a newer formvfx needed). Their edits are ordinary formvfx commands, one undo step each.
 
 ### layers
 

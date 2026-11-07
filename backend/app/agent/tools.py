@@ -35,7 +35,8 @@ WORKFLOW = """How to build in formvfx with these tools.
 """
 
 GUIDES = {
-    "index": "Topics: workflow, layers, animation, text, shapes, effects, masks, 3d, expressions, tracking, render, ui. Call guide {topic}.",
+    "index": "Topics: workflow, layers, animation, text, shapes, effects, masks, 3d, expressions, tracking, render, ui, extensions. Call guide {topic}.",
+    "extensions": "Form extensions add panels and commands to formvfx (FormPortal installs them, form.ext makes them). extensions_list shows each one's state and commands; extension_command {id, command, args} runs a command in the open window, asking the person once per extension version to allow its permissions. A refused extension shows why (wrong product, newer API, a newer formvfx needed). Their edits are ordinary formvfx commands, one undo step each.",
     "workflow": WORKFLOW,
     "layers": "Create: layer.newSolid {name, color, width, height}, layer.newText {text, size, fill}, layer.newShape {kind, size:[w,h], position:[x,y], fill, stroke, strokeWidth}, layer.newNull, layer.newAdjustment, layer.newCamera, layer.newLight {kind: point|spot|parallel|ambient}. Footage: import_files then layer.addItem {item, time, position}. Arrange: layer.arrange {layers, to: front|forward|backward|back, above}. Time: layer.timing {layers, in, out, start, delta}; layer.sequence {layers, overlap, duration, transition}. Parent: layer.setParent {layers, parent}. Switches: layer.setSwitch {layers, switch: video|audio|solo|lock|shy|collapse|fx|motionBlur|adjustment|threeD, value}. Blend: layer.setBlendMode {layers, mode}. Matte: layer.setTrackMatte {layer, matte, kind: alpha|alphaInverted|luma|lumaInverted}. Precompose: layer.precompose {layers, name}.",
     "animation": "set_keyframes converts composition seconds to layer time for you. Raw commands take LAYER seconds: prop.addKey {layer, path, time, value} adds a key, keys.set {layer, path, time, newTime?, value?} edits an existing one, keys.select {keys: [{layer, path, time}]} then keys.easyEase {which}, keys.interpolation {interpolation: linear|bezier|continuousBezier|autoBezier|hold}, keys.velocity, keys.move {delta}, keys.delete. Motion along a path: keyframe transform/position; layer.autoOrient {mode: alongPath}. Sequence layers: layer.sequence {layers, overlap, duration}. Wiggle keys: keys.wiggle. Time remap: layer.enableTimeRemap; speed: layer.timeStretch {percent}.",
@@ -117,7 +118,10 @@ TOOLS = [
     _tool("ui", "The formvfx window: state (what the person sees: panels, tool, zoom, workspace), or show a panel, switch workspace, choose a tool, zoom the viewer.",
           {"action": {"type": "string", "enum": ["state", "panel", "workspace", "tool", "zoom"]}, "panel": {"type": "string"}, "name": {"type": "string"}, "tool": {"type": "string"}, "value": {}}, ["action"]),
     _tool("wait", "Waits until background work (rendering, tracking, stabilizing, Roto Paint, Selection-Aware-Fill) has finished, up to timeout seconds.", {"timeout": {"type": "number", "minimum": 1, "maximum": 3600, "default": 120}}, read=True),
-    _tool("guide", "formvfx know-how for agents: workflow, layers, animation, text, shapes, effects, masks, 3d, expressions, tracking, render, ui.", {"topic": {"type": "string"}}, read=True, idempotent=True),
+    _tool("guide", "formvfx know-how for agents: workflow, layers, animation, text, shapes, effects, masks, 3d, expressions, tracking, render, ui, extensions.", {"topic": {"type": "string"}}, read=True, idempotent=True),
+    _tool("extensions_list", "The Form extensions loaded in formvfx (installed through FormPortal or run from form.ext): id, name, version, source (catalogue, sideload, development), state (ready, needs-permission, refused with the reason), permissions and the commands each one contributes. With no window open it lists what the window would load.", {}, read=True, idempotent=True),
+    _tool("extension_command", "Runs a command an extension contributes (ids from extensions_list) in the open formvfx window and returns what the extension reports when it finishes. The first run of an extension version asks the person in the window to allow its permissions; if they choose Not Now the call fails. Changes it makes are undoable steps in History.",
+          {"id": {"type": "string", "description": "The extension id."}, "command": {"type": "string", "description": "The command id within the extension."}, "args": {"type": "object", "description": "Arguments passed to the extension with the command.", "default": {}}}, ["id", "command"]),
 ]
 NAMES = {t["name"] for t in TOOLS}
 READ_ONLY = {t["name"] for t in TOOLS if t["annotations"]["readOnlyHint"]}
@@ -470,6 +474,14 @@ async def _call(name: str, a: dict, source: str) -> dict:
     if name == "guide":
         topic = (a.get("topic") or "index").lower()
         return text(GUIDES.get(topic, GUIDES["index"]))
+    if name == "extensions_list":
+        return text(await rpc.dispatch("formext.list", {}, source))
+    if name == "extension_command":
+        try:
+            result = await rpc.dispatch("formext.command", {"id": a.get("id"), "command": a.get("command"), "args": a.get("args") or {}}, source)
+        except RpcError as exc:
+            return fail(f"{exc} (extensions_list shows the extensions, their state and their commands)")
+        return text({"result": result, "revision": host.revision})
     return fail(f"no tool named {name}")
 
 
