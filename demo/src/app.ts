@@ -9,11 +9,12 @@ import { applyTheme, readChoice, setTheme, THEMES } from '../../frontend/src/ui/
 import { toast } from '../../frontend/src/ui/toast';
 import { CATEGORIES, EFFECTS } from './engine/effects';
 import { EASES, serialize } from './engine/model';
+import { coastlineProject } from './engine/coastline';
 import { TEXT_PRESETS } from './engine/sample';
 import { importFiles, pickFiles } from './importer';
 import {
   addAdjust, addAnimatorPreset, addEffect, addMask, addNull, addShape, addSolid, addText, bus, canRedo, canUndo, comp, deleteLayer, doRedo, doUndo,
-  duplicateLayer, loadSample, newEmptyProject, play, propsOf, renderer, S, selLayer, setEaseAt, setTime, smooth, splitLayer, toggleKeyHere, touch, wiggle,
+  duplicateLayer, loadProject, loadSample, newEmptyProject, play, propsOf, renderer, S, selLayer, setEaseAt, setTime, smooth, splitLayer, toggleKeyHere, touch, wiggle,
 } from './state';
 import { buildControls } from './ui/controls';
 import { buildEffects, buildProject } from './ui/project';
@@ -53,6 +54,20 @@ function group(area: string, tabs: Tab[]): HTMLElement {
 
 function brand(size: number): string {
   return `<img class="fx-mark" src="${logo}" width="${size}" height="${size}" alt="" draggable="false">`;
+}
+
+async function loadCoastline(): Promise<void> {
+  try {
+    loadProject(await coastlineProject());
+    S.sel = comp().layers.find((l) => l.name === 'COASTLINE')?.id ?? null;
+    bus.emit('sel');
+    setTime(2.8);
+    await renderer.prepare(comp(), S.time);
+    bus.emit('frame');
+  } catch (e) {
+    toast(`${e instanceof Error ? e.message : String(e)}; opened the generated sample instead`, 'error');
+    loadSample();
+  }
 }
 
 function saveProject(): void {
@@ -140,7 +155,8 @@ function menus(): Array<[string, () => PopupEntry[]]> {
   return [
     ['File', () => [
       { label: 'New Project', run: newEmptyProject },
-      { label: 'Open Sample Project', run: loadSample },
+      { label: 'Open Coastline Project', run: () => void loadCoastline() },
+      { label: 'Open Generated Sample', run: loadSample },
       { label: 'Open Project...', shortcut: 'Cmd+O', run: () => void pickFiles('.json,.fvxdemo', false).then((f) => importFiles(f)) },
       { label: 'Save Project', shortcut: 'Cmd+S', run: saveProject },
       '-',
@@ -236,7 +252,7 @@ export function startApp(): void {
     <button class="cv-icon-btn fx-tool" type="button" data-n="solid" title="New solid">${icon('iSolid', 17)}</button>
     <button class="cv-icon-btn fx-tool" type="button" data-n="adjust" title="New adjustment layer">${icon('iAdjust', 17)}</button>
     <button class="cv-icon-btn fx-tool" type="button" data-n="mask" title="Add an ellipse mask to the selected layer">${icon('vFeather', 17)}</button>
-  </div><div class="fx-tool-opts"><span class="dm-hint">Open your own image, video or saved project (or drop it anywhere), then animate it and render. The sample below is generated in this tab.</span></div>`;
+  </div><div class="fx-tool-opts"><span class="dm-hint">A title sequence over real footage is open: press Space to play, click a layer to see its effects, or open your own image, video or project.</span></div>`;
   toolbar.addEventListener('click', (e) => {
     const b = (e.target as HTMLElement).closest<HTMLElement>('[data-n]');
     if (!b) return;
@@ -330,8 +346,7 @@ export function startApp(): void {
     void importFiles(Array.from(e.dataTransfer.files));
   });
 
-  void document.fonts.load('600 40px Inter').then(() => document.fonts.load('500 40px Inter')).catch(() => undefined).then(() => {
-    loadSample();
+  void document.fonts.load('600 40px Inter').then(() => document.fonts.load('500 40px Inter')).catch(() => undefined).then(() => loadCoastline()).then(() => {
     bus.emit('status');
     revealApp();
   });

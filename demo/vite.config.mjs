@@ -15,7 +15,7 @@ export default {
   },
   build: {
     outDir: resolve(here, 'assets'),
-    emptyOutDir: true,
+    emptyOutDir: false,
     target: 'es2022',
     assetsInlineLimit: 400000,
     cssCodeSplit: false,

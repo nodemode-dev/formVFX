@@ -11,6 +11,11 @@
     html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
     #app { visibility: hidden; }
     body.app-ready #app { visibility: visible; }
+    #boot { position: fixed; inset: 0; display: grid; place-items: center; align-content: center; gap: 10px; color: #a4a4a4; font: 500 13px/1.4 system-ui, sans-serif; letter-spacing: 0.02em; }
+    #boot i { display: block; width: 180px; height: 2px; background: #2a2a2a; overflow: hidden; }
+    #boot i::after { content: ''; display: block; width: 40%; height: 100%; background: var(--accent-color, #f97316); animation: boot-run 1.1s ease-in-out infinite; }
+    @keyframes boot-run { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+    body.app-ready #boot { display: none; }
     .hidden { display: none !important; }
   </style>
   <script>
@@ -91,6 +96,7 @@
   <link rel="stylesheet" href="assets/demo.css">
 </head>
 <body>
+  <div id="boot"><span>Opening the Coastline project</span><i></i></div>
   <div id="app"></div>
   <div id="overlay-root"></div>
   <div id="toast-root"></div>
