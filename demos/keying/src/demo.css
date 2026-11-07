@@ -1,0 +1,17 @@
+@import "../../../demo/src/demo.css";
+
+.kv-over { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+.kv-sep { width: 1px; height: 18px; margin: 0 6px; background: var(--line-2); }
+.kv-view { display: inline-flex; align-items: center; gap: 4px; margin: 0 12px; flex: none; }
+.kv-view-label { margin-right: 4px; color: var(--text-muted); font-size: var(--fs-12); }
+.kv-view-btn { height: 26px; padding: 0 10px; }
+.kv-view-btn.is-active, .fx-tracker-btn.is-active { border-color: var(--accent-line); background: var(--accent-soft); color: var(--accent-color); }
+.fx-tool.is-active { color: var(--accent-color); background: var(--accent-soft); }
+.kv-demos { display: inline-flex; align-items: center; gap: 14px; margin-right: 14px; font-size: var(--fs-11); }
+.kv-demos a { color: var(--text-muted); text-decoration: none; }
+.kv-demos a:hover { color: var(--text-primary); }
+.kv-demos a[aria-current] { color: var(--text-secondary); pointer-events: none; }
+.kv-val { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-primary); }
+.kv-num { width: 84px; height: 26px; }
+.fx-tracker .fx-assist-row { grid-template-columns: 104px minmax(0, 1fr); }
+.fx-tracker .fx-assist-select { width: 100%; }
