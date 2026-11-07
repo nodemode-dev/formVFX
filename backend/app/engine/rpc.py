@@ -127,6 +127,30 @@ async def render_png(params: dict, source: str = "ui") -> dict:
     return {"width": w, "height": h, "png": png}
 
 
+async def formext_list() -> dict:
+    reply = await host.bus.ask_window({"type": "uiRequest", "what": "extensions.list"}, timeout=5)
+    if reply is not None:
+        return reply
+    from ..routers import formext
+
+    found = formext.listing()
+    rows = [{k: e[k] for k in ("id", "name", "version", "source", "state", "reason", "permissions")} | {"commands": [{"id": c["id"], "title": c["title"]} for c in e["commands"]]} for e in found["extensions"]]
+    return {"windows": 0, "note": "No FormVFX window is open: extensions run in the window, so their commands wait until one is open.", "extensions": rows}
+
+
+async def formext_command(ext_id: Any, command: Any, args: Any) -> Any:
+    if not isinstance(ext_id, str) or not isinstance(command, str) or not ext_id or not command:
+        raise RpcError("`id` and `command` are required (extensions_list shows them)", -32602)
+    if not host.bus.windows():
+        raise RpcError("No FormVFX window is open, and extensions run in the window: open FormVFX, then retry")
+    reply = await host.bus.ask_window({"type": "uiRequest", "what": "extensions.command", "id": ext_id, "command": command, "args": args if isinstance(args, dict) else {}}, timeout=330)
+    if reply is None:
+        raise RpcError(f"the FormVFX window did not finish {ext_id}: {command} in time")
+    if not reply.get("ok"):
+        raise RpcError(str(reply.get("error") or "the extension command failed"), int(reply.get("code") or -32004))
+    return reply.get("result")
+
+
 async def dispatch(method: str, params: Any, source: str = "ui") -> Any:
     global _effects_cache
     p = params if isinstance(params, dict) else {}
@@ -240,6 +264,10 @@ async def dispatch(method: str, params: Any, source: str = "ui") -> Any:
             from . import link
 
             return await link.info(p.get("project"), p.get("comp"))
+        if method == "formext.list":
+            return await formext_list()
+        if method == "formext.command":
+            return await formext_command(p.get("id"), p.get("command"), p.get("args"))
     except RpcError:
         raise
     except ValueError as exc:
