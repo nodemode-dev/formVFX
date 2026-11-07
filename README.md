@@ -120,6 +120,11 @@ All FormVFX builds are compiled and released from [FormCompiler](https://github.
 
 Open [`demo/index.html`](demo/index.html) in a browser, no install and no network. It opens on Coastline, a title sequence over real footage with a keyed gull, a video-filled title and a graded finish; composite your own image or video with keyframes, effects, mattes and masks, read the scopes, and render PNG, GIF, WebM or a PNG sequence. It runs a compact TypeScript compositor under the app's own interface, not the Rust engine. See [`demo/README.md`](demo/README.md).
 
+Two more demos show other sides of the app, each opened the same way:
+
+- [`demos/keying/index.html`](demos/keying/index.html): keying, masking and tracking. Key a green-screen phone with Keylight and spill suppression, draw and animate a Mask Path, track a point to lock a graphic and stabilize a handheld shot.
+- [`demos/motion/index.html`](demos/motion/index.html): motion design. A title sequence with text animators, animated shapes, expressions, Template Controls, 3D cards and a camera move, rendered from the Render Queue.
+
 ## Run it from source
 
 Prefer it in your browser, or want to contribute? Run the web UI straight from this repo.

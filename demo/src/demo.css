@@ -85,4 +85,8 @@
 .fx-ec-toggle[hidden], .fx-ec-more[hidden] { display: none; }
 .fx-ec-val { min-width: 0; padding-right: 8px; }
 .fx-proj-thumb canvas { display: block; width: 104px; height: 58px; }
+.dm-demos { display: inline-flex; align-items: center; gap: 14px; margin-right: 14px; font-size: var(--fs-11); }
+.dm-demos a { color: var(--text-muted); text-decoration: none; }
+.dm-demos a:hover { color: var(--text-primary); }
+.dm-demos a[aria-current] { color: var(--text-secondary); pointer-events: none; }
 .fx-efx-search .cv-input { width: 100%; }

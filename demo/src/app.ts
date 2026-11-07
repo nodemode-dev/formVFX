@@ -220,7 +220,7 @@ export function startApp(): void {
     </header>
     <div class="cv-options fx-toolbar" data-automation-id="toolbar"></div>
     <main class="fx-main"><div class="fx-dock"></div></main>
-    <footer class="cv-status fx-status"><span class="fx-st-engine"><span class="fx-st-dot is-on"></span><span>Browser compositor ready</span></span><span class="fx-st-act"></span><span class="fx-flex"></span><span class="fx-st-rev"></span><span class="fx-st-ver">v${VERSION}</span></footer>
+    <footer class="cv-status fx-status"><span class="fx-st-engine"><span class="fx-st-dot is-on"></span><span>Browser compositor ready</span></span><span class="fx-st-act"></span><span class="fx-flex"></span><nav class="dm-demos" aria-label="Demos"><a href="index.html" aria-current="page">Titles and compositing</a><a href="../demos/keying/index.html">Keying and tracking</a><a href="../demos/motion/index.html">Motion design</a></nav><span class="fx-st-rev"></span><span class="fx-st-ver">v${VERSION}</span></footer>
   </div>`);
   host.appendChild(shell);
 
