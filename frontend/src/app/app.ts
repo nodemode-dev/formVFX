@@ -34,6 +34,8 @@ import { contextMenu, type PopupEntry } from '../ui/popup';
 import { Preferences } from '../ui/prefs';
 import { ScriptUIHost, type SuiTree } from '../ui/scriptui';
 import { ExtensionHost, type ExtensionOpen } from '../ui/extensions';
+import { FormExtHost } from '../formext/host';
+import { ExtensionsPanel } from '../panels/extensions';
 import { ShortcutEditor } from '../ui/shortcut-editor';
 import { TerminalDock } from '../ui/terminal-dock';
 import { LearnCoach } from '../ui/learn';
@@ -81,6 +83,13 @@ class App {
   private readonly learn = new LearnCoach(ctx);
   private readonly scriptui = new ScriptUIHost(ctx);
   private readonly extensions = new ExtensionHost(ctx);
+  private readonly formext = new FormExtHost(ctx, {
+    register: (id, title, factory) => this.dock.register(id, title, factory),
+    show: (id) => this.dock.show(id),
+    close: (id) => this.dock.close(id),
+    isRegistered: (id) => this.dock.panelIds().includes(id),
+  });
+  private extPanel: ExtensionsPanel | null = null;
   private extended: Window | null = null;
   private readonly viewerChannel = new BroadcastChannel('formvfx-viewer');
   private readonly keys = new Keys(ctx);
@@ -125,6 +134,7 @@ class App {
       for (const n of shell.querySelectorAll('.cv-titlebar, .cv-brand, .fx-menubar-host, .fx-doc-title, .fx-title-tools')) n.setAttribute('data-tauri-drag-region', '');
     }
     const extras: MenuExtras = {
+      own: [{ title: 'Extensions', before: 'Help', entries: () => this.formext.menuEntries(() => this.dock.show('extensions')) }],
       workspace: () => this.dock.workspace,
       savedWorkspaces: () => this.dock.savedNames(),
       after: {
@@ -173,7 +183,11 @@ class App {
     this.dock.load();
     this.palette = new Palette(ctx, (id) => this.keys.shortcutFor(id));
     this.palette.extraEntries = () => [
-      ...this.dock.panelIds().map((id) => ({ id: `panel.${id}`, label: `Show ${this.dock.titleOf(id)}`, path: 'Window', keys: '', kind: 'panel' as const, run: () => this.dock.show(id) })),
+      ...this.formext.rows.filter((r) => r.state === 'ready').flatMap((r) => [
+        ...r.commands.map((c) => ({ id: `ext.${r.id}.cmd.${c.id}`, label: `${r.name}: ${c.title}`, path: 'Extensions', keys: '', kind: 'command' as const, run: () => void this.formext.command(r.id, c.id, {}).catch(() => undefined) })),
+        ...r.panels.map((p) => ({ id: `ext.${r.id}.panel.${p.id}`, label: `Show ${p.title === r.name ? r.name : `${r.name}: ${p.title}`}`, path: 'Extensions', keys: '', kind: 'panel' as const, run: () => void this.formext.openPanel(r.id, p.id) })),
+      ]),
+      ...this.dock.panelIds().filter((id) => !id.startsWith('ext.')).map((id) => ({ id: `panel.${id}`, label: `Show ${this.dock.titleOf(id)}`, path: 'Window', keys: '', kind: 'panel' as const, run: () => this.dock.show(id) })),
       ...(['terminal', 'chat'] as const).map((id) => ({ id: `panel.${id}`, label: id === 'chat' ? 'Show Chat' : 'Show Terminal', path: 'Window', keys: '', kind: 'panel' as const, run: () => this.showPanel(id) })),
     ];
     this.keys.handlers = {
@@ -204,6 +218,11 @@ class App {
     ctx.ui.on('showPanel', (id) => this.showPanel(id));
     ctx.ui.on('focusPanel', (id) => this.dock.focus(id));
     ctx.start();
+    this.formext.onChange = () => {
+      this.extPanel?.render();
+      this.native?.schedule(0);
+    };
+    this.formext.start();
     window.setTimeout(() => this.reveal(), 1500);
     this.automation();
   }
@@ -261,6 +280,7 @@ class App {
     this.dock.register('learn', 'Learn', () => new LearnPanel(ctx));
     this.dock.register('dynamicLink', 'Live Link', () => new DynamicLinkPanel(ctx));
     this.dock.register('agents', 'Agents', () => new AgentsPanel(ctx));
+    this.dock.register('extensions', 'Extensions', () => (this.extPanel = new ExtensionsPanel(ctx, this.formext)));
     this.dock.register('flowchart', 'Flowchart', () => new FlowchartPanel(ctx));
     this.dock.register('wiggler', 'Wiggler', () => new WigglerPanel(ctx));
     this.dock.register('smoother', 'Smoother', () => new SmootherPanel(ctx));
@@ -684,6 +704,11 @@ class App {
   }
 
   private uiRequest(ev: ServerEvent): void {
+    if (ev.what === 'extensions.list') return ctx.client.reply(ev.requestId, this.formext.agentList());
+    if (ev.what === 'extensions.command') {
+      void this.formext.agentCommand(String(ev.id ?? ''), String(ev.command ?? ''), ev.args ?? {}).then((r) => ctx.client.reply(ev.requestId, r));
+      return;
+    }
     if (ev.what !== 'state') return;
     ctx.client.reply(ev.requestId, this.uiState());
   }

@@ -1,7 +1,7 @@
 import type { Ctx } from '../app/ctx';
 import type { MenuNode } from '../engine/types';
 import { onLanguage, t } from './i18n';
-import type { MenuExtras } from './menubar';
+import { type MenuExtras, withOwnMenus } from './menubar';
 import type { PopupEntry } from './popup';
 
 export const wantsNativeMenus = (): boolean => '__TAURI_INTERNALS__' in window && /Mac/.test(navigator.platform || navigator.userAgent);
@@ -72,7 +72,7 @@ export class NativeMenus {
     this.building = true;
     try {
       const api: Api = await import('@tauri-apps/api/menu');
-      const titles = await this.ctx.client.call<string[]>('menu.titles');
+      const titles = withOwnMenus(await this.ctx.client.call<string[]>('menu.titles'), this.extras.own);
       const owned = new Set<string>();
       const sep = (): Promise<unknown> => api.PredefinedMenuItem.new({ item: 'Separator' });
       const item = async (label: string, shortcut: string | null | undefined, enabled: boolean, checked: boolean | null | undefined, run: () => void): Promise<unknown> => {
@@ -131,6 +131,12 @@ export class NativeMenus {
         }),
       ];
       for (const title of titles) {
+        const own = this.extras.own?.find((o) => o.title === title);
+        if (own) {
+          const kids = await fromEntries(own.entries());
+          if (kids.length) top.push(await api.Submenu.new({ text: t(title), items: kids as never[] }));
+          continue;
+        }
         let nodes: MenuNode[] = [];
         try {
           const r = await this.ctx.client.call<MenuNode[]>('menu.bar', { menu: title, workspace: this.extras.workspace(), savedWorkspaces: this.extras.savedWorkspaces() });
