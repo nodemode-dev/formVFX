@@ -6,7 +6,7 @@ import type { Footage } from '../engine/model';
 import { newComp } from '../engine/model';
 import { TEXT_PRESETS } from '../engine/sample';
 import { importFiles, pickFiles } from '../importer';
-import { addAnimatorPreset, addEffect, addFootageLayer, bus, compFromFootage, S, setActiveComp, touch } from '../state';
+import { addAnimatorPreset, addEffect, addFootageLayer, bus, comp, compFromFootage, renderer, S, setActiveComp, touch } from '../state';
 
 type PItem = { key: string; kind: 'comp' | 'footage'; id: string; name: string; type: string; size: string; dur: string; icon: string };
 let selItem = '';
@@ -36,6 +36,7 @@ export function buildProject(): HTMLElement {
   const list = q(root, '.fx-proj-list');
   const search = q<HTMLInputElement>(root, '.fx-proj-search input');
   const thumb = q<HTMLCanvasElement>(root, '.pj-thumb');
+  const poster = document.createElement('canvas');
   const footageById = (id: string): Footage | undefined => S.project.footage.find((f) => f.id === id);
 
   const refresh = (): void => {
@@ -75,6 +76,13 @@ export function buildProject(): HTMLElement {
     if (f?.src && (!(f.src instanceof HTMLVideoElement) || f.src.readyState >= 2)) {
       const k = Math.min(104 / f.w, 58 / f.h);
       g.drawImage(f.src, (104 - f.w * k) / 2, (58 - f.h * k) / 2, f.w * k, f.h * k);
+    } else if (!f) {
+      const c = S.project.comps.find((x) => x.id === (sel?.kind === 'comp' ? sel.id : S.project.active)) ?? comp();
+      if (c) {
+        const k = Math.min(104 / c.w, 58 / c.h);
+        renderer.render(c, Math.min(S.time, c.dur - 1 / c.fps), poster, k);
+        g.drawImage(poster, (104 - poster.width) / 2, (58 - poster.height) / 2);
+      }
     }
     setText(q(root, '.pj-count'), `${its.length} items`);
   };

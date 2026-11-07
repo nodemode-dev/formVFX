@@ -277,7 +277,7 @@ export function buildViewer(onFrame: () => void): HTMLElement {
   bus.on('comp', () => { patchTabs(); schedule(); });
   bus.on('frame', tick);
   bus.on('sel', () => { drawOverlay(); });
-  bus.on('project', patchTabs);
+  bus.on('project', () => { setClass(hint, 'is-hidden', true); patchTabs(); });
   bus.on('play', () => {
     const on = S.playing;
     playBtn.innerHTML = icon(on ? 'pause' : 'play', 16);

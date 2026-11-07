@@ -1,6 +1,7 @@
 import type { Comp } from './model';
 import type { Renderer } from './render';
 import { timecode } from '../../../frontend/src/engine/time';
+import { muxWebm, type WebmChunk } from './webm';
 
 const crcTable = (() => {
   const t = new Uint32Array(256);
@@ -190,8 +191,35 @@ export async function exportGif(j: Job): Promise<Blob | null> {
   return new Blob([new Uint8Array(bytes)], { type: 'image/gif' });
 }
 
+async function encodeWebm(j: Job, c: HTMLCanvasElement, ts: number[], fps: number): Promise<Blob | null> {
+  const chunks: WebmChunk[] = [];
+  const enc = new VideoEncoder({
+    output: (ch) => { const d = new Uint8Array(ch.byteLength); ch.copyTo(d); chunks.push({ ms: Math.round(ch.timestamp / 1000), key: ch.type === 'key', data: d }); },
+    error: () => undefined,
+  });
+  enc.configure({ codec: 'vp09.00.10.08', width: c.width, height: c.height, bitrate: 8_000_000, framerate: fps });
+  for (let i = 0; i < ts.length; i += 1) {
+    if (j.signal.cancelled) { enc.close(); return null; }
+    await renderFrameAt(j, c, ts[i]);
+    const frame = new VideoFrame(c, { timestamp: Math.round((i * 1e6) / fps), duration: Math.round(1e6 / fps) });
+    enc.encode(frame, { keyFrame: i % 30 === 0 });
+    frame.close();
+    j.progress(i + 1, ts.length);
+    while (enc.encodeQueueSize > 4) await new Promise((r) => setTimeout(r, 5));
+  }
+  await enc.flush();
+  enc.close();
+  return muxWebm(chunks, c.width, c.height, Math.round((ts.length * 1000) / fps));
+}
+
 export async function exportWebm(j: Job): Promise<Blob | null> {
   const c = scratch(j);
+  if (typeof VideoEncoder !== 'undefined' && typeof VideoFrame !== 'undefined') {
+    const fps0 = j.comp.fps / j.step;
+    const cfg = { codec: 'vp09.00.10.08', width: c.width, height: c.height, bitrate: 8_000_000, framerate: fps0 };
+    const sup = await VideoEncoder.isConfigSupported(cfg).catch(() => ({ supported: false }));
+    if (sup.supported) return encodeWebm(j, c, times(j), fps0);
+  }
   const mime = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find((m) => MediaRecorder.isTypeSupported(m));
   if (!mime) throw new Error('This browser has no WebM recorder');
   const ts = times(j), fps = j.comp.fps / j.step;

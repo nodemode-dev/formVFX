@@ -61,9 +61,12 @@ async function loadCoastline(): Promise<void> {
     loadProject(await coastlineProject());
     S.sel = comp().layers.find((l) => l.name === 'COASTLINE')?.id ?? null;
     bus.emit('sel');
+    await renderer.warm(comp());
     setTime(2.8);
     await renderer.prepare(comp(), S.time);
+    renderer.render(comp(), S.time, document.createElement('canvas'), 0.1);
     bus.emit('frame');
+    bus.emit('project');
   } catch (e) {
     toast(`${e instanceof Error ? e.message : String(e)}; opened the generated sample instead`, 'error');
     loadSample();

@@ -106,6 +106,8 @@ function inactive(l: Layer, t: number): boolean {
   return t < l.tin - 1e-6 || t >= l.tout - 1e-6;
 }
 
+const heldFrames = new WeakMap<HTMLVideoElement, HTMLCanvasElement>();
+
 export class Renderer {
   private pool: Array<{ c: HTMLCanvasElement; ctx: CanvasRenderingContext2D }> = [];
   private busy = new Set<HTMLCanvasElement>();
@@ -152,6 +154,16 @@ export class Renderer {
 
   private videoTime(l: Layer, f: Footage, t: number): number {
     return Math.max(0, Math.min(Math.max(0, f.dur - 0.001), t - l.tin + l.srcStart));
+  }
+
+  async warm(comp: Comp): Promise<void> {
+    const c = document.createElement('canvas');
+    for (const l of comp.layers) {
+      if (l.kind !== 'footage') continue;
+      const t = l.tin + 0.02;
+      await this.prepare(comp, t);
+      this.render(comp, t, c, 0.1);
+    }
   }
 
   async prepare(comp: Comp, t: number): Promise<void> {
@@ -354,7 +366,17 @@ export class Renderer {
     const f = footageOf(this.project(), l);
     if (!f) return;
     const s = f.src;
-    const ready = s && (!(s instanceof HTMLVideoElement) || s.readyState >= 2) && (!(s instanceof HTMLImageElement) || s.complete);
+    if (s instanceof HTMLVideoElement && !s.error) {
+      let held = heldFrames.get(s);
+      if (s.readyState >= 2 && !s.seeking) {
+        if (!held) { held = document.createElement('canvas'); held.width = f.w; held.height = f.h; heldFrames.set(s, held); }
+        (held.getContext('2d') as CanvasRenderingContext2D).drawImage(s, 0, 0, f.w, f.h);
+      }
+      if (held) { ctx.drawImage(held, 0, 0, f.w, f.h); return; }
+      if (s.readyState >= 2) { ctx.drawImage(s, 0, 0, f.w, f.h); return; }
+      return;
+    }
+    const ready = s && (!(s instanceof HTMLImageElement) || s.complete);
     if (ready) { ctx.drawImage(s, 0, 0, f.w, f.h); return; }
     const sq = 40;
     for (let y = 0; y < f.h; y += sq) for (let x = 0; x < f.w; x += sq) { ctx.fillStyle = ((x + y) / sq) % 2 ? '#3a1f2a' : '#2a1a22'; ctx.fillRect(x, y, sq, sq); }

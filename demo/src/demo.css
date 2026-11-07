@@ -10,6 +10,11 @@
 @import "../../frontend/src/styles/ux-viewer.css";
 
 .dm-app .cv-menubar { min-width: 0; }
+.dm-app .fx-dock { --fx-right: 340px; }
+.fx-ec, .fx-ec-head { min-width: 0; max-width: 100%; }
+.fx-ec-head { overflow: hidden; }
+.fx-ec-head .fx-ec-title { min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fx-ec-head .fx-link { flex: none; white-space: nowrap; }
 .dm-open { height: 28px; border-color: var(--accent-line); background: var(--accent-soft); color: var(--text-primary); }
 .dm-open:hover { background: var(--accent-tint-strong); color: var(--text-primary); }
 .dm-hint { color: var(--text-muted); font-size: var(--fs-12); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
