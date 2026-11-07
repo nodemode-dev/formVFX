@@ -1,0 +1,12 @@
+.ex-code { height: auto; min-height: 96px; padding: var(--space-2); resize: vertical; font-family: var(--font-mono, "JetBrains Mono", monospace); font-size: var(--fs-12); line-height: 1.5; white-space: pre-wrap; }
+.ex-code.is-error { border-color: var(--danger); }
+.ex-status { min-height: 32px; }
+.ex-code.is-error + .ex-status { color: var(--danger-text); }
+.ex-snips { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+.ex-snip { height: 22px; padding: 0 var(--space-2); font-size: var(--fs-11); }
+.ex-item { text-align: left; font: inherit; color: inherit; cursor: pointer; display: flex; flex-direction: column; align-items: stretch; gap: 2px; }
+.ex-item:hover { border-color: var(--accent-line); }
+.ex-ilabel { height: auto; font-family: var(--font-mono, "JetBrains Mono", monospace); font-size: var(--fs-11); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); }
+.tc-text { width: 100%; }
+.tc-item .tc-val { display: flex; align-items: center; min-height: var(--ctl-sm); }
+.ex-wrap .fx-eg-edit, .tc-wrap .fx-eg-edit { overflow: auto; }

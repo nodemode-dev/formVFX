@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img alt="version 0.52.8" src="https://img.shields.io/badge/version-0.52.8-eef0f4?style=flat-square">
+  <img alt="version 0.54.0" src="https://img.shields.io/badge/version-0.54.0-eef0f4?style=flat-square">
   <img alt="Rust" src="https://img.shields.io/badge/Rust-engine-b7410e?style=flat-square&logo=rust&logoColor=white">
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-Vite-3178c6?style=flat-square&logo=typescript&logoColor=white">
   <img alt="macOS, Windows, Linux" src="https://img.shields.io/badge/macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-native-2f7bf5?style=flat-square">
@@ -96,9 +96,13 @@ Claude Code starts inside the app already connected, and the command line and MC
 
 `.mcp.json`, `.codex/config.toml` and `.cursor/mcp.json` are already wired in this repo. See [`AGENTS.md`](AGENTS.md).
 
+## Extensions
+
+FormVFX loads Form extensions (API 1): FormPortal installs them, form.ext makes them and runs them in the app while you work on them. The Extensions menu lists their commands, the Extensions panel shows each one with its source, permissions and state, and their panels dock beside FormVFX's own. Each runs in a sandboxed frame and changes the project only through FormVFX's commands, as one undo step, after you allow it once. Effect plug-ins, scripts and HTML panels keep working beside them. See [`docs/EXTENSIONS.md`](docs/EXTENSIONS.md).
+
 ## Under the hood
 
-Version 0.52.8 · Apache-2.0 · compositing engine: FormVFX's own, in Rust (`native/fvx-core`)
+Version 0.54.0 · Apache-2.0 · compositing engine: FormVFX's own, in Rust (`native/fvx-core`)
 
 - **Engine:** `native/fvx-core` is the compositing engine, Rust with PyO3, loaded by the engine service as the `fvx_core` extension.
 - **Service:** a FastAPI engine service in `backend`, with the MCP server and the embedded terminal.
@@ -115,6 +119,15 @@ Version 0.52.8 · Apache-2.0 · compositing engine: FormVFX's own, in Rust (`nat
 | Linux | [Download FormVFX for Linux](https://formai.studio/get/formvfx/linux) | [FormVFX releases on FormCompiler](https://github.com/nodemode-dev/formcompiler/releases?q=formvfx-v&expanded=true) |
 
 All FormVFX builds are compiled and released from [FormCompiler](https://github.com/nodemode-dev/formcompiler); this repo holds the source.
+
+## Demo
+
+Open [`demo/index.html`](demo/index.html) in a browser, no install and no network. It opens on Coastline, a title sequence over real footage with a keyed gull, a video-filled title and a graded finish; composite your own image or video with keyframes, effects, mattes and masks, read the scopes, and render PNG, GIF, WebM or a PNG sequence. It runs a compact TypeScript compositor under the app's own interface, not the Rust engine. See [`demo/README.md`](demo/README.md).
+
+Two more demos show other sides of the app, each opened the same way:
+
+- [`demos/keying/index.html`](demos/keying/index.html): keying, masking and tracking. Key a green-screen phone with Keylight and spill suppression, draw and animate a Mask Path, track a point to lock a graphic and stabilize a handheld shot.
+- [`demos/motion/index.html`](demos/motion/index.html): motion design. A title sequence with text animators, animated shapes, expressions, Template Controls, 3D cards and a camera move, rendered from the Render Queue.
 
 ## Run it from source
 

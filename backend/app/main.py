@@ -14,14 +14,14 @@ from .core.security import LocalOnly
 from .engine import rpc as engine_rpc
 from .engine.host import host
 from .engine import link as engine_link
-from .routers import agents, chat, extensions, files, link, live, mcp, rpc, system, terminal, viewer
+from .routers import agents, chat, extensions, files, formext, link, live, mcp, rpc, system, terminal, viewer
 
 mimetypes.add_type("text/javascript", ".js")
 mimetypes.add_type("text/javascript", ".mjs")
 mimetypes.add_type("text/css", ".css")
 ffmpeg_fetch.start()
 
-ROUTERS = (system.router, rpc.router, live.router, viewer.router, files.router, terminal.router, chat.router, mcp.router, agents.router, link.router, extensions.router)
+ROUTERS = (system.router, rpc.router, live.router, viewer.router, files.router, terminal.router, chat.router, mcp.router, agents.router, link.router, formext.router, extensions.router)
 
 
 @asynccontextmanager

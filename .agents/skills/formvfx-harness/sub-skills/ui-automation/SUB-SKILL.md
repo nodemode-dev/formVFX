@@ -31,6 +31,15 @@ The interface exposes `window.formvfx`:
 
 Every control carries a `data-automation-id` such as `toolbar`, `panel.timeline`, `panel.tab.effectControls`, `timeline.rows`, `timeline.graphToggle`, `viewer.zoom`, `palette.input`, `workspace.select`, `menubar`.
 
+## Extensions
+
+Form extensions (installed through FormPortal or run from form.ext) add panels and commands to the window.
+
+- `extensions_list` shows each one: id, name, version, source (`catalogue`, `sideload`, `development`), state (`ready`, `needs-permission`, `refused` with a `reason`), permissions, panels and commands. With no window open it lists what the window would load (`windows: 0`).
+- `extension_command {id, command, args}` runs a contributed command in the window and returns what the extension reports. The first run of an extension version shows the person a permission dialog; Not Now fails the call, so tell them why you are asking before you run it. Its edits are ordinary undo steps.
+- `ui {action: panel, panel: extensions}` shows the Extensions panel. The command line has `./formvfx extensions` and `./formvfx extension ID COMMAND [JSON]`.
+- A refused extension cannot run; its reason (made for another app, a newer formvfx needed) is what to tell the person.
+
 ## Courtesy
 
 Tell the person when you change their workspace or tool. Do not close panels they opened or switch workspaces repeatedly; one `ui` call to show the result of a step is plenty.

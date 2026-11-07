@@ -29,6 +29,8 @@ usage: ./formvfx [command] [options]
   state                 the open project, active comp, selection and time
   frame OUT.png [--time S] [--comp C] [--max N]  save a rendered frame
   render [--wait|--status|--stop]  render the Render Queue in the background; --wait polls until it is done
+  extensions            the Form extensions the app loads (id, version, source, state, commands)
+  extension ID COMMAND [JSON]  run a command an extension contributes, in the open window
 
   claude [ARGS]         start Claude Code here, connected to formvfx over MCP (starts the engine when needed)
   mcp                   formvfx over MCP's stdio transport (starts the engine when needed)
@@ -60,7 +62,7 @@ case "$cmd" in
       *) usage; exit 2 ;;
     esac ;;
   doctor) exec setup/doctor "$@" ;;
-  exec|batch|commands|describe|state|frame|render) exec python3 setup/fx.py "$cmd" "$@" ;;
+  exec|batch|commands|describe|state|frame|render|extensions|extension) exec python3 setup/fx.py "$cmd" "$@" ;;
   claude)
     command -v claude >/dev/null 2>&1 || { printf '[formvfx] Claude Code is not installed: https://claude.com/claude-code\n'; exit 1; }
     exec claude --mcp-config "{\"mcpServers\":{\"formvfx\":{\"type\":\"stdio\",\"command\":\"$PWD/formvfx\",\"args\":[\"mcp\"]}}}" --allowedTools mcp__formvfx "$@" ;;

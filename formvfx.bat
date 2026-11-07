@@ -19,7 +19,7 @@ if /i "%CMD%"=="desktop" (
   goto :eof
 )
 if /i "%CMD%"=="doctor" ( call setup\doctor.bat & goto :eof )
-for %%C in (exec batch commands describe state frame render) do if /i "%CMD%"=="%%C" ( call :py setup\fx.py %* & goto :eof )
+for %%C in (exec batch commands describe state frame render extensions extension) do if /i "%CMD%"=="%%C" ( call :py setup\fx.py %* & goto :eof )
 if /i "%CMD%"=="mcp" ( call :py setup\mcp_stdio.py %2 %3 %4 & goto :eof )
 if /i "%CMD%"=="agents" ( call :py setup\agents.py %2 %3 %4 & goto :eof )
 if /i "%CMD%"=="counts" ( call :py setup\line_counts.py %2 & goto :eof )

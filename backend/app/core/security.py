@@ -4,6 +4,7 @@ from urllib.parse import urlsplit
 from starlette.responses import PlainTextResponse
 
 LOCAL_HEADER = "x-formvfx-local"
+EXTENSION_FILES = "/api/extensions/files/"
 
 
 def loopback(value: str) -> bool:
@@ -58,14 +59,16 @@ class LocalOnly:
             return await self.app(scope, receive, send)
         headers = {k.decode().lower(): v.decode() for k, v in scope.get("headers", [])}
         client = (scope.get("client") or ("",))[0]
+        path = scope.get("path", "")
         try:
             host = urlsplit("http://" + headers.get("host", "")).hostname or ""
             allowed = loopback(client) and loopback(host) and (headers.get("origin") is None or window_origin(headers["origin"], headers.get("host", "")))
             if "origin" not in headers and headers.get("sec-fetch-site", "").strip().lower() == "cross-site":
                 allowed = False
+            if scope["type"] == "http" and scope.get("method") in ("GET", "HEAD") and path.startswith(EXTENSION_FILES):
+                allowed = loopback(client) and loopback(host)
         except ValueError:
             allowed = False
-        path = scope.get("path", "")
         if (
             allowed
             and scope["type"] == "http"
@@ -80,7 +83,9 @@ class LocalOnly:
 
         async def safe_send(message):
             if message["type"] == "http.response.start":
-                message.setdefault("headers", []).append((b"x-content-type-options", b"nosniff"))
+                out = message.setdefault("headers", [])
+                if not any(k.lower() == b"x-content-type-options" for k, _ in out):
+                    out.append((b"x-content-type-options", b"nosniff"))
             await send(message)
 
         await self.app(scope, receive, safe_send)

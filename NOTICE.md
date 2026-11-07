@@ -25,8 +25,12 @@ formvfx is licensed under the Apache License 2.0 (`LICENSE`). It includes or dep
 | wasmi, wasmi_core, wasmi_ir, wasmi_collections, wasmparser, wat, wast, wasm-encoder, spin, libm, string-interner, hashbrown, foldhash, bumpalo, leb128fmt, unicode-width | the WebAssembly runtime for effect plug-ins in `native/fvx-core` | MIT OR Apache-2.0, Apache-2.0 WITH LLVM-exception OR Apache-2.0 OR MIT, MIT, Zlib |
 | libloading | loading OpenFX plug-in binaries in `native/fvx-core` | ISC |
 | OpenFX image effect API, by the OpenFX project (the suite layouts and property names from its published headers, declared again in Rust; no header is shipped) | the OpenFX host in `native/fvx-core/src/effects/ofx.rs` | BSD-3-Clause |
+| Demo footage and photos in `demo/assets/media` (three Pexels videos and two Pexels photos, by Lachlan Ross, Taryn Elliott, Dahlia E. Akhaine, Miro Alt and James Collington; resized and re-encoded) | the browser demo's Coastline project; per-file sources and licences in `demo/CREDITS.md` | Pexels License |
+| Keying demo media in `demos/keying/assets/media` (one Pexels green-screen video by Towfiqu barbhuiya, re-encoded; roto outlines and track points derived from it) | the browser demo's Keying Lab project; per-file sources and licences in `demos/keying/CREDITS.md` | Pexels License |
+| Motion demo media in `demos/motion/assets/media` (one Pexels video by Alexander Lutkov and three Pexels photos by Jean-Daniel Francoeur, Diana and Miguel A. Padrinan; resized and re-encoded) | the browser demo's Spring Architecture Week project; per-file sources and licences in `demos/motion/CREDITS.md` | Pexels License |
 | formvis design system (NodeMode Studio Dark tokens, shell, panel and dialog styles, theme, DOM, dialog and toast helpers) | `frontend/src/styles`, `frontend/src/ui` | Apache-2.0 |
 | Remix Icon paths in `frontend/src/ui/icons.ts` (via formvis) | inline SVG icons | Apache-2.0 |
+| Form Extension Contract kit, Apache-2.0, nodemode (`host-bridge.ts`, `formext_host.py`, unchanged) | `frontend/src/formext/host-bridge.ts`, `backend/app/services/formext_host.py`: the Form extension host (API 1) | Apache-2.0 |
 | Inter and JetBrains Mono (`@fontsource`) | interface fonts | SIL Open Font License 1.1 |
 | xterm.js and its fit addon | the embedded terminal | MIT |
 | PyO3, maturin | the Python extension | MIT OR Apache-2.0 |

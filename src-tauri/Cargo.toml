@@ -1,6 +1,6 @@
 [package]
 name = "formvfx"
-version = "0.52.8"
+version = "0.54.0"
 description = "formvfx desktop shell"
 authors = ["NodeAgentc, Inc."]
 license = "Apache-2.0"

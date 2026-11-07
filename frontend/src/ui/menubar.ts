@@ -3,11 +3,29 @@ import type { MenuNode } from '../engine/types';
 import { el, setClass } from './dom';
 import { closeAllMenus, PopupMenu, type PopupEntry } from './popup';
 
+export interface OwnMenu {
+  title: string;
+  before: string;
+  entries: () => PopupEntry[];
+}
+
 export interface MenuExtras {
   before?: Record<string, PopupEntry[]>;
   after?: Record<string, PopupEntry[]>;
+  own?: OwnMenu[];
   workspace: () => string;
   savedWorkspaces: () => string[];
+}
+
+export function withOwnMenus(titles: string[], own: OwnMenu[] = []): string[] {
+  const out = [...titles];
+  for (const m of own) {
+    if (out.includes(m.title)) continue;
+    const at = out.indexOf(m.before);
+    if (at < 0) out.push(m.title);
+    else out.splice(at, 0, m.title);
+  }
+  return out;
 }
 
 export class MenuBar {
@@ -28,6 +46,7 @@ export class MenuBar {
     } catch {
       return;
     }
+    titles = withOwnMenus(titles, this.extras.own);
     if (this.menus.size && [...this.menus.keys()].join('|') === titles.join('|')) return;
     this.el.replaceChildren();
     this.menus.clear();
@@ -89,6 +108,13 @@ export class MenuBar {
     this.open = title;
     setClass(m.btn, 'is-open', true);
     let entries: PopupEntry[] = [];
+    const own = this.extras.own?.find((o) => o.title === title);
+    if (own) {
+      m.menu.setItems(own.entries());
+      const r = m.btn.getBoundingClientRect();
+      m.menu.openAt(r.left, r.bottom + 4);
+      return;
+    }
     try {
       const nodes = await this.ctx.client.call<MenuNode[]>('menu.bar', { menu: title, workspace: this.extras.workspace(), savedWorkspaces: this.extras.savedWorkspaces() });
       entries = this.toEntries(nodes[0]?.children ?? []);

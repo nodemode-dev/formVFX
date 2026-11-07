@@ -131,8 +131,13 @@ def main(argv: list[str] | None = None) -> int:
     r.add_argument("--wait", action="store_true")
     r.add_argument("--status", action="store_true", help="progress and finished results")
     r.add_argument("--stop", action="store_true", help="stop the running render")
+    sub.add_parser("extensions", help="the Form extensions formvfx loads: id, version, source, state, commands")
+    x = sub.add_parser("extension", help="run a command an extension contributes, in the open window")
+    x.add_argument("id")
+    x.add_argument("command")
+    x.add_argument("args", nargs="?")
     a = ap.parse_args(argv)
-    as_json = a.cmd in ("exec", "batch", "render")
+    as_json = a.cmd in ("exec", "batch", "render", "extension")
     try:
         if a.cmd == "exec":
             out = _exec(a.id, _load(a.params))
@@ -166,6 +171,10 @@ def main(argv: list[str] | None = None) -> int:
             out = _render_cmd(a)
             _print(out)
             return 0 if out.get("ok") is not False else 1
+        elif a.cmd == "extensions":
+            _print(client.rpc("formext.list"))
+        elif a.cmd == "extension":
+            _print({"ok": True, "result": client.rpc("formext.command", {"id": a.id, "command": a.command, "args": _load(a.args)}, timeout=340)})
     except RuntimeError as exc:
         return _fail(str(exc), as_json)
     return 0

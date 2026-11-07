@@ -110,6 +110,15 @@ In the Project panel, Export Live Link Clip writes a `.fvxlink` for a compositio
 - The terminal dock sits under the panels; Cmd or Ctrl+J shows and hides it, and programs keep running while it is hidden. Its buttons open a new shell tab (plus), the Chat tab (speech bubble) and a Claude Code tab (robot), restart the current tab, or hide the dock. Window > Start Claude Code (Shift+Cmd or Ctrl+J) opens a Claude Code tab already connected to this window; the line under the dock sends it a request in plain words. Window > Chat with Claude (Alt+Cmd or Ctrl+J) opens the Chat tab, which streams the answer in formatted text with each tool it uses, shows how much of Claude's memory the conversation uses and what it cost, and moves a conversation to or from a Claude Code tab. Every change an agent makes is an ordinary undo step.
 - Codex and Cursor start from the dock's More agents button when they are installed; the Agents panel sets the clients up for your account. Outside agents ask once in the window before their first change. See the wiki's Agents page and `.claude/skills/formvfx-harness`.
 
+## Extensions
+
+- Form extensions add panels and commands. Install them with FormPortal (Extensions > Manage in FormPortal) or run one you are making in form.ext; formvfx notices either within two seconds while its window has focus, or at once with Extensions > Reload Extensions.
+- The Extensions menu, between Window and Help, lists each extension's commands as `Name: Command`, then Extensions Panel, Reload Extensions and Manage in FormPortal. The command palette lists the same commands under Extensions.
+- The Extensions panel shows one row per extension: version, source (Catalogue, File or Development), what it may do, and its state. Ready runs; Needs Permission asks the first time you open or run it; Refused says why (made for another app, a newer extension API, a newer formvfx needed). A development row shows its folder. Below the rows are the HTML panels from Window > Extensions and the effect plug-ins, so everything that extends formvfx is in one place.
+- The first time a version is opened, formvfx lists what it asks for (read and change the open project, open files you choose, save files where you choose) and you choose Allow or Not Now; a new version that asks for more asks again. Its changes are ordinary undo steps, named after what it did.
+- Extension panels open as tabs in the right-hand panels (move, undock and close them like any other) or as dialogs. They cannot reach your files or the internet except through formvfx's own open and save dialogs.
+- Agents see extensions too: the `extensions_list` and `extension_command` tools, and `./formvfx extensions` and `./formvfx extension ID COMMAND` on the command line. Writing one: [`EXTENSIONS.md`](EXTENSIONS.md).
+
 ## Learning
 
 Help > In-App Tutorials opens the Learn panel, whose tutorials advance as you do each step; Help > Open Demo Project opens a ready composition. Help > formvfx Help and formvfx Manual open these pages; [`PARITY.md`](PARITY.md) says, row by row, how formvfx compares with the reference compositor.
