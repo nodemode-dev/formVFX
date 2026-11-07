@@ -31,6 +31,16 @@ Living context for the browser demo. Code carries almost no comments; the reason
 - The viewer overlay handles selection (corner scale, drag move, anchor, mask outlines). Hit testing uses layer quads, not pixels.
 - Menus use the app's `PopupMenu`; dialogs use `Dialog`. The Wiggler seeds its generator from the key count, so a repeat gives the same curve.
 
+## Real media (0.53.1)
+
+- The opening project is Coastline (`src/engine/coastline.ts`), built from five Pexels files in `assets/media/*.js` (sources in `CREDITS.md`). The generated Launch Week and Intro compositions stay as the offline fallback and under File > Open Generated Sample.
+- Packs, not files: a `file://` page cannot fetch local files, and a video or image served from a file URL taints the canvas so the effects' `getImageData` fails. Each pack is `window.FVX_MEDIA[name] = "data:...;base64,..."`, loaded by injecting a script tag (`src/media.ts`), decoded with `atob` into a Blob for video (blob URL) or used as the image source directly. Video is VP9 WebM with no sound (the compositor has no audio), GOP 12 so the per-frame seeks stay cheap.
+- Zero flash: the page shows a static boot line from `index.html` (hidden by `body.app-ready` in CSS, no script) while the packs decode. The project loads, the playhead is set to 2.8 s and `Renderer.prepare` seeks every video to that frame before `revealApp`, so the first visible frame is the real one and nothing is swapped in afterwards.
+- `vite.config.mjs` no longer empties `assets/` on build, which would delete the packs; the build overwrites `demo.js` and `demo.css` in place.
+- Chroma Key on the gull uses a teal key (#3593a8, tolerance 30, softness 14); the sky is a gradient, so a flat key colour is a compromise that keeps the bird's wing tips clean.
+- The closing title is a text layer above a footage layer with an alpha track matte; the matte text is hidden by the compositor and the cliff video shows through its letters. Matte and effects order follows the app: effects run before the matte, so a shadow on the matted layer would be cut away.
+- A saved `.fvxdemo.json` keeps the two photos but not the three videos (blob URLs), as before.
+
 ## Known gaps
 
 - Single-line text; no audio; no 3D; no per-property graph editor; the Timeline shows transform and animated rows only.

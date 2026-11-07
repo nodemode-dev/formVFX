@@ -118,7 +118,7 @@ All FormVFX builds are compiled and released from [FormCompiler](https://github.
 
 ## Demo
 
-Open [`demo/index.html`](demo/index.html) in a browser, no install and no network: composite your own image or video with keyframes, effects, mattes and masks, read the scopes, and render PNG, GIF, WebM or a PNG sequence. It runs a compact TypeScript compositor under the app's own interface, not the Rust engine. See [`demo/README.md`](demo/README.md).
+Open [`demo/index.html`](demo/index.html) in a browser, no install and no network. It opens on Coastline, a title sequence over real footage with a keyed gull, a video-filled title and a graded finish; composite your own image or video with keyframes, effects, mattes and masks, read the scopes, and render PNG, GIF, WebM or a PNG sequence. It runs a compact TypeScript compositor under the app's own interface, not the Rust engine. See [`demo/README.md`](demo/README.md).
 
 ## Run it from source
 

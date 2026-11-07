@@ -24,7 +24,7 @@ Then work on it:
 4. **Inspect.** Color Scopes (waveform, RGB parade, histogram, vectorscope) and the min, max and mean of the frame in the viewer; Info shows the comp, the selection and the last render time.
 5. **Render.** The Render Queue writes a PNG still, a 12-frame contact sheet, a PNG sequence in a `.zip`, an animated GIF and a WebM video, at full, half or quarter size, for the work area or the whole comp, every Nth frame.
 
-A generated **Launch Week** composition (text, a procedural sunset field, an orb, a ring and a grade) and an **Intro** composition (a text matte, a mask, a rotating star and an animated aberration) open first, so the demo works with no file at all.
+The demo opens on **Coastline**, a 12 s title sequence on real footage: three Pexels videos and two Pexels photos (see `CREDITS.md`) cross-faded and pushed in, a seagull keyed out of its sky with Chroma Key, a lower third, text animators, a closing title whose letters are filled with video through an alpha track matte, a pulsing lamp parented to the lighthouse photo, an inverted feathered mask as a lens vignette and a glow, grade and grain adjustment layer. A second composition, **Gull Key**, shows the key on its own. The media ships as `assets/media/*.js` data packs that the page decodes before it reveals itself, so it still opens from `file://`. File > Open Generated Sample opens the procedural **Launch Week** and **Intro** compositions, which are also what opens if a pack fails to load.
 
 Keys: Space plays, Left and Right step a frame (Shift ten), Home and End jump, B and N set the work area, U opens a layer's properties, Delete removes the layer, Cmd or Ctrl with Z, Shift+Z, D, Shift+D, S and I undo, redo, duplicate, split, save and import.
 
