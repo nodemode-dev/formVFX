@@ -116,6 +116,10 @@ Version 0.52.8 · Apache-2.0 · compositing engine: FormVFX's own, in Rust (`nat
 
 All FormVFX builds are compiled and released from [FormCompiler](https://github.com/nodemode-dev/formcompiler); this repo holds the source.
 
+## Demo
+
+Open [`demo/index.html`](demo/index.html) in a browser, no install and no network: composite your own image or video with keyframes, effects, mattes and masks, read the scopes, and render PNG, GIF, WebM or a PNG sequence. It runs a compact TypeScript compositor under the app's own interface, not the Rust engine. See [`demo/README.md`](demo/README.md).
+
 ## Run it from source
 
 Prefer it in your browser, or want to contribute? Run the web UI straight from this repo.
