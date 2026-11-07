@@ -382,7 +382,7 @@
 .cv-layers > section:not(.cv-layers-panel):not(.is-sized) { overflow: hidden; }
 .cv-swatch-hint { white-space: nowrap; min-width: 0; }
 .cv-swatch-hint span { overflow: hidden; text-overflow: ellipsis; }
-#toast-root { right: auto !important; left: 50%; transform: translateX(-50%); align-items: center; }
+#toast-root { right: 0 !important; left: 0; height: 0; justify-content: flex-end; align-items: center; }
 /* The options bar ends at the open column's edge, so no control lies hidden under it. */
 :root { --cv-props-open-w: 284px; }
 /* (A window too narrow for this shows the column as its strip: PropertiesColumn.MIN_CANVAS.) */
