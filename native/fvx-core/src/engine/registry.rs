@@ -135,6 +135,7 @@ pub static COMMANDS: &[Cmd] = &[
     c("help.enableLogging", "Enable Logging", "Help", "", "{on?: bool (toggles)} · every command, its result and its time are appended to logs/formvfx.log", N, help::enable_logging),
     c("help.revealLogFile", "Reveal Logging File", "Help", "", "{}", N, help::reveal_log_file),
     c("help.inAppTutorials", "In-App Tutorials", "Help", "", "{} · opens the tutorials; learn.* drives them", N, help::in_app_tutorials),
+    c("help.openDemo", "Open a Demo", "", "", "{demo: coastline|keying|motion} · the window builds that demo as a new unsaved project from the media it ships (coastline: the title sequence on real footage; keying: Keylight, a track, roto and stabilizing; motion: 3D cards, a camera, kinetic type and expressions)", N, help::open_demo),
     c("learn.list", "Learn Tutorials", "", "", "{} -> [{id, title, summary, minutes, steps}]", Q, help::learn_list),
     c("learn.start", "Start Tutorial", "", "", "{id}", N, help::learn_start),
     c("learn.state", "Tutorial State", "", "", "{} -> {tutorial, step, steps, done, current: {title, text, target, accepts}} | null", Q, help::learn_state),

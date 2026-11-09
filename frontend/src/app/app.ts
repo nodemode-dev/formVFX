@@ -19,7 +19,8 @@ import { TimelinePanel } from '../panels/timeline';
 import { TrackerPanel } from '../panels/tracker';
 import { editTarget, trackerOptions } from '../panels/tracker-controls';
 import { ViewerPanel } from '../panels/viewer';
-import { Dialog } from '../ui/dialogs';
+import { askSaveChanges, Dialog } from '../ui/dialogs';
+import { buildDemo, DEMO_NAMES, DEMOS, type DemoId } from './demos';
 import { Dock, WORKSPACES } from '../ui/dock';
 import { el, escapeHtml, isMac, q, revealApp, setClass, setText } from '../ui/dom';
 import { HomeScreen, HOME_PRESETS } from '../ui/home';
@@ -151,6 +152,7 @@ class App {
         ],
         Help: [
           { label: 'FormVFX Manual', run: () => void ctx.run('help.docs', { page: 'manual' }) },
+          { label: 'Demos', id: 'help.demos', children: DEMOS.map((dm) => ({ label: dm.title, id: `help.demo.${dm.id}`, run: () => void this.openDemo(dm.id) })) },
           { label: 'FormVFX on GitHub', run: () => window.open('https://github.com/nodemode-dev/formVFX', '_blank') },
           { label: 'Report an Issue', run: () => window.open('https://github.com/nodemode-dev/formVFX/issues', '_blank') },
           '-',
@@ -434,6 +436,7 @@ class App {
         if (cmd === 'template') return this.templates.open();
         if (cmd === 'learn') return this.learn.openList();
         if (cmd === 'demo') return ctx.run('file.openDemoProject');
+        if (cmd.startsWith('demo:')) return this.openDemo(cmd.slice(5) as DemoId);
         if (cmd === 'clearRecent') return ctx.run('file.clearRecent');
         if (cmd === 'settings') return this.prefs.open();
         if (cmd === 'help') return ctx.run('help.docs', { page: 'manual' });
@@ -597,6 +600,9 @@ class App {
       case 'window.panel':
         this.showPanel(String(params.panel ?? ''));
         return;
+      case 'help.openDemo':
+        void this.openDemo(String(params.demo ?? 'coastline') as DemoId);
+        return;
       case 'window.workspace':
         this.workspace(mapWorkspace(String(params.name ?? 'Default')));
         return;
@@ -650,6 +656,30 @@ class App {
         }
         if (command.startsWith('window.')) return;
         console.info('[formvfx] frontend command', command, params);
+    }
+  }
+
+  private demoBusy = false;
+
+  private async openDemo(id: DemoId): Promise<void> {
+    if (this.demoBusy || !DEMOS.some((dm) => dm.id === id)) return;
+    const st = ctx.store.state;
+    if (st?.dirty) {
+      const name = st.path ? st.path.split(/[\\/]/).pop() ?? 'Untitled Project' : 'Untitled Project';
+      const choice = await askSaveChanges(name);
+      if (choice === 'cancel') return;
+      if (choice === 'save' && (await ctx.invoke('file.save')) === undefined) return;
+    }
+    this.demoBusy = true;
+    toast(`Opening the ${DEMO_NAMES[id]} demo...`);
+    try {
+      await buildDemo(ctx.client, id);
+      this.home.dismiss();
+      toast(`${DEMO_NAMES[id]} is open as a new, unsaved project`);
+    } catch (e) {
+      toast(e instanceof Error ? e.message : String(e), 'error');
+    } finally {
+      this.demoBusy = false;
     }
   }
 
