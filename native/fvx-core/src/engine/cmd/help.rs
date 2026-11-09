@@ -302,6 +302,15 @@ pub fn in_app_tutorials(e: &mut Engine, _: &Json) -> Res {
     learn_list(e, &Json::Null)
 }
 
+pub fn open_demo(e: &mut Engine, p: &Json) -> Res {
+    let demo = ps(p, "demo").unwrap_or("coastline");
+    if !matches!(demo, "coastline" | "keying" | "motion") {
+        return Err(format!("no demo `{demo}`; the demos are coastline, keying and motion"));
+    }
+    e.frontend("help.openDemo", json!({"demo": demo}));
+    Ok(json!({"demo": demo, "opening": true}))
+}
+
 fn job_rows(e: &Engine) -> Vec<Json> {
     let mut rows = vec![];
     if e.render.busy() {

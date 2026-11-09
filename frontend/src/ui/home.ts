@@ -3,6 +3,7 @@ import type { UiState } from '../engine/types';
 import { el, q, setClass, setHidden, setText } from './dom';
 import { HomeFiles, type HomeFilesDeps } from './home-files';
 import { icon } from './icons';
+import { DEMOS } from '../app/demos';
 
 export interface HomeDeps {
   store: Store;
@@ -65,6 +66,8 @@ export class HomeScreen {
     const key = (k: string): string => `<kbd class="cv-key">${mod}</kbd><kbd class="cv-key">${k}</kbd>`;
     const formats = FORMATS.map((f) => `<span class="cv-home-format">${f}</span>`).join('');
     const sizes = PRESETS.map((p) => `<button class="cv-home-size" type="button" data-preset="${p.id}"><span class="cv-home-size-box"><span style="aspect-ratio: ${p.w} / ${p.h}"></span></span><span class="cv-home-size-name">${p.name}</span><span class="cv-home-size-meta">${p.w} × ${p.h} px · ${p.fps} fps</span></button>`).join('');
+    const keyingArt = '<svg viewBox="0 0 160 90" width="100%" height="100%" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="58" y="10" width="44" height="72" rx="7"/><rect x="63" y="18" width="34" height="54" rx="2" stroke-dasharray="4 3"/><circle cx="97" cy="18" r="6"/><path d="M97 8v4M97 24v4M87 18h4M103 18h4"/><path d="M30 70c8-14 16-22 28-26" stroke-linecap="round"/></svg>';
+    const demos = DEMOS.map((dm) => `<button class="cv-home-demo" type="button" data-cmd="demo:${dm.id}" data-automation-id="home.demo.${dm.id}"><span class="cv-home-demo-art">${dm.picture ? `<img src="${dm.picture}" alt="" loading="lazy" width="160" height="90">` : keyingArt}</span><span class="cv-home-size-name">${dm.title}</span><span class="cv-home-size-meta">${dm.line}</span></button>`).join('');
     this.root.innerHTML = `<nav class="cv-home-nav" aria-label="Home">
       <div class="cv-home-brand">formvfx <span>by nodemode.ai</span></div>
       ${navItem('start', 'image', 'Start')}${navItem('recent', 'history', 'Recent')}${navItem('projects', 'folder', 'Projects')}
@@ -89,6 +92,7 @@ export class HomeScreen {
           </div>
         </div>
         <section class="cv-home-section"><div class="cv-home-section-head"><h2 class="cv-home-section-title">Recent</h2><button class="cv-btn cv-btn-ghost" type="button" data-v="recent">See all</button></div><div class="cv-home-slot" data-slot="start"></div></section>
+        <section class="cv-home-section" data-home-demos><div class="cv-home-section-head"><h2 class="cv-home-section-title">Demos</h2></div><div class="cv-home-demos">${demos}</div></section>
         <section class="cv-home-section"><div class="cv-home-section-head"><h2 class="cv-home-section-title">New composition</h2><button class="cv-btn cv-btn-ghost" type="button" data-cmd="new">More sizes...</button></div><div class="cv-home-sizes">${sizes}</div></section>
       </div>
       <div class="cv-home-page" data-page="recent" hidden><div class="cv-home-head"><div><h1 class="cv-home-title">Recent</h1><p class="cv-home-sub">Projects you opened or saved, newest first.</p></div><div class="cv-home-head-actions"><button class="cv-btn" type="button" data-cmd="clearRecent">Clear recent</button></div></div><div class="cv-home-slot" data-slot="recent"></div></div>
