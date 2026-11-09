@@ -28,22 +28,31 @@ interface Step { command: string; params?: Record<string, unknown> }
 
 type Vec = number[];
 
+const LAYER_MAKERS = new Set(['layer.addItem', 'layer.newSolid', 'layer.newShape', 'layer.newText', 'layer.newAdjustment', 'layer.newCamera', 'layer.newNull']);
+
 class Steps {
   readonly list: Step[] = [];
+  private layers: string[] = [];
+  private readonly effects = new Map<string, number>();
   add(command: string, params: Record<string, unknown> = {}): string {
     this.list.push({ command, params });
-    return `$${this.list.length}.layer`;
+    const ref = `$${this.list.length}.layer`;
+    if (LAYER_MAKERS.has(command)) this.layers.push(ref);
+    return ref;
   }
   set(layer: string, path: string, value: unknown): void { this.add('prop.set', { layer, path, value }); }
   key(layer: string, path: string, time: number, value: unknown): void { this.add('prop.addKey', { layer, path, time, value }); }
   keys(layer: string, path: string, rows: Array<[number, unknown]>): void { for (const [t, v] of rows) this.key(layer, path, t, v); }
   fx(layer: string, effect: string, params: Record<string, unknown> = {}): void {
     this.add('effect.apply', { effect, layers: [layer] });
-    for (const [k, v] of Object.entries(params)) this.set(layer, `effects/${effect}/${k}`, v);
+    const n = (this.effects.get(layer) ?? 0) + 1;
+    this.effects.set(layer, n);
+    for (const [k, v] of Object.entries(params)) this.set(layer, `effects/#${n}/${k}`, v);
   }
   timing(layer: string, tin: number, tout: number): void { this.add('layer.timing', { layers: [layer], in: tin, out: tout }); }
   fade(layer: string, a: number, b: number, from: number, to: number): void { this.keys(layer, 'transform/opacity', [[a, from], [b, to]]); }
   comp(name: string, w: number, h: number, dur: number, bg: string): void {
+    this.layers = [];
     this.add('comp.new', { name, width: w, height: h, frameRate: 30, duration: dur, background: bg, open: true });
   }
   plate(item: number, name: string, scale: number, tin = 0, tout = 0): string {
@@ -58,7 +67,7 @@ class Steps {
   }
   preset(layer: string, preset: string, time: number): void { this.add('layer.applyTextPreset', { layers: [layer], preset, time }); }
   ease(): void {
-    this.add('keys.selectAll', {});
+    this.add('keys.selectAll', { layers: [...this.layers] });
     this.add('keys.easyEase', {});
     this.add('edit.deselectAll', {});
   }
@@ -68,7 +77,8 @@ function coastline(s: Steps, m: number[]): void {
   const [dusk, surf, cliff, light, gullItem] = m;
   const gullKeyed = (scale: number, tin: number, tout: number): string => {
     const g = s.plate(gullItem, 'Gull (keyed)', scale, tin, tout);
-    s.fx(g, 'Linear Color Key', { keyColor: '#3593a8', tolerance: 30, softness: 14 });
+    s.set(g, 'transform/anchor', [1032, 673]);
+    s.fx(g, 'Linear Color Key', { keyColor: '#3593a8', tolerance: 12, softness: 6 });
     return g;
   };
 
@@ -160,6 +170,7 @@ function coastline(s: Steps, m: number[]): void {
   s.fx(gr, 'CC Vignette');
   s.ease();
   s.add('comp.open', { comp: 'Coastline' });
+  s.add('time.set', { time: 2.8 });
 }
 
 const CORNER: Vec = [833, 102];
@@ -167,8 +178,8 @@ const CORNER: Vec = [833, 102];
 function keying(s: Steps, m: number[], roto: Record<string, number[]>, track: Vec[]): void {
   const [phone, dusk] = m;
   const keyed = (l: string): void => {
-    s.fx(l, 'Keylight');
-    s.fx(l, 'Advanced Spill Suppressor');
+    s.fx(l, 'Keylight', { screenColour: '#2bb53d' });
+    s.fx(l, 'Advanced Spill Suppressor', { autoKeyColor: false, keyColor: '#2bb53d' });
     s.fx(l, 'Matte Choker');
   };
   const at = (base: Vec, f: number): Vec => [track[f][0] + base[0] - track[0][0], track[f][1] + base[1] - track[0][1]];
@@ -242,6 +253,7 @@ function keying(s: Steps, m: number[], roto: Record<string, number[]>, track: Ve
   s.add('layer.newShape', { kind: 'rect', name: 'Lock cross', size: [2, 34], fill: '#f97316', position: CORNER });
   s.add('layer.newShape', { kind: 'rect', name: 'Lock cross 2', size: [34, 2], fill: '#f97316', position: CORNER });
   s.add('comp.open', { comp: 'Screen Key' });
+  s.add('time.set', { time: 3 });
 }
 
 function motion(s: Steps, m: number[]): void {
@@ -290,9 +302,11 @@ function motion(s: Steps, m: number[]): void {
   s.preset(sub, 'fadeUpCharacters', 2.3);
   s.fx(sub, 'Drop Shadow', { opacity: 50, distance: 5, softness: 10 });
   const hex = s.add('layer.newShape', { kind: 'polygon', name: 'Hexagon', size: [96, 96], fill: null, stroke: ACCENT, strokeWidth: 3, position: [1130, 112] });
+  s.set(hex, 'contents/#1/contents/#1/points', 6);
   s.keys(hex, 'transform/scale', [[1.4, [0, 0]], [2.2, [100, 100]]]);
   s.add('prop.setExpression', { layer: hex, prop: 'transform/rotation', path: 'transform/rotation', expression: 'time * 40' });
   const star = s.add('layer.newShape', { kind: 'star', name: 'Star', size: [64, 64], fill: ACCENT, position: [150, 108] });
+  s.set(star, 'contents/#1/contents/#1/innerRadius', 13.4);
   s.keys(star, 'transform/scale', [[1.7, [0, 0]], [2.5, [100, 100]]]);
   s.add('prop.setExpression', { layer: star, prop: 'transform/rotation', path: 'transform/rotation', expression: 'time * -90' });
   const back = s.add('layer.newShape', { kind: 'rounded', name: 'Counter Bar', size: [400, 56], fill: '#06142b', position: [214, 646] });
@@ -314,6 +328,7 @@ function motion(s: Steps, m: number[]): void {
   s.add('essential.addProperty', { layer: title, path: 'text/sourceText', name: 'Title' });
   s.add('essential.addProperty', { layer: sub, path: 'text/sourceText', name: 'Subtitle' });
   s.add('essential.addProperty', { layer: skyL, path: 'effects/Brightness & Contrast/brightness', name: 'Sky Brightness' });
+  s.add('time.set', { time: 4.8 });
 }
 
 export interface DemoHost {
@@ -348,8 +363,10 @@ export async function buildDemo(host: DemoHost, id: DemoId): Promise<void> {
   await host.exec('file.newProject');
   const imported = await host.exec<{ items: number[] }>('file.import', { paths, sequence: false });
   const s = new Steps();
+  imported.items.forEach((item, i) => s.add('project.rename', { item, name: MEDIA[id][i].split('/').pop() }));
   if (id === 'coastline') coastline(s, imported.items);
   else if (id === 'keying') keying(s, imported.items, roto as Record<string, number[]>, track as Vec[]);
   else motion(s, imported.items);
-  await host.exec('engine.batch', { steps: s.list, label: `Demo: ${DEMO_NAMES[id]}`, atomic: false });
+  const out = await host.exec<{ results: Array<{ error?: string } | null> }>('engine.batch', { steps: s.list, label: `Demo: ${DEMO_NAMES[id]}`, atomic: false });
+  out.results.forEach((r, i) => { if (r && typeof r === 'object' && r.error) console.warn(`[formvfx] demo ${id} step ${i + 1} ${s.list[i].command}: ${r.error}`); });
 }
