@@ -38,6 +38,7 @@ export class Playback {
   private raf = 0;
   private audio: AudioContext | null = null;
   private source: AudioBufferSourceNode | null = null;
+  private audioGen = 0;
   private rangeId = 0;
   loop = true;
   includeAudio = true;
@@ -192,11 +193,13 @@ export class Playback {
   }
 
   private async startAudio(comp: number, start: number, seconds: number): Promise<void> {
+    const gen = ++this.audioGen;
     try {
       this.audio ??= new AudioContext();
       const res = await fetch(`/api/audio?comp=${comp}&start=${start}&seconds=${Math.min(seconds, 120)}&rate=${this.audio.sampleRate}`);
+      if (!this.playing || gen !== this.audioGen) return;
       const buf = await this.audio.decodeAudioData(await res.arrayBuffer());
-      if (!this.playing) return;
+      if (!this.playing || gen !== this.audioGen) return;
       const src = this.audio.createBufferSource();
       src.buffer = buf;
       src.connect(this.audio.destination);
@@ -209,6 +212,7 @@ export class Playback {
   }
 
   private stopAudio(): void {
+    this.audioGen++;
     try {
       this.source?.stop();
     } catch {

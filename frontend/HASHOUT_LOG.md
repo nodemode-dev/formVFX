@@ -315,3 +315,10 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - What was wrong: dragging a layer bar's in or out edge sent `row.in + step` (or `row.out + step`), where `step` is only the change since the last pointer move but `row` comes from the store, which has not yet pulled the previous `layer.timing`. On a fast drag two moves before one pull sent the same value, so increments were lost and the edge ended frames short of the pointer.
 - What changed: the `bar` drag records the layer's `in0` and `out0` at pointerdown, and each move sends `snapTime(in0 + total)` or `snapTime(out0 + total)`, absolute from the drag start like the work area drag. The `move` mode still sends a relative `delta`, which the engine applies in order.
 - Checked: `tsc --noEmit` clean. Not run in a browser.
+
+## One audio stream per playback (0.55.2)
+
+- Kind: fix. Logged: v0.55.2 · 2026-11-10. Refers to `engine/playback.ts` (`startAudio`, `stopAudio`).
+- What was wrong: `startAudio` checked only `this.playing` after its awaits. Stopping and starting playback again before the first `/api/audio` reply arrived (up to 120 s of float stereo, which can take a second or more), or a loop wrap while a fetch was pending, let both fetches start a source; `this.source` kept only the second, so the first played on after stop, out of sync with the picture.
+- What changed: an `audioGen` counter. `startAudio` takes a new number at its start and returns after the fetch and after `decodeAudioData` unless it is still the latest request and playback is on; `stopAudio` bumps the counter, so a fetch still in flight never starts a source.
+- Checked: `tsc --noEmit` clean. Not run in a browser.
