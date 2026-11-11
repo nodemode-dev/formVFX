@@ -6,8 +6,8 @@ set "CMD=%~1"
 if "%CMD%"=="" set "CMD=boot"
 if /i "%CMD%"=="boot" ( call setup\boot_all.bat & goto :eof )
 if /i "%CMD%"=="dev" ( call setup\boot_all.bat & goto :eof )
-if /i "%CMD%"=="install" ( call setup\install_all.bat %2 & goto :eof )
-if /i "%CMD%"=="install-native" ( call setup\build_native.bat %2 %3 & goto :eof )
+if /i "%CMD%"=="install" ( call setup\install_all.bat %2 %3 %4 %5 %6 %7 %8 %9 & goto :eof )
+if /i "%CMD%"=="install-native" ( call setup\build_native.bat %2 %3 %4 %5 %6 %7 %8 %9 & goto :eof )
 if /i "%CMD%"=="install-desktop" ( call setup\install_desktop.bat & goto :eof )
 if /i "%CMD%"=="backend" ( call setup\boot_backend.bat & goto :eof )
 if /i "%CMD%"=="frontend" ( call setup\boot_frontend.bat & goto :eof )
@@ -20,11 +20,11 @@ if /i "%CMD%"=="desktop" (
 )
 if /i "%CMD%"=="doctor" ( call setup\doctor.bat & goto :eof )
 for %%C in (exec batch commands describe state frame render extensions extension) do if /i "%CMD%"=="%%C" ( call :py setup\fx.py %* & goto :eof )
-if /i "%CMD%"=="mcp" ( call :py setup\mcp_stdio.py %2 %3 %4 & goto :eof )
-if /i "%CMD%"=="agents" ( call :py setup\agents.py %2 %3 %4 & goto :eof )
-if /i "%CMD%"=="counts" ( call :py setup\line_counts.py %2 & goto :eof )
-if /i "%CMD%"=="presets" ( call :py setup\text_presets.py %2 & goto :eof )
-if /i "%CMD%"=="clean" ( call setup\clean.bat %2 & goto :eof )
+if /i "%CMD%"=="mcp" ( call :py setup\mcp_stdio.py %2 %3 %4 %5 %6 %7 %8 %9 & goto :eof )
+if /i "%CMD%"=="agents" ( call :py setup\agents.py %2 %3 %4 %5 %6 %7 %8 %9 & goto :eof )
+if /i "%CMD%"=="counts" ( call :py setup\line_counts.py %2 %3 %4 %5 %6 %7 %8 %9 & goto :eof )
+if /i "%CMD%"=="presets" ( call :py setup\text_presets.py %2 %3 %4 %5 %6 %7 %8 %9 & goto :eof )
+if /i "%CMD%"=="clean" ( call setup\clean.bat %2 %3 %4 %5 %6 %7 %8 %9 & goto :eof )
 if /i "%CMD%"=="help" ( call :usage & exit /b 0 )
 echo [formvfx] unknown command: %CMD%
 call :usage

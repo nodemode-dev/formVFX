@@ -404,6 +404,8 @@ export class Dock {
   applyLayout(layout: Layout, name: string): void {
     this.workspace = name;
     this.layout = structuredClone(layout);
+    this.maximized = null;
+    setClass(this.el, 'is-maximized', false);
     for (const a of ALL) {
       for (const grp of this.groups[a]) {
         for (const id of grp.panels) {
@@ -433,6 +435,7 @@ export class Dock {
         if (a === 'float') grp.place();
       }
     }
+    this.stackFloats();
     this.applySizes();
     this.onWorkspace?.(name);
   }
@@ -545,6 +548,7 @@ export class Dock {
     grp.rect = { x: Math.max(0, r.width / 2 - 260 + n * 28), y: Math.max(0, r.height / 2 - 200 + n * 28), w: 520, h: 400 };
     this.areas.float.appendChild(grp.el);
     this.groups.float.push(grp);
+    this.stackFloats();
     grp.place();
     this.move(id, grp);
     this.focus(id);
@@ -570,6 +574,10 @@ export class Dock {
     if (!grp.panels.length) {
       grp.el.remove();
       this.groups[grp.area] = this.groups[grp.area].filter((x) => x !== grp);
+      if (this.maximized === grp) {
+        this.maximized = null;
+        setClass(this.el, 'is-maximized', false);
+      }
       this.applySizes();
     }
     this.save();
@@ -582,6 +590,10 @@ export class Dock {
     if (from && !from.panels.length) {
       from.el.remove();
       this.groups[from.area] = this.groups[from.area].filter((x) => x !== from);
+      if (this.maximized === from) {
+        this.maximized = null;
+        setClass(this.el, 'is-maximized', false);
+      }
     }
     target.add(id, true);
     this.applySizes();
@@ -592,7 +604,11 @@ export class Dock {
     const fl = this.groups.float;
     if (grp.area !== 'float' || fl[fl.length - 1] === grp) return;
     this.groups.float = [...fl.filter((x) => x !== grp), grp];
-    this.groups.float.forEach((x, i) => (x.el.style.zIndex = String(i + 1)));
+    this.stackFloats();
+  }
+
+  private stackFloats(): void {
+    this.groups.float.forEach((x, i) => (x.el.style.zIndex = `calc(var(--z-base) + ${i + 1})`));
   }
 
   maximize(grp: Group): void {

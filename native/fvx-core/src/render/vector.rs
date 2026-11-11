@@ -157,8 +157,15 @@ pub fn coverage(paths: &[BezPath], m: &Mat3, w: usize, h: usize, x0: i64, y0: i6
         return out;
     }
     let Some(mut pm) = Pixmap::new(w as u32, h as u32) else { return out };
-    let Some(path) = skia_path(paths) else { return out };
-    let tr = (Mat3::translate(-(x0 as f64), -(y0 as f64)) * *m).to_skia();
+    let full = Mat3::translate(-(x0 as f64), -(y0 as f64)) * *m;
+    let (path, tr) = if full.is_affine() {
+        let Some(path) = skia_path(paths) else { return out };
+        (path, full.to_skia())
+    } else {
+        let Some((flat, _)) = projected(paths, &full) else { return out };
+        let Some(path) = skia_path(&flat) else { return out };
+        (path, Transform::identity())
+    };
     let mut paint = tiny_skia::Paint::default();
     paint.anti_alias = true;
     paint.shader = Shader::SolidColor(tiny_skia::Color::WHITE);

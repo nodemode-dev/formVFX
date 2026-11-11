@@ -741,6 +741,7 @@ pub struct Config {
     pub default_vt: Option<String>,
     pub inactive: Vec<String>,
     cache: Mutex<HashMap<String, Arc<Proc>>>,
+    pub serial: u64,
 }
 
 fn opt_tr(y: Option<&Y>) -> Result<Option<Tr>, String> {
@@ -889,8 +890,11 @@ impl Config {
             let Some(at) = out.find('$') else { break };
             let rest = &out[at + 1..];
             let (name, len) = if let Some(r) = rest.strip_prefix('{') {
-                let e = r.find('}').unwrap_or(r.len());
-                (r[..e].to_string(), e + 2)
+                let (e, close) = match r.find('}') {
+                    Some(e) => (e, 1),
+                    None => (r.len(), 0),
+                };
+                (r[..e].to_string(), e + 1 + close)
             } else {
                 let e = rest.find(|c: char| !(c.is_alphanumeric() || c == '_')).unwrap_or(rest.len());
                 (rest[..e].to_string(), e)
@@ -1202,7 +1206,10 @@ pub fn load(path: &str) -> Result<Arc<Config>, String> {
     }
     let text = std::fs::read_to_string(path).map_err(|e| format!("{path}: {e}"))?;
     let dir = Path::new(path).parent().map(Path::to_path_buf).unwrap_or_default();
-    let cfg = Arc::new(Config::parse(&text, &dir).map_err(|e| format!("{path}: {e}"))?);
+    static SERIAL: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(1);
+    let mut cfg = Config::parse(&text, &dir).map_err(|e| format!("{path}: {e}"))?;
+    cfg.serial = SERIAL.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let cfg = Arc::new(cfg);
     cache.lock().insert(path.to_string(), (mtime, cfg.clone()));
     Ok(cfg)
 }

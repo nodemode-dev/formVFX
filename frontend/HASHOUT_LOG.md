@@ -297,3 +297,57 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - `app/demos.ts` rebuilds each demo with engine commands, not with the browser demos' TypeScript model, which the real engine cannot load: the media from `public/demos/<id>/` (written from the demo packs by `scripts/extract_demo_media.mjs`) is copied in with `/api/fs/upload`, then `file.newProject`, `file.import` and one `engine.batch` (atomic false, so a bad step is logged with its index instead of throwing the whole demo away). Steps refer to layers as `$N.layer`. Coastline is 159 steps, Keying Lab 847 (the 240-frame track is written as position keys on the screen insert and the tracked point, and as counter-motion on the stabilized layer; the roto path is 11 keys of 100 vertices) and Spring Architecture Week 143.
 - Effect parameters are set by index (`effects/#N/param`), because a display name like Hue/Saturation splits the path. `keys.selectAll` needs the comp's layers passed; with none it selects nothing and Easy Ease refuses.
 - A dirty project asks first with `askSaveChanges`; the demo is always a new unsaved project. A second upload of the same file is renamed by the engine service (`dusk-shore 1.webm`), so `project.rename` gives the item its file name back.
+
+## Dock z-indexes as tokens (0.55.1)
+
+- `.cv-dock-split`, `.cv-props` (open properties column) and `.cv-props-resize` in `panels.css` carried raw z-index 2, 4 and 5, against the tokens.css rule that every z-index is a `var(--z-*)`. They now read `--z-dock-split`, `--z-props` and `--z-props-resize`, declared beside `--z-base` in `tokens.css` with the same numbers, so stacking is unchanged.
+
+## Maximized panel cleared when its group goes (0.55.2)
+
+- Kind: fix. Logged: v0.55.2 · 2026-11-10. Refers to `ui/dock.ts` (`applyLayout`, `close`, `move`).
+- What was wrong: with a panel maximized (backtick), switching workspace, Reset Workspace, or closing or undocking the last panel of the maximized group removed that group but left `this.maximized` pointing at it and `is-maximized` on the dock, so `.fx-dock.is-maximized .fx-group:not(.is-max)` hid every group and the dock showed empty until the backtick was pressed twice.
+- What changed: `applyLayout` clears `maximized` and the dock's `is-maximized` class before it removes the groups; `close` and `move` do the same when the group they remove is the maximized one. Only the dock's class changes; no group is rebuilt.
+- Checked: `tsc --noEmit` clean. Not run in a browser.
+
+## Timeline in and out trims are absolute from the drag start (0.55.2)
+
+- Kind: fix. Logged: v0.55.2 · 2026-11-10. Refers to `panels/timeline.ts` (`tracksDown`, `dragMove`, the `bar` drag).
+- What was wrong: dragging a layer bar's in or out edge sent `row.in + step` (or `row.out + step`), where `step` is only the change since the last pointer move but `row` comes from the store, which has not yet pulled the previous `layer.timing`. On a fast drag two moves before one pull sent the same value, so increments were lost and the edge ended frames short of the pointer.
+- What changed: the `bar` drag records the layer's `in0` and `out0` at pointerdown, and each move sends `snapTime(in0 + total)` or `snapTime(out0 + total)`, absolute from the drag start like the work area drag. The `move` mode still sends a relative `delta`, which the engine applies in order.
+- Checked: `tsc --noEmit` clean. Not run in a browser.
+
+## One audio stream per playback (0.55.2)
+
+- Kind: fix. Logged: v0.55.2 · 2026-11-10. Refers to `engine/playback.ts` (`startAudio`, `stopAudio`).
+- What was wrong: `startAudio` checked only `this.playing` after its awaits. Stopping and starting playback again before the first `/api/audio` reply arrived (up to 120 s of float stereo, which can take a second or more), or a loop wrap while a fetch was pending, let both fetches start a source; `this.source` kept only the second, so the first played on after stop, out of sync with the picture.
+- What changed: an `audioGen` counter. `startAudio` takes a new number at its start and returns after the fetch and after `decodeAudioData` unless it is still the latest request and playback is on; `stopAudio` bumps the counter, so a fetch still in flight never starts a source.
+- Checked: `tsc --noEmit` clean. Not run in a browser.
+
+## RAM preview drops frames decoded across a purge (0.55.2)
+
+- Kind: fix. Logged: v0.55.2 · 2026-11-10. Refers to `engine/playback.ts` (`keep`, `purge`).
+- What was wrong: `keep` checked the range id before `await createImageBitmap` and nothing after it, so a frame that was being decoded when an edit purged the cache was written into the fresh cache under the new revision, and `idleFill` then treated that time as cached and played the old picture until the next edit.
+- What changed: `purge` bumps a `cacheGen` counter whenever it clears the cache; `keep` remembers the counter before the await and closes the bitmap and returns if it moved.
+- Left open: range frames rendered before an edit that are still arriving during playback (the range is not cancelled while playing) are still cached. Dropping frames whose header `rev` differs from `cacheRev` would close that, but `cacheRev` is sometimes set from the store's revision, which can lag the `changed` event, and a wrong comparison would stop playback filling its cache; that half waits for a check in the app.
+- Checked: `tsc --noEmit` clean. Not run in a browser.
+
+## Wheel zoom keeps the point under the pointer at any pixel aspect (0.55.2)
+
+- Kind: fix. Logged: v0.55.2 · 2026-11-10. Refers to `panels/viewer.ts` (`setZoom`).
+- What was wrong: the pan correction after a zoom about a point used `(after[0] - before[0]) * zoom`, but `toComp` divides x by `zoom * pixelAspect`. In a comp with non-square pixels (anamorphic 2.0, D1 0.91) the point under the pointer slid sideways on every wheel step.
+- What changed: the x correction is also multiplied by the comp's pixel aspect (1 when unset); y is unchanged.
+- Checked: a scratch script with the viewer's `origin` and `toComp` maths (pixel aspect 2, zoom 0.25 to 0.5 about (800, 100)) gives the same comp point before and after; `tsc --noEmit` clean. Not run in a browser.
+
+## The dev proxy follows FORMVFX_PORT (0.55.2)
+
+- Kind: fix. Logged: v0.55.2 · 2026-11-10. Refers to `vite.config.ts` (`BACKEND_PORT`).
+- What was wrong: `boot_backend` suggests `FORMVFX_PORT=8251` when 8250 is taken, and the engine and `boot_all` follow it, but the Vite proxy for `/api` and `/mcp` was fixed at 8250, so the interface on 5250 talked to whatever still held 8250 or failed to connect.
+- What changed: `BACKEND_PORT` is `Number(process.env.FORMVFX_PORT) || 8250`. The interface port, `strictPort` and `host: false` are unchanged.
+- Checked: loaded the config with Vite's `loadConfigFromFile`: unset gives 8250, `FORMVFX_PORT=8251` gives 8251, a non-number falls back to 8250, `server.host` stays false. Not run as a full `./formvfx` boot.
+
+## New floating panels open on top (0.55.2)
+
+- Kind: fix. Logged: v0.55.2 · 2026-11-10. Refers to `ui/dock.ts` (`stackFloats`, `raise`, `undock`, `applyLayout`).
+- What was wrong: float groups got a z-index only in `raise`, which returns early for the group already last. A panel undocked after another float had been raised (or floats restored by a workspace) had `auto`, so inside the isolated `.fx-float-layer` it painted under the raised floats it overlapped and seemed not to open until clicked.
+- What changed: a private `stackFloats` numbers every float in list order, and `raise`, `undock` (after the new group joins the list) and `applyLayout` (after the floats are built) call it. The inline value is `calc(var(--z-base) + n)`, so the order stays on the layer scale instead of a raw number; it only orders floats inside the isolated float layer, which itself sits at `--z-companion`.
+- Checked: `tsc --noEmit` clean; headless Chrome computes `calc(var(--z-base) + 3)` set inline to z-index 3. Not run in the app.

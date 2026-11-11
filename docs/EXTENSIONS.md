@@ -2,7 +2,7 @@
 
 FormVFX loads extensions that follow the Form Extension Contract, API 1, beside its own effect plug-ins (`docs/PLUGINS.md`), scripts and ScriptUI panels, and HTML panels installed under Window > Extensions. This page is what an extension author needs for FormVFX: the document snapshot, the commands, the events and where things appear. The protocol itself (`host.hello`, `ui.notify`, `storage.*`, `ext.activate` and the rest) is the contract's.
 
-- Product id: `formvfx`. `host.hello` answers `app: "FormVFX"`, `appVersion` (this release, 0.55.0), `api: "1"`.
+- Product id: `formvfx`. `host.hello` answers `app: "FormVFX"`, `appVersion` (this release, 0.55.2), `api: "1"`.
 - Set `"minimum_app": "0.54.0"` in your manifest. A source checkout reports its last release (0.53.3) until the 0.54.0 release commit, so leave `minimum_app` out of a test copy run against an unreleased build.
 - Consent: the first time a version is opened or run, FormVFX lists its permissions and the person chooses Allow (stored for that id, version and permission set) or Not Now (not stored; nothing opens and a command fails with -32001). The frame is created only after Allow, so your first `host.hello` already carries the granted permissions.
 

@@ -16,10 +16,15 @@ POLL_SECONDS = 1.0
 SETTLE_SECONDS = 5.0
 
 
+def _here(raw: str) -> Path:
+    p = Path(raw)
+    return p if p.is_absolute() else Path(os.environ.get("FORMVFX_CALLER_DIR") or os.getcwd()) / p
+
+
 def _load(raw: str | None) -> object:
     if raw is None:
         return {}
-    p = Path(raw)
+    p = _here(raw)
     text = p.read_text(encoding="utf-8") if not raw.lstrip().startswith(("{", "[")) and p.is_file() else raw
     try:
         return json.loads(text)
@@ -165,8 +170,9 @@ def main(argv: list[str] | None = None) -> int:
             if a.comp:
                 params["comp"] = int(a.comp) if a.comp.isdigit() else a.comp
             out = client.rpc("frame.png", params)
-            Path(a.out).write_bytes(base64.b64decode(out["png"]))
-            print(f"{a.out} · {out['width']} x {out['height']}")
+            dest = _here(a.out)
+            dest.write_bytes(base64.b64decode(out["png"]))
+            print(f"{dest} · {out['width']} x {out['height']}")
         elif a.cmd == "render":
             out = _render_cmd(a)
             _print(out)

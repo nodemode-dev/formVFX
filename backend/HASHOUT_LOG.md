@@ -163,3 +163,38 @@ Living context for the engine service. Code carries almost no comments; the reas
 - The kit was re-vendored after the 07:47 contract update (a development extension's version comes from its manifest before any refusal; malformed `entry` and `contributes` are refused cleanly); the `LocalOnly` exception is now the contract's own rule (section 4).
 - `app_version` for `minimum_app` is `app.__version__`; refusal reasons come from the kit (`it needs FormVFX 0.54.0 or newer`).
 - Agents: `rpc.dispatch` has `formext.list` (asks the window with `uiRequest` `what: "extensions.list"`; with no window it answers from the resolver with `windows: 0`) and `formext.command` (asks the window with `what: "extensions.command"`, waits up to 330 s for consent plus the contract's 120 s headless limit). `formext.list` is in `_READ_RPC`, so it never asks for agent consent; `formext.command` is mutating and goes through the agent gate, then the extension's own consent in the window. The MCP tools `extensions_list` (read) and `extension_command`, the guide topic `extensions`, and the CLI's `extensions` and `extension ID COMMAND [JSON]` all go through these two methods. If two full windows are open, both run an `extensions.command` (the bus asks every window); the first answer is returned.
+
+## Terminal input never blocks the event loop (0.55.2)
+
+- Kind: fix. Logged: v0.55.2 · 2026-11-10. Refers to `app/agent/terminals.py` (`write`, `_writer`, `_write_fd`) and the `input` branch of `app/routers/terminal.py`.
+- What was wrong: `terminals.write` called `os.write` on the blocking pty master straight from the terminal socket handler, on the event loop thread. Pasting about 20 KB or more of lines into a tab whose program does not read its input (`sleep 600`, a long render, a build) blocked that write, and with it every route and socket of the engine service; the write stayed blocked even after the program exited and the master was closed.
+- What changed: `write` only queues the text on the session's `inbox`. Each spawn starts a `term-in-<id>-<gen>` thread that drains its own inbox in order; on POSIX it writes at most 512 bytes at a time, and only when `select` says the master is writable, rechecking every 0.5 s whether the session was closed, restarted or ended, so a program that stops reading holds at most its own input thread, never the loop or the shared executor. winpty and the pipe fallback write from the same thread. A restart gets a fresh inbox, so input typed into the old process is not replayed into the new one.
+- Checked: a scratch harness loading `terminals.py` with stubbed siblings: 73 KB of lines into `sleep 600` returned from `write` in 0.1 ms and the writer thread ended within 2 s of `close`; 3,000 lines into `cat` with echo off came back complete and in order; input after `restart` reached the new process. Not run against the live service or on Windows.
+
+## CLI files resolve against the caller's folder (0.55.2)
+
+- Kind: fix. Logged: v0.55.2 · 2026-11-10. Refers to `app/agent/cli.py` (`_here`, `_load`, the `frame` branch).
+- What was wrong: the `./formvfx` and `formvfx.bat` launchers change into the repository and export `FORMVFX_CALLER_DIR`, but the CLI applied that folder only to render outputs. `formvfx frame out.png` wrote into the repository, and `formvfx batch steps.json` (also `exec ID params.json` and `extension ID CMD args.json`) looked for the file in the repository and failed with "not JSON". Agents in the agent workspace use exactly these through the `formvfx` shim.
+- What changed: `_here(path)` returns an absolute path as it is and joins a relative one to `FORMVFX_CALLER_DIR` (or the working folder). `_load` uses it for the file test and read, and `frame` writes to it and prints the full path.
+- Checked: a scratch harness importing `cli.py` with a stubbed client: with `FORMVFX_CALLER_DIR` set to a temporary folder, `_load("s.json")` read that folder's file, inline JSON and absolute paths were unchanged, and `_here("out.png")` pointed into that folder; `ruff check` clean. Not run against a live engine.
+
+## Live Link side engines never leave a request waiting (0.55.2)
+
+- Kind: fix. Logged: v0.55.2 · 2026-11-10. Refers to `app/engine/link.py` (`_Side`, `render`).
+- What was wrong: `_engine` keeps at most two side engines and stops the oldest under `_lock`, but a request that already got that side (info, frame, audio for a third `.fvxlink` project at about the same time) kept calling it after the lock was released. Its call was queued behind the stop sentinel, the side thread had exited, and the future was never resolved, so the HTTP request never returned. If `Engine()` failed inside the side thread, every call to that side hung the same way. `render` created side engines outside the lock and without the cap.
+- What changed: `_Side.stop` marks the side `closed`; `call` on a closed side raises `RpcError` ("closed to make room for another one; retry") instead of queueing. Calls queued before the stop still run, because they sit ahead of the sentinel. A failed `Engine()` is kept and every call to that side fails with it. `render` takes `_lock` and applies the same two-side cap and LRU order as `_engine`.
+- Checked: a scratch harness importing `link.py` with stubbed siblings and a fake engine: a call queued before `stop` completed, a call after `stop` raised at once, and calls to a side whose `Engine()` raised failed instead of hanging. Not run against the real engine.
+
+## build_app finds the app by its product name (0.55.2)
+
+- Kind: fix. Logged: v0.55.2 · 2026-11-10. Refers to the root `build_app` (the macOS branch).
+- What was wrong: the product name became FormVFX in 4d1f93d, so Tauri bundles `FormVFX.app`, but `build_app` still looked for, staged and installed `formvfx.app`. On a case-sensitive volume the build stopped with "the build finished but .../formvfx.app is missing"; on the default APFS it installed the app as `/Applications/formvfx.app`.
+- What changed: `build_app` reads `productName` from `src-tauri/tauri.conf.json` beside `version` and uses `$name.app` for the bundle, the disk image stage and the installed copy. The disk image file name, the volume name and the Linux branch are unchanged.
+- Checked: `bash -n build_app`; the one-liner prints FormVFX here. Not run on macOS.
+
+## formvfx.bat forwards every argument (0.55.2)
+
+- Kind: fix. Logged: v0.55.2 · 2026-11-10. Refers to the root `formvfx.bat` (`install`, `install-native`, `mcp`, `agents`, `counts`, `presets`, `clean`).
+- What was wrong: these branches forwarded a fixed one to three arguments, so `formvfx.bat agents install --dry-run claude codex cursor` silently dropped the last client names, unlike `./formvfx`, which passes `"$@"`.
+- What changed: each of them forwards `%2` to `%9`, the same list the `desktop build` branch already used. Unused slots expand to nothing and quoted arguments keep their quotes, as before. Line endings stay CRLF.
+- Checked: reasoned from cmd's documented `%n` expansion; `git ls-files --eol` shows CRLF in the working tree before and after. Not run on Windows.

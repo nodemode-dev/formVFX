@@ -151,7 +151,14 @@ pub fn mask_coverage(masks: &[MaskEval], m: &Mat3, w: usize, h: usize, x0: i64, 
     if masks.is_empty() {
         return None;
     }
-    let k = m.max_scale();
+    let k = match masks.iter().fold(None, |acc, mk| union_bounds(acc, mk.path.bounds())) {
+        Some(b) if !m.is_affine() => {
+            let c = [(b[0] + b[2]) / 2.0, (b[1] + b[3]) / 2.0];
+            let (p0, px, py) = (m.apply(c[0], c[1]), m.apply(c[0] + 1.0, c[1]), m.apply(c[0], c[1] + 1.0));
+            ((px[0] - p0[0]) * (py[1] - p0[1]) - (px[1] - p0[1]) * (py[0] - p0[0])).abs().sqrt()
+        }
+        _ => m.max_scale(),
+    };
     let n = w * h;
     let mut cov: Option<Vec<f32>> = None;
     for mk in masks {

@@ -158,6 +158,9 @@
      collides. Component CSS uses var(--z-*) only. Never a raw number,
      never 9999. */
   --z-base: 0;
+  --z-dock-split: 2;
+  --z-props: 4;
+  --z-props-resize: 5;
   --z-raised: 8;          /* hovered card lift (the app's .node:hover) */
   --z-selected: 9;        /* selected card (the app's .node.selected) */
   --z-rail: 10;           /* mini icon rail */

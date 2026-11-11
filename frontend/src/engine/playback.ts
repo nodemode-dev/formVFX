@@ -31,6 +31,7 @@ export class Playback {
   private cache = new Map<string, Cached>();
   private cacheRev = -1;
   private cacheSide = 0;
+  private cacheGen = 0;
   playing = false;
   private start = 0;
   private from = 0;
@@ -38,6 +39,7 @@ export class Playback {
   private raf = 0;
   private audio: AudioContext | null = null;
   private source: AudioBufferSourceNode | null = null;
+  private audioGen = 0;
   private rangeId = 0;
   loop = true;
   includeAudio = true;
@@ -131,6 +133,7 @@ export class Playback {
     if (force || rev !== this.cacheRev) {
       for (const c of this.cache.values()) this.drop(c.bitmap);
       this.cache.clear();
+      this.cacheGen++;
       this.cacheRev = rev;
       this.emitState();
     }
@@ -150,7 +153,12 @@ export class Playback {
       }
     }
     const img = new ImageData(new Uint8ClampedArray(f.pixels), f.width, f.height);
+    const gen = this.cacheGen;
     const bitmap = await createImageBitmap(img);
+    if (gen !== this.cacheGen) {
+      bitmap.close();
+      return;
+    }
     this.cache.set(this.key(f.time), { bitmap, time: f.time });
     this.emitState();
   }
@@ -192,11 +200,13 @@ export class Playback {
   }
 
   private async startAudio(comp: number, start: number, seconds: number): Promise<void> {
+    const gen = ++this.audioGen;
     try {
       this.audio ??= new AudioContext();
       const res = await fetch(`/api/audio?comp=${comp}&start=${start}&seconds=${Math.min(seconds, 120)}&rate=${this.audio.sampleRate}`);
+      if (!this.playing || gen !== this.audioGen) return;
       const buf = await this.audio.decodeAudioData(await res.arrayBuffer());
-      if (!this.playing) return;
+      if (!this.playing || gen !== this.audioGen) return;
       const src = this.audio.createBufferSource();
       src.buffer = buf;
       src.connect(this.audio.destination);
@@ -209,6 +219,7 @@ export class Playback {
   }
 
   private stopAudio(): void {
+    this.audioGen++;
     try {
       this.source?.stop();
     } catch {

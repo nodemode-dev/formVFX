@@ -235,6 +235,9 @@ impl Engine {
     }
 
     pub fn apply_step(&mut self, label: &str, f: impl FnOnce(&mut Engine) -> Result<Json, String>) -> Res {
+        if self.batch_depth > 0 {
+            return f(self);
+        }
         let before = self.project.clone();
         self.changed = false;
         match f(self) {
@@ -246,10 +249,7 @@ impl Engine {
             Ok(v) => {
                 if self.changed {
                     self.changed = false;
-                    self.history.undo.push(Step { label: label.to_string(), project: before });
-                    if self.history.undo.len() > 300 {
-                        self.history.undo.remove(0);
-                    }
+                    self.push_undo(Step { label: label.to_string(), project: before });
                     self.history.redo.clear();
                     self.history.merge = None;
                 }
@@ -262,6 +262,12 @@ impl Engine {
     pub fn proj(&mut self) -> &mut Project {
         self.changed = true;
         Arc::make_mut(&mut self.project)
+    }
+
+    fn push_undo(&mut self, step: Step) {
+        self.history.undo.push(step);
+        let extra = self.history.undo.len().saturating_sub(300);
+        self.history.undo.drain(..extra);
     }
 
     pub fn is_dirty(&self) -> bool {
@@ -337,16 +343,15 @@ impl Engine {
                 Err(e)
             }
             Ok(v) => {
-                if outer && self.changed {
+                if self.changed {
                     cmd::essential::sync(self);
+                }
+                if outer && self.changed {
                     self.changed = false;
                     let merge = ps(&params, "merge").map(str::to_string).or_else(|| self.merge_hint.take());
                     let label = self.label.take().unwrap_or_else(|| cmd.label.trim_end_matches("...").to_string());
                     if merge.is_none() || merge != self.history.merge {
-                        self.history.undo.push(Step { label, project: before });
-                        if self.history.undo.len() > 300 {
-                            self.history.undo.remove(0);
-                        }
+                        self.push_undo(Step { label, project: before });
                     }
                     self.history.redo.clear();
                     self.history.merge = merge;
@@ -423,7 +428,7 @@ impl Engine {
         }
         if outer && self.changed {
             self.changed = false;
-            self.history.undo.push(Step { label, project: before });
+            self.push_undo(Step { label, project: before });
             self.history.redo.clear();
             self.history.merge = None;
             self.revision += 1;

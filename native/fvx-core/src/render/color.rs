@@ -272,7 +272,7 @@ impl Pipe {
     }
 
     fn key(&self) -> String {
-        format!("{}|{}|{}|{}|{}", self.ocio, self.working, self.linear, self.cfg.as_ref().map(|c| c.name.clone()).unwrap_or_default(), self.tonemap)
+        format!("{}|{}|{}|{}|{}", self.ocio, self.working, self.linear, self.cfg.as_ref().map(|c| format!("{}#{}", c.name, c.serial)).unwrap_or_default(), self.tonemap)
     }
 
     fn cached(&self, k: String, f: impl FnOnce() -> Option<Arc<Proc>>) -> Option<Arc<Proc>> {

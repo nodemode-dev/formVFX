@@ -761,7 +761,7 @@ fn str_substr(it: &mut Interp, this: &V, a: Vec<V>) -> R {
         V::Undef => c.len(),
         v => it.to_number(&v)?.max(0.0) as usize,
     };
-    let e = (b + n).min(c.len());
+    let e = b.saturating_add(n).min(c.len());
     Ok(s(&c[b.min(e)..e].iter().collect::<String>()))
 }
 

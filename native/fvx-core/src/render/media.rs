@@ -140,8 +140,13 @@ pub fn probe(path: &str) -> Result<Footage, String> {
     if let Some(v) = v {
         f.width = v.get("width").and_then(Json::as_u64).unwrap_or(0) as u32;
         f.height = v.get("height").and_then(Json::as_u64).unwrap_or(0) as u32;
-        let fr = v.get("avg_frame_rate").and_then(Json::as_str).map(rate).filter(|x| *x > 0.0).or_else(|| v.get("r_frame_rate").and_then(Json::as_str).map(rate)).unwrap_or(30.0);
+        let turn = v.get("side_data_list").and_then(Json::as_array).and_then(|l| l.iter().find_map(|s| s.get("rotation").and_then(Json::as_f64))).or_else(|| v.get("tags").and_then(|t| t.get("rotate")).and_then(Json::as_str).and_then(|s| s.trim().parse::<f64>().ok())).unwrap_or(0.0);
+        if (turn.round() as i64).rem_euclid(180) == 90 {
+            std::mem::swap(&mut f.width, &mut f.height);
+        }
+        let fr =v.get("avg_frame_rate").and_then(Json::as_str).map(rate).filter(|x| *x > 0.0).or_else(|| v.get("r_frame_rate").and_then(Json::as_str).map(rate)).unwrap_or(30.0);
         f.frame_rate = if fr > 0.0 && fr < 1000.0 { fr } else { 30.0 };
+        f.native_rate = f.frame_rate;
         f.codec = v.get("codec_name").and_then(Json::as_str).unwrap_or("").to_string();
         let vdur = v.get("duration").and_then(Json::as_str).and_then(|s| s.parse::<f64>().ok()).unwrap_or(dur);
         f.duration = if vdur > 0.0 { vdur } else { dur };
@@ -156,7 +161,7 @@ pub fn probe(path: &str) -> Result<Footage, String> {
                 f.pixel_aspect = x / y;
             }
         }
-        if v.get("pix_fmt").and_then(Json::as_str).is_some_and(|p| !p.contains('a') || p.starts_with("yuv")) {
+        if v.get("pix_fmt").and_then(Json::as_str).is_some_and(|p| !p.contains('a') || (p.starts_with("yuv") && !p.starts_with("yuva"))) {
             f.alpha = AlphaMode::Ignore;
         }
         let trc = v.get("color_transfer").and_then(Json::as_str).unwrap_or("");
@@ -260,8 +265,10 @@ impl Frames {
     }
     fn put(&mut self, k: (String, i64), img: Arc<Img>) {
         self.bytes += img.px.len() * 4;
-        self.map.insert(k.clone(), img);
-        self.order.push_back(k);
+        match self.map.insert(k.clone(), img) {
+            Some(old) => self.bytes -= old.px.len() * 4,
+            None => self.order.push_back(k),
+        }
         while self.bytes > FRAME_BUDGET {
             let Some(old) = self.order.pop_front() else { break };
             if let Some(i) = self.map.remove(&old) {
@@ -358,6 +365,10 @@ impl Media {
         img
     }
 
+    fn frame_key(f: &Footage) -> String {
+        format!("{}\u{1}{:?}\u{1}{}\u{1}{}\u{1}{}\u{1}{}x{}\u{1}{}\u{1}{}", f.path, f.layer, f.layer_name, f.layer_size, f.page, f.width, f.height, f.frame_rate, f.transfer.is_empty())
+    }
+
     fn still_of(&self, f: &Footage, path: &str) -> Option<Arc<Img>> {
         let key = format!("{path}\u{1}{:?}\u{1}{}\u{1}{}\u{1}{}\u{1}{}x{}", f.layer, f.layer_name, f.layer_size, f.page, f.width, f.height);
         if let Some(i) = self.stills.lock().get(&key) {
@@ -414,7 +425,7 @@ impl Media {
                 n = n.rem_euclid(len);
             }
             let n = n.clamp(0, len - 1);
-            let key = (f.path.clone(), n);
+            let key = (Self::frame_key(f), n);
             if let Some(i) = self.frames.lock().get(&key) {
                 return Some(i);
             }
@@ -434,20 +445,22 @@ impl Media {
             n = n.rem_euclid(total);
         }
         let n = n.clamp(0, total - 1);
-        let key = (f.path.clone(), n);
+        let fk = Self::frame_key(f);
+        let key = (fk.clone(), n);
         if let Some(i) = self.frames.lock().get(&key) {
             return Some(i);
         }
-        let slot = self.decoders.lock().entry(f.path.clone()).or_default().clone();
+        let slot = self.decoders.lock().entry(fk.clone()).or_default().clone();
         let mut dec = slot.lock();
         if let Some(i) = self.frames.lock().get(&key) {
             return Some(i);
         }
         let (w, h) = (f.width.max(1) as usize, f.height.max(1) as usize);
         let deep = !f.transfer.is_empty();
+        let seek_fps = if f.native_rate > 0.0 { f.native_rate } else { fps };
         let reuse = matches!(dec.as_ref(), Some(d) if d.next <= n && n - d.next < 48);
         if !reuse {
-            *dec = Decoder::open(&f.path, n, fps, w, h, deep);
+            *dec = Decoder::open(&f.path, n, seek_fps, w, h, deep);
         }
         let mut last = None;
         for _ in 0..2 {
@@ -459,7 +472,7 @@ impl Media {
                     break;
                 };
                 let img = Arc::new(img);
-                self.frames.lock().put((f.path.clone(), idx), img.clone());
+                self.frames.lock().put((fk.clone(), idx), img.clone());
                 if idx == n {
                     last = Some(img);
                 }
@@ -468,14 +481,14 @@ impl Media {
                 break;
             }
             if dec.is_none() {
-                *dec = Decoder::open(&f.path, (n - 1).max(0), fps, w, h, deep);
+                *dec = Decoder::open(&f.path, (n - 1).max(0), seek_fps, w, h, deep);
             } else {
                 break;
             }
         }
         last.or_else(|| {
             let fr = self.frames.lock();
-            (0..8).find_map(|k| fr.map.get(&(f.path.clone(), n - k)).cloned())
+            (0..8).find_map(|k| fr.map.get(&(fk.clone(), n - k)).cloned())
         })
     }
 
@@ -502,15 +515,16 @@ impl Media {
     pub fn forget(&self, path: &str) {
         self.stills.lock().retain(|k, _| k != path && !k.starts_with(&format!("{path}\u{1}")));
         self.psd.lock().remove(path);
-        self.decoders.lock().remove(path);
+        let prefix = format!("{path}\u{1}");
+        self.decoders.lock().retain(|k, _| k != path && !k.starts_with(&prefix));
         let mut fr = self.frames.lock();
-        let keys: Vec<_> = fr.map.keys().filter(|k| k.0 == path).cloned().collect();
+        let keys: Vec<_> = fr.map.keys().filter(|k| k.0 == path || k.0.starts_with(&prefix)).cloned().collect();
         for k in keys {
             if let Some(i) = fr.map.remove(&k) {
                 fr.bytes -= i.px.len() * 4;
             }
         }
-        fr.order.retain(|k| k.0 != path);
+        fr.order.retain(|k| k.0 != path && !k.0.starts_with(&prefix));
         self.audio.lock().retain(|k, _| k.0 != path);
     }
 
