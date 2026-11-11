@@ -301,3 +301,10 @@ Living context for the interface. Code carries almost no comments; the reasoning
 ## Dock z-indexes as tokens (0.55.1)
 
 - `.cv-dock-split`, `.cv-props` (open properties column) and `.cv-props-resize` in `panels.css` carried raw z-index 2, 4 and 5, against the tokens.css rule that every z-index is a `var(--z-*)`. They now read `--z-dock-split`, `--z-props` and `--z-props-resize`, declared beside `--z-base` in `tokens.css` with the same numbers, so stacking is unchanged.
+
+## Maximized panel cleared when its group goes (0.55.2)
+
+- Kind: fix. Logged: v0.55.2 · 2026-11-10. Refers to `ui/dock.ts` (`applyLayout`, `close`, `move`).
+- What was wrong: with a panel maximized (backtick), switching workspace, Reset Workspace, or closing or undocking the last panel of the maximized group removed that group but left `this.maximized` pointing at it and `is-maximized` on the dock, so `.fx-dock.is-maximized .fx-group:not(.is-max)` hid every group and the dock showed empty until the backtick was pressed twice.
+- What changed: `applyLayout` clears `maximized` and the dock's `is-maximized` class before it removes the groups; `close` and `move` do the same when the group they remove is the maximized one. Only the dock's class changes; no group is rebuilt.
+- Checked: `tsc --noEmit` clean. Not run in a browser.
