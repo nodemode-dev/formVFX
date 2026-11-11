@@ -889,8 +889,11 @@ impl Config {
             let Some(at) = out.find('$') else { break };
             let rest = &out[at + 1..];
             let (name, len) = if let Some(r) = rest.strip_prefix('{') {
-                let e = r.find('}').unwrap_or(r.len());
-                (r[..e].to_string(), e + 2)
+                let (e, close) = match r.find('}') {
+                    Some(e) => (e, 1),
+                    None => (r.len(), 0),
+                };
+                (r[..e].to_string(), e + 1 + close)
             } else {
                 let e = rest.find(|c: char| !(c.is_alphanumeric() || c == '_')).unwrap_or(rest.len());
                 (rest[..e].to_string(), e)
