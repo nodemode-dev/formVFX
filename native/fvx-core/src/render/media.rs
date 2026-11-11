@@ -156,7 +156,7 @@ pub fn probe(path: &str) -> Result<Footage, String> {
                 f.pixel_aspect = x / y;
             }
         }
-        if v.get("pix_fmt").and_then(Json::as_str).is_some_and(|p| !p.contains('a') || p.starts_with("yuv")) {
+        if v.get("pix_fmt").and_then(Json::as_str).is_some_and(|p| !p.contains('a') || (p.starts_with("yuv") && !p.starts_with("yuva"))) {
             f.alpha = AlphaMode::Ignore;
         }
         let trc = v.get("color_transfer").and_then(Json::as_str).unwrap_or("");
