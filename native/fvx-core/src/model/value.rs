@@ -562,6 +562,9 @@ pub fn parse_color(j: &Json) -> Option<[f64; 4]> {
 
 pub fn hex_color(s: &str) -> Option<[f64; 4]> {
     let h = s.trim().trim_start_matches('#');
+    if !h.is_ascii() {
+        return None;
+    }
     let h = if h.len() == 3 { h.chars().flat_map(|c| [c, c]).collect::<String>() } else { h.to_string() };
     if h.len() != 6 && h.len() != 8 {
         return None;
