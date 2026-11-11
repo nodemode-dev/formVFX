@@ -235,6 +235,9 @@ impl Engine {
     }
 
     pub fn apply_step(&mut self, label: &str, f: impl FnOnce(&mut Engine) -> Result<Json, String>) -> Res {
+        if self.batch_depth > 0 {
+            return f(self);
+        }
         let before = self.project.clone();
         self.changed = false;
         match f(self) {
@@ -340,8 +343,10 @@ impl Engine {
                 Err(e)
             }
             Ok(v) => {
-                if outer && self.changed {
+                if self.changed {
                     cmd::essential::sync(self);
+                }
+                if outer && self.changed {
                     self.changed = false;
                     let merge = ps(&params, "merge").map(str::to_string).or_else(|| self.merge_hint.take());
                     let label = self.label.take().unwrap_or_else(|| cmd.label.trim_end_matches("...").to_string());
