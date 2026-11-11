@@ -344,3 +344,10 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - What was wrong: `boot_backend` suggests `FORMVFX_PORT=8251` when 8250 is taken, and the engine and `boot_all` follow it, but the Vite proxy for `/api` and `/mcp` was fixed at 8250, so the interface on 5250 talked to whatever still held 8250 or failed to connect.
 - What changed: `BACKEND_PORT` is `Number(process.env.FORMVFX_PORT) || 8250`. The interface port, `strictPort` and `host: false` are unchanged.
 - Checked: loaded the config with Vite's `loadConfigFromFile`: unset gives 8250, `FORMVFX_PORT=8251` gives 8251, a non-number falls back to 8250, `server.host` stays false. Not run as a full `./formvfx` boot.
+
+## New floating panels open on top (0.55.2)
+
+- Kind: fix. Logged: v0.55.2 · 2026-11-10. Refers to `ui/dock.ts` (`stackFloats`, `raise`, `undock`, `applyLayout`).
+- What was wrong: float groups got a z-index only in `raise`, which returns early for the group already last. A panel undocked after another float had been raised (or floats restored by a workspace) had `auto`, so inside the isolated `.fx-float-layer` it painted under the raised floats it overlapped and seemed not to open until clicked.
+- What changed: a private `stackFloats` numbers every float in list order, and `raise`, `undock` (after the new group joins the list) and `applyLayout` (after the floats are built) call it. The inline value is `calc(var(--z-base) + n)`, so the order stays on the layer scale instead of a raw number; it only orders floats inside the isolated float layer, which itself sits at `--z-companion`.
+- Checked: `tsc --noEmit` clean; headless Chrome computes `calc(var(--z-base) + 3)` set inline to z-index 3. Not run in the app.

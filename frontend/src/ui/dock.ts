@@ -435,6 +435,7 @@ export class Dock {
         if (a === 'float') grp.place();
       }
     }
+    this.stackFloats();
     this.applySizes();
     this.onWorkspace?.(name);
   }
@@ -547,6 +548,7 @@ export class Dock {
     grp.rect = { x: Math.max(0, r.width / 2 - 260 + n * 28), y: Math.max(0, r.height / 2 - 200 + n * 28), w: 520, h: 400 };
     this.areas.float.appendChild(grp.el);
     this.groups.float.push(grp);
+    this.stackFloats();
     grp.place();
     this.move(id, grp);
     this.focus(id);
@@ -602,7 +604,11 @@ export class Dock {
     const fl = this.groups.float;
     if (grp.area !== 'float' || fl[fl.length - 1] === grp) return;
     this.groups.float = [...fl.filter((x) => x !== grp), grp];
-    this.groups.float.forEach((x, i) => (x.el.style.zIndex = String(i + 1)));
+    this.stackFloats();
+  }
+
+  private stackFloats(): void {
+    this.groups.float.forEach((x, i) => (x.el.style.zIndex = `calc(var(--z-base) + ${i + 1})`));
   }
 
   maximize(grp: Group): void {
