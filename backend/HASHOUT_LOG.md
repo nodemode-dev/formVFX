@@ -191,3 +191,10 @@ Living context for the engine service. Code carries almost no comments; the reas
 - What was wrong: the product name became FormVFX in 4d1f93d, so Tauri bundles `FormVFX.app`, but `build_app` still looked for, staged and installed `formvfx.app`. On a case-sensitive volume the build stopped with "the build finished but .../formvfx.app is missing"; on the default APFS it installed the app as `/Applications/formvfx.app`.
 - What changed: `build_app` reads `productName` from `src-tauri/tauri.conf.json` beside `version` and uses `$name.app` for the bundle, the disk image stage and the installed copy. The disk image file name, the volume name and the Linux branch are unchanged.
 - Checked: `bash -n build_app`; the one-liner prints FormVFX here. Not run on macOS.
+
+## formvfx.bat forwards every argument (0.55.2)
+
+- Kind: fix. Logged: v0.55.2 · 2026-11-10. Refers to the root `formvfx.bat` (`install`, `install-native`, `mcp`, `agents`, `counts`, `presets`, `clean`).
+- What was wrong: these branches forwarded a fixed one to three arguments, so `formvfx.bat agents install --dry-run claude codex cursor` silently dropped the last client names, unlike `./formvfx`, which passes `"$@"`.
+- What changed: each of them forwards `%2` to `%9`, the same list the `desktop build` branch already used. Unused slots expand to nothing and quoted arguments keep their quotes, as before. Line endings stay CRLF.
+- Checked: reasoned from cmd's documented `%n` expansion; `git ls-files --eol` shows CRLF in the working tree before and after. Not run on Windows.
