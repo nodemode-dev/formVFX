@@ -352,3 +352,7 @@ Masks, time remapping and shape path vertices from `.aep` projects (each named i
 - **Sequence numbering.** Image sequence files carry the composition frame (`n0 + o` in `render_item`, `round(start * fps)`), so a 3 to 4 s render at 30 fps writes `_00090` to `_00119`. `post_render` and skip-existing rely on that, so it stays.
 - **CC Light Sweep.** The Smooth shape called `smooth(1, 0, d)`; with the edges reversed `smooth` is a step at 0, so every pixel got the full band and the layer brightened all over. It is `1 - smooth(0, 1, d)` now, a band `width` pixels across the line through Center.
 - **`comp.list`** lists every composition with its size, rate, duration, work area, layer count and whether it is active.
+
+## Review fixes (0.55.2)
+
+- **Array length cap.** `Interp::set_member` let `a.length = n` grow an array to any whole number, so `var a = []; a.length = 1e12` asked `Vec::resize` for terabytes and the allocation failure aborted the engine process (not a panic, so nothing caught it, and a saved project with that expression crashed on every open). The setter now refuses lengths above 10,000,000 with a RangeError, the same cap `Array(n)` and index assignment already had. Checked by `cargo check`; not run against a live engine.

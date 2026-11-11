@@ -841,7 +841,7 @@ impl<'a> Interp<'a> {
             V::Arr(a) => {
                 if key == "length" {
                     let n = self.to_number(&v)?;
-                    if !(n >= 0.0 && n.fract() == 0.0) {
+                    if !(n >= 0.0 && n.fract() == 0.0 && n <= 10_000_000.0) {
                         return Err(throw("RangeError", "invalid array length"));
                     }
                     a.borrow_mut().resize(n as usize, V::Undef);
