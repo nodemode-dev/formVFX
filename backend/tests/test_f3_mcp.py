@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import sys
 
@@ -102,6 +103,21 @@ def test_cli_resolves_relative_render_outputs_from_the_current_folder(tmp_path, 
     monkeypatch.setenv("FORMVFX_CALLER_DIR", str(tmp_path / "caller"))
     assert absolute_outputs("renderQueue.setOutput", {"path": "out.mp4"}) == {"path": str(tmp_path / "caller" / "out.mp4")}
 
+
+def test_terminal_panel_shells_and_agents_resolve_relative_paths_from_their_own_folder(tmp_path, monkeypatch):
+    from app.agent import claude_code, terminals
+
+    monkeypatch.setenv("FORMVFX_CALLER_DIR", str(tmp_path / "launched-from"))
+    shell = terminals.environment("http://127.0.0.1:1")
+    assert "FORMVFX_CALLER_DIR" not in shell and shell["FORMVFX_AGENT_NAME"] == "terminal"
+    assert "FORMVFX_CALLER_DIR" not in claude_code.child_env(shell)
+    assert "FORMVFX_CALLER_DIR" not in claude_code.child_env(dict(os.environ))
+    monkeypatch.delenv("FORMVFX_CALLER_DIR")
+    folder = tmp_path / "typed-in"
+    folder.mkdir()
+    probe = "import os, sys; sys.path.insert(0, os.environ['BACKEND']); from app.agent.cli import _here; print(_here('out.png'))"
+    out = subprocess.run([sys.executable, "-c", probe], cwd=folder, env={**shell, "BACKEND": str(REPO / "backend")}, capture_output=True, text=True, check=True)
+    assert out.stdout.strip() == str(folder.resolve() / "out.png")
 
 def test_the_render_tool_renders_in_the_background_and_reports_the_output(client, tmp_path):
     token = {TOKEN_HEADER: inapp_token()}

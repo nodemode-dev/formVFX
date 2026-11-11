@@ -20,10 +20,17 @@ pub fn finish(e: &mut Engine, cid: u64, l: crate::model::Layer, label: &str) -> 
     Ok(json!({"layer": id, "index": index}))
 }
 
+pub(crate) fn solid_color(p: &Json) -> Result<[f64; 4], String> {
+    match p.get("color") {
+        None | Some(Json::Null) => Ok([0.5, 0.5, 0.5, 1.0]),
+        Some(v) => parse_color(v).ok_or_else(|| "color: expected a colour: [r, g, b] (0-1), [r, g, b, a] or #rrggbb".to_string()),
+    }
+}
+
 pub fn new_solid(e: &mut Engine, p: &Json) -> Res {
     let cid = e.comp_id(p.get("comp"))?;
     let (cw, ch, dur, _) = comp_dims(e, cid)?;
-    let c = p.get("color").and_then(parse_color).unwrap_or([0.5, 0.5, 0.5, 1.0]);
+    let c = solid_color(p)?;
     let w = pu(p, "width").unwrap_or(cw as u64) as u32;
     let h = pu(p, "height").unwrap_or(ch as u64) as u32;
     let n = e.project.comp(cid).map(|c| c.layers.iter().filter(|l| l.kind == LayerKind::Solid).count()).unwrap_or(0) + 1;
@@ -982,7 +989,7 @@ pub fn delete_layers(e: &mut Engine, cid: u64, ids: &[u64]) -> Result<usize, Str
 }
 
 pub fn new_solid_item(e: &mut Engine, p: &Json) -> Res {
-    let c = p.get("color").and_then(parse_color).unwrap_or([0.5, 0.5, 0.5, 1.0]);
+    let c = solid_color(p)?;
     let (w, h) = (pu(p, "width").unwrap_or(1920) as u32, pu(p, "height").unwrap_or(1080) as u32);
     let id = solid_item(e, ps(p, "name").unwrap_or("Solid"), [c[0], c[1], c[2]], w, h);
     Ok(json!({"item": id}))

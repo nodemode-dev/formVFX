@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img alt="version 0.55.2" src="https://img.shields.io/badge/version-0.55.2-eef0f4?style=flat-square">
+  <img alt="version 0.55.3" src="https://img.shields.io/badge/version-0.55.3-eef0f4?style=flat-square">
   <img alt="Rust" src="https://img.shields.io/badge/Rust-engine-b7410e?style=flat-square&logo=rust&logoColor=white">
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-Vite-3178c6?style=flat-square&logo=typescript&logoColor=white">
   <img alt="macOS, Windows, Linux" src="https://img.shields.io/badge/macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-native-2f7bf5?style=flat-square">
@@ -102,7 +102,7 @@ FormVFX loads Form extensions (API 1): FormPortal installs them, form.ext makes 
 
 ## Under the hood
 
-Version 0.55.2 · Apache-2.0 · compositing engine: FormVFX's own, in Rust (`native/fvx-core`)
+Version 0.55.3 · Apache-2.0 · compositing engine: FormVFX's own, in Rust (`native/fvx-core`)
 
 - **Engine:** `native/fvx-core` is the compositing engine, Rust with PyO3, loaded by the engine service as the `fvx_core` extension.
 - **Service:** a FastAPI engine service in `backend`, with the MCP server and the embedded terminal.

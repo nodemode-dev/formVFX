@@ -112,6 +112,7 @@ def mcp_config(base_url: str) -> str:
 
 def child_env(base: dict) -> dict:
     env = {k: v for k, v in base.items() if not k.startswith("CLAUDE") or k in _KEEP}
+    env.pop("FORMVFX_CALLER_DIR", None)
     return env
 
 
