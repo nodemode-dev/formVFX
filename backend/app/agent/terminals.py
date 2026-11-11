@@ -47,6 +47,7 @@ def environment(base_url: str) -> dict:
     env.setdefault("TERM", "xterm-256color")
     env["COLORTERM"] = "truecolor"
     env.pop("FORMVFX_DESKTOP", None)
+    env.pop("FORMVFX_CALLER_DIR", None)
     return env
 
 
