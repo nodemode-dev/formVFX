@@ -5,6 +5,8 @@ import atexit
 import codecs
 import contextlib
 import os
+import queue
+import select
 import shlex
 import shutil
 import signal
@@ -73,6 +75,7 @@ class Session:
         self.winpty = None
         self.process = None
         self.pump: threading.Thread | None = None
+        self.inbox: queue.SimpleQueue = queue.SimpleQueue()
 
     def describe(self) -> dict:
         return {"id": self.id, "title": self.title, "kind": self.kind, "alive": self.alive}
@@ -166,6 +169,8 @@ def _spawn(session: Session) -> None:
     gen = session.gen
     session.pump = threading.Thread(target=_pump, args=(session, handle, gen), name=f"term-{session.id}-{gen}", daemon=True)
     session.pump.start()
+    session.inbox = queue.SimpleQueue()
+    threading.Thread(target=_writer, args=(session, handle, gen, session.inbox), name=f"term-in-{session.id}-{gen}", daemon=True).start()
     if handle["pid"]:
         threading.Thread(target=_reap, args=(session, handle, gen), name=f"reap-{session.id}-{gen}", daemon=True).start()
 
@@ -206,6 +211,36 @@ def _pump(session: Session, handle: dict, gen: int) -> None:
         with contextlib.suppress(OSError):
             os.close(handle["fd"])
     _ended(session, gen)
+
+
+def _write_fd(session: Session, fd: int, data: bytes, gen: int) -> None:
+    while data and session.gen == gen and session.alive:
+        try:
+            ready = select.select([], [fd], [], 0.5)[1]
+        except ValueError:
+            ready = [fd]
+        if ready:
+            data = data[os.write(fd, data[:512]) :]
+
+
+def _writer(session: Session, handle: dict, gen: int, inbox: queue.SimpleQueue) -> None:
+    while session.gen == gen and session.alive:
+        try:
+            data = inbox.get(timeout=1.0)
+        except queue.Empty:
+            continue
+        if session.gen != gen:
+            break
+        try:
+            if handle["fd"] is not None:
+                _write_fd(session, handle["fd"], data.encode("utf-8"), gen)
+            elif handle["winpty"] is not None:
+                handle["winpty"].write(data)
+            elif handle["process"] is not None and handle["process"].stdin:
+                handle["process"].stdin.write(data.replace("\r", "\r\n").encode("utf-8"))
+                handle["process"].stdin.flush()
+        except (OSError, ValueError):
+            pass
 
 
 def _reap(session: Session, handle: dict, gen: int) -> None:
@@ -281,18 +316,8 @@ def get(sid: str) -> Session:
 
 
 def write(session: Session, data: str) -> None:
-    if not session.alive:
-        return
-    try:
-        if POSIX and session.fd is not None:
-            os.write(session.fd, data.encode("utf-8"))
-        elif session.winpty is not None:
-            session.winpty.write(data)
-        elif session.process is not None and session.process.stdin:
-            session.process.stdin.write(data.replace("\r", "\r\n").encode("utf-8"))
-            session.process.stdin.flush()
-    except (OSError, ValueError):
-        pass
+    if session.alive and data:
+        session.inbox.put(data)
 
 
 def resize(session: Session, cols: int, rows: int) -> None:
