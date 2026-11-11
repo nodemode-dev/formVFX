@@ -322,3 +322,11 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - What was wrong: `startAudio` checked only `this.playing` after its awaits. Stopping and starting playback again before the first `/api/audio` reply arrived (up to 120 s of float stereo, which can take a second or more), or a loop wrap while a fetch was pending, let both fetches start a source; `this.source` kept only the second, so the first played on after stop, out of sync with the picture.
 - What changed: an `audioGen` counter. `startAudio` takes a new number at its start and returns after the fetch and after `decodeAudioData` unless it is still the latest request and playback is on; `stopAudio` bumps the counter, so a fetch still in flight never starts a source.
 - Checked: `tsc --noEmit` clean. Not run in a browser.
+
+## RAM preview drops frames decoded across a purge (0.55.2)
+
+- Kind: fix. Logged: v0.55.2 · 2026-11-10. Refers to `engine/playback.ts` (`keep`, `purge`).
+- What was wrong: `keep` checked the range id before `await createImageBitmap` and nothing after it, so a frame that was being decoded when an edit purged the cache was written into the fresh cache under the new revision, and `idleFill` then treated that time as cached and played the old picture until the next edit.
+- What changed: `purge` bumps a `cacheGen` counter whenever it clears the cache; `keep` remembers the counter before the await and closes the bitmap and returns if it moved.
+- Left open: range frames rendered before an edit that are still arriving during playback (the range is not cancelled while playing) are still cached. Dropping frames whose header `rev` differs from `cacheRev` would close that, but `cacheRev` is sometimes set from the store's revision, which can lag the `changed` event, and a wrong comparison would stop playback filling its cache; that half waits for a check in the app.
+- Checked: `tsc --noEmit` clean. Not run in a browser.
