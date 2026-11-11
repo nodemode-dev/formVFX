@@ -261,8 +261,10 @@ impl Frames {
     }
     fn put(&mut self, k: (String, i64), img: Arc<Img>) {
         self.bytes += img.px.len() * 4;
-        self.map.insert(k.clone(), img);
-        self.order.push_back(k);
+        match self.map.insert(k.clone(), img) {
+            Some(old) => self.bytes -= old.px.len() * 4,
+            None => self.order.push_back(k),
+        }
         while self.bytes > FRAME_BUDGET {
             let Some(old) = self.order.pop_front() else { break };
             if let Some(i) = self.map.remove(&old) {
