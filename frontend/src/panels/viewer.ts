@@ -718,7 +718,7 @@ export class ViewerPanel implements Panel {
       const before = this.toComp(about);
       this.zoom = nz;
       const after = this.toComp(about);
-      this.pan = [this.pan[0] + (after[0] - before[0]) * nz, this.pan[1] + (after[1] - before[1]) * nz];
+      this.pan = [this.pan[0] + (after[0] - before[0]) * nz * (comp.pixelAspect || 1), this.pan[1] + (after[1] - before[1]) * nz];
     } else this.zoom = nz;
     this.requestFrame();
     this.refreshBar();

@@ -330,3 +330,10 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - What changed: `purge` bumps a `cacheGen` counter whenever it clears the cache; `keep` remembers the counter before the await and closes the bitmap and returns if it moved.
 - Left open: range frames rendered before an edit that are still arriving during playback (the range is not cancelled while playing) are still cached. Dropping frames whose header `rev` differs from `cacheRev` would close that, but `cacheRev` is sometimes set from the store's revision, which can lag the `changed` event, and a wrong comparison would stop playback filling its cache; that half waits for a check in the app.
 - Checked: `tsc --noEmit` clean. Not run in a browser.
+
+## Wheel zoom keeps the point under the pointer at any pixel aspect (0.55.2)
+
+- Kind: fix. Logged: v0.55.2 · 2026-11-10. Refers to `panels/viewer.ts` (`setZoom`).
+- What was wrong: the pan correction after a zoom about a point used `(after[0] - before[0]) * zoom`, but `toComp` divides x by `zoom * pixelAspect`. In a comp with non-square pixels (anamorphic 2.0, D1 0.91) the point under the pointer slid sideways on every wheel step.
+- What changed: the x correction is also multiplied by the comp's pixel aspect (1 when unset); y is unchanged.
+- Checked: a scratch script with the viewer's `origin` and `toComp` maths (pixel aspect 2, zoom 0.25 to 0.5 about (800, 100)) gives the same comp point before and after; `tsc --noEmit` clean. Not run in a browser.
