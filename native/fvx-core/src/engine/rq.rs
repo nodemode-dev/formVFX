@@ -912,7 +912,7 @@ fn crop_resize(img: &Img, m: &OutputModule) -> Img {
         let (kx, ky) = (cur.w as f64 / w as f64, cur.h as f64 / h as f64);
         for y in 0..out.h {
             for x in 0..out.w {
-                let px = cur.sample((x as f64 + 0.5) * kx - 0.5, (y as f64 + 0.5) * ky - 0.5, true);
+                let px = cur.sample((x as f64 + 0.5) * kx, (y as f64 + 0.5) * ky, true);
                 out.px[(y * out.w + x) * 4..(y * out.w + x) * 4 + 4].copy_from_slice(&px);
             }
         }
