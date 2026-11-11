@@ -142,6 +142,7 @@ pub fn probe(path: &str) -> Result<Footage, String> {
         f.height = v.get("height").and_then(Json::as_u64).unwrap_or(0) as u32;
         let fr = v.get("avg_frame_rate").and_then(Json::as_str).map(rate).filter(|x| *x > 0.0).or_else(|| v.get("r_frame_rate").and_then(Json::as_str).map(rate)).unwrap_or(30.0);
         f.frame_rate = if fr > 0.0 && fr < 1000.0 { fr } else { 30.0 };
+        f.native_rate = f.frame_rate;
         f.codec = v.get("codec_name").and_then(Json::as_str).unwrap_or("").to_string();
         let vdur = v.get("duration").and_then(Json::as_str).and_then(|s| s.parse::<f64>().ok()).unwrap_or(dur);
         f.duration = if vdur > 0.0 { vdur } else { dur };
@@ -450,9 +451,10 @@ impl Media {
         }
         let (w, h) = (f.width.max(1) as usize, f.height.max(1) as usize);
         let deep = !f.transfer.is_empty();
+        let seek_fps = if f.native_rate > 0.0 { f.native_rate } else { fps };
         let reuse = matches!(dec.as_ref(), Some(d) if d.next <= n && n - d.next < 48);
         if !reuse {
-            *dec = Decoder::open(&f.path, n, fps, w, h, deep);
+            *dec = Decoder::open(&f.path, n, seek_fps, w, h, deep);
         }
         let mut last = None;
         for _ in 0..2 {
@@ -473,7 +475,7 @@ impl Media {
                 break;
             }
             if dec.is_none() {
-                *dec = Decoder::open(&f.path, (n - 1).max(0), fps, w, h, deep);
+                *dec = Decoder::open(&f.path, (n - 1).max(0), seek_fps, w, h, deep);
             } else {
                 break;
             }
