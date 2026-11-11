@@ -188,6 +188,7 @@ pub(crate) fn gemm_packed(m: usize, a: &[f32], b: &Packed, c: &mut [f32]) {
     let (k, n) = (b.k, b.n);
     let np = n / 32;
     let rem = n - np * 32;
+    #[cfg(target_arch = "x86_64")]
     let wide = has_avx512() && has_avx2();
     c.par_chunks_mut(n * 16).enumerate().for_each(|(ci, cblk)| {
         let i0 = ci * 16;
@@ -223,28 +224,16 @@ pub(crate) fn gemm_packed(m: usize, a: &[f32], b: &Packed, c: &mut [f32]) {
     let _ = m;
 }
 
+#[cfg(target_arch = "x86_64")]
 fn has_avx512() -> bool {
-    #[cfg(target_arch = "x86_64")]
-    {
-        static F: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
-        *F.get_or_init(|| is_x86_feature_detected!("avx512f"))
-    }
-    #[cfg(not(target_arch = "x86_64"))]
-    {
-        false
-    }
+    static F: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *F.get_or_init(|| is_x86_feature_detected!("avx512f"))
 }
 
+#[cfg(target_arch = "x86_64")]
 fn has_avx2() -> bool {
-    #[cfg(target_arch = "x86_64")]
-    {
-        static F: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
-        *F.get_or_init(|| is_x86_feature_detected!("avx2") && is_x86_feature_detected!("fma"))
-    }
-    #[cfg(not(target_arch = "x86_64"))]
-    {
-        false
-    }
+    static F: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *F.get_or_init(|| is_x86_feature_detected!("avx2") && is_x86_feature_detected!("fma"))
 }
 
 pub(crate) fn gemm_serial(m: usize, k: usize, n: usize, a: &[f32], b: &[f32], c: &mut [f32]) {

@@ -1,7 +1,6 @@
 use serde_json::{Value as Json, json};
 
 use crate::engine::{Engine, Res, pf, ps, pu};
-use crate::model::value::parse_color;
 use crate::model::{Item, ItemKind, LayerKind, Solid};
 
 fn target(e: &Engine, p: &Json) -> Result<u64, String> {
@@ -75,7 +74,7 @@ pub fn replace_with_placeholder(e: &mut Engine, p: &Json) -> Res {
 pub fn replace_with_solid(e: &mut Engine, p: &Json) -> Res {
     let id = target(e, p)?;
     let (w, h, _, _) = dims(e, id, p);
-    let c = p.get("color").and_then(parse_color).unwrap_or([0.5, 0.5, 0.5, 1.0]);
+    let c = super::layer::solid_color(p)?;
     forget(e, id);
     let layers = retype(e, id, LayerKind::Solid);
     let pj = e.proj();
