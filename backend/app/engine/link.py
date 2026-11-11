@@ -98,6 +98,7 @@ class _Side:
     def __init__(self, path: str):
         self.path = path
         self.mtime = -1.0
+        self.closed = False
         self._q: queue.Queue = queue.Queue()
         self._thread = threading.Thread(target=self._run, name="formvfx-link", daemon=True)
         self._thread.start()
@@ -105,23 +106,32 @@ class _Side:
     def _run(self) -> None:
         from .. import native
 
-        engine = native.module().Engine()
+        engine = failed = None
+        try:
+            engine = native.module().Engine()
+        except BaseException as exc:
+            failed = exc
         while True:
             fn, fut = self._q.get()
             if fn is None:
                 break
             if fut.set_running_or_notify_cancel():
                 try:
+                    if failed is not None:
+                        raise RpcError(f"the Live Link engine for {self.path} did not start: {failed}")
                     fut.set_result(fn(engine))
                 except BaseException as exc:
                     fut.set_exception(exc)
 
     async def call(self, fn: Callable[[Any], Any]) -> Any:
+        if self.closed:
+            raise RpcError("the linked project was closed to make room for another one; retry")
         fut: concurrent.futures.Future = concurrent.futures.Future()
         self._q.put((fn, fut))
         return await asyncio.wrap_future(fut)
 
     def stop(self) -> None:
+        self.closed = True
         self._q.put((None, None))
 
 
@@ -309,8 +319,15 @@ async def render(descriptor: dict, output: str | None = None, fmt: str = "prores
         summary = await execute("project.summary", {}, "link")
         if isinstance(summary, dict) and summary.get("dirty"):
             warnings.append("the project has unsaved changes; the render uses the saved file")
-    side = _sides.get(project) or _Side(project)
-    _sides[project] = side
+    async with _lock:
+        side = _sides.get(project)
+        if side is None:
+            side = _Side(project)
+            _sides[project] = side
+            while len(_sides) > 2:
+                _, old = _sides.popitem(last=False)
+                old.stop()
+        _sides.move_to_end(project)
     try:
         await side.call(lambda e: e.execute("file.open", json.dumps({"path": project})))
         side.mtime = os.path.getmtime(project)
