@@ -140,7 +140,11 @@ pub fn probe(path: &str) -> Result<Footage, String> {
     if let Some(v) = v {
         f.width = v.get("width").and_then(Json::as_u64).unwrap_or(0) as u32;
         f.height = v.get("height").and_then(Json::as_u64).unwrap_or(0) as u32;
-        let fr = v.get("avg_frame_rate").and_then(Json::as_str).map(rate).filter(|x| *x > 0.0).or_else(|| v.get("r_frame_rate").and_then(Json::as_str).map(rate)).unwrap_or(30.0);
+        let turn = v.get("side_data_list").and_then(Json::as_array).and_then(|l| l.iter().find_map(|s| s.get("rotation").and_then(Json::as_f64))).or_else(|| v.get("tags").and_then(|t| t.get("rotate")).and_then(Json::as_str).and_then(|s| s.trim().parse::<f64>().ok())).unwrap_or(0.0);
+        if (turn.round() as i64).rem_euclid(180) == 90 {
+            std::mem::swap(&mut f.width, &mut f.height);
+        }
+        let fr =v.get("avg_frame_rate").and_then(Json::as_str).map(rate).filter(|x| *x > 0.0).or_else(|| v.get("r_frame_rate").and_then(Json::as_str).map(rate)).unwrap_or(30.0);
         f.frame_rate = if fr > 0.0 && fr < 1000.0 { fr } else { 30.0 };
         f.native_rate = f.frame_rate;
         f.codec = v.get("codec_name").and_then(Json::as_str).unwrap_or("").to_string();
