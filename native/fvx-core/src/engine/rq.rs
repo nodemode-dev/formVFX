@@ -787,6 +787,12 @@ fn tokens(template: &str, comp: &str, m: &OutputModule, s: &RenderSettings, w: u
     out
 }
 
+pub fn first_frame(it: &RenderItem, comp_rate: f64) -> usize {
+    let src_fps = if it.settings.frame_rate > 0.0 { it.settings.frame_rate } else { comp_rate };
+    let out_fps = if it.settings.pulldown != "off" { src_fps * 5.0 / 4.0 } else { src_fps };
+    (it.start * out_fps + 1e-6).round() as usize
+}
+
 pub fn seq_path(template: &str, n: usize) -> String {
     if let (Some(a), Some(b)) = (template.find("[#"), template.rfind("#]"))
         && b > a
@@ -1320,7 +1326,7 @@ pub fn render_item(project: &Project, media: &Media, it: &RenderItem, progress: 
     let out_fps = if pulled { src_fps * 5.0 / 4.0 } else { src_fps };
     let (start, end) = (it.start, it.end.max(it.start + 1.0 / src_fps));
     let total = (((end - start) * out_fps) - 1e-6).ceil().max(1.0) as usize;
-    let n0 = (start * out_fps + 1e-6).round() as usize;
+    let n0 = first_frame(&it, comp.frame_rate);
     progress.lock().total = total;
     let r = Renderer::new(&pj, media, opts);
     let (fw, fh) = r.comp_size(&comp, it.settings.resolution);

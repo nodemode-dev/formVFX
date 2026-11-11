@@ -270,6 +270,7 @@ pub fn poll(e: &mut Engine) -> Vec<Json> {
     for (id, r) in finished {
         let msg;
         let mut actions = vec![];
+        let first = e.project.render_queue.iter().find(|x| x.id == id).map_or(0, |it| rq::first_frame(it, e.project.comp(it.comp).map_or(0.0, |c| c.frame_rate)));
         if let Some(it) = Arc::make_mut(&mut e.project).render_queue.iter_mut().find(|x| x.id == id) {
             it.fix();
             match &r {
@@ -280,7 +281,7 @@ pub fn poll(e: &mut Engine) -> Vec<Json> {
                     msg = format!("Rendered {}", paths.replace('\n', ", "));
                     for (m, path) in it.modules.iter().zip(paths.lines()) {
                         if m.post_render != "none" {
-                            actions.push((it.comp, m.post_render.clone(), path.to_string(), m.format.clone()));
+                            actions.push((it.comp, m.post_render.clone(), path.to_string(), m.format.clone(), first));
                         }
                     }
                 }
@@ -294,8 +295,8 @@ pub fn poll(e: &mut Engine) -> Vec<Json> {
             msg = String::new();
         }
         let mut imported = vec![];
-        for (comp, action, path, fmt) in actions {
-            match post_render(e, comp, &action, &path, &fmt) {
+        for (comp, action, path, fmt, first) in actions {
+            match post_render(e, comp, &action, &path, &fmt, first) {
                 Ok(v) => imported.push(v),
                 Err(err) => e.toast(&format!("Post-render action: {err}"), true),
             }
@@ -311,8 +312,8 @@ pub fn poll(e: &mut Engine) -> Vec<Json> {
     out
 }
 
-fn post_render(e: &mut Engine, comp: u64, action: &str, path: &str, fmt: &str) -> Result<Json, String> {
-    let first = if rq::is_seq(fmt) { rq::seq_path(path, e.project.comp(comp).map(|c| (c.work_area[0] * c.frame_rate + 1e-6).round() as usize).unwrap_or(0)) } else { path.to_string() };
+fn post_render(e: &mut Engine, comp: u64, action: &str, path: &str, fmt: &str, n0: usize) -> Result<Json, String> {
+    let first = if rq::is_seq(fmt) { rq::seq_path(path, n0) } else { path.to_string() };
     if action == "setProxy" {
         return super::cmd::formats::set_proxy(e, &json!({"items": [comp], "path": first}));
     }
