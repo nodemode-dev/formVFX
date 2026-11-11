@@ -48,7 +48,7 @@ type Reveal = { layers: Set<number>; test: (p: PropNode, path: string[]) => bool
 
 type TDrag =
   | { kind: 'cti' }
-  | { kind: 'bar'; layer: number; mode: 'move' | 'in' | 'out'; t0: number; applied: number; merge: string }
+  | { kind: 'bar'; layer: number; mode: 'move' | 'in' | 'out'; t0: number; in0: number; out0: number; applied: number; merge: string }
   | { kind: 'keys'; t0: number; applied: number; merge: string }
   | { kind: 'box'; x0: number; y0: number; x1: number; y1: number; add: boolean }
   | { kind: 'work'; side: 'start' | 'end' | 'both'; t0: number; a0: number; b0: number; merge: string }
@@ -1236,7 +1236,7 @@ export class TimelinePanel implements Panel {
       if (x >= x0 - 4 && x <= x1 + 4) {
         if (!l.selected) await this.ctx.run('layer.select', { layers: [l.id], toggle: e.shiftKey });
         const mode = Math.abs(x - x0) <= 5 ? 'in' : Math.abs(x - x1) <= 5 ? 'out' : 'move';
-        this.drag = { kind: 'bar', layer: l.id, mode, t0: this.xToT(x), applied: 0, merge: await this.ctx.gesture() };
+        this.drag = { kind: 'bar', layer: l.id, mode, t0: this.xToT(x), in0: l.in, out0: l.out, applied: 0, merge: await this.ctx.gesture() };
         return;
       }
     }
@@ -1289,8 +1289,8 @@ export class TimelinePanel implements Panel {
       const row = this.ctx.store.layer(d.layer);
       if (!row) return;
       if (d.mode === 'move') void this.ctx.run('layer.timing', { layers: ids, delta: step, merge: d.merge }, true);
-      else if (d.mode === 'in') void this.ctx.run('layer.timing', { layers: [d.layer], in: this.snapTime(row.in + step), merge: d.merge }, true);
-      else void this.ctx.run('layer.timing', { layers: [d.layer], out: this.snapTime(row.out + step), merge: d.merge }, true);
+      else if (d.mode === 'in') void this.ctx.run('layer.timing', { layers: [d.layer], in: this.snapTime(d.in0 + total), merge: d.merge }, true);
+      else void this.ctx.run('layer.timing', { layers: [d.layer], out: this.snapTime(d.out0 + total), merge: d.merge }, true);
     }
   }
 

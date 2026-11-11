@@ -308,3 +308,10 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - What was wrong: with a panel maximized (backtick), switching workspace, Reset Workspace, or closing or undocking the last panel of the maximized group removed that group but left `this.maximized` pointing at it and `is-maximized` on the dock, so `.fx-dock.is-maximized .fx-group:not(.is-max)` hid every group and the dock showed empty until the backtick was pressed twice.
 - What changed: `applyLayout` clears `maximized` and the dock's `is-maximized` class before it removes the groups; `close` and `move` do the same when the group they remove is the maximized one. Only the dock's class changes; no group is rebuilt.
 - Checked: `tsc --noEmit` clean. Not run in a browser.
+
+## Timeline in and out trims are absolute from the drag start (0.55.2)
+
+- Kind: fix. Logged: v0.55.2 · 2026-11-10. Refers to `panels/timeline.ts` (`tracksDown`, `dragMove`, the `bar` drag).
+- What was wrong: dragging a layer bar's in or out edge sent `row.in + step` (or `row.out + step`), where `step` is only the change since the last pointer move but `row` comes from the store, which has not yet pulled the previous `layer.timing`. On a fast drag two moves before one pull sent the same value, so increments were lost and the edge ended frames short of the pointer.
+- What changed: the `bar` drag records the layer's `in0` and `out0` at pointerdown, and each move sends `snapTime(in0 + total)` or `snapTime(out0 + total)`, absolute from the drag start like the work area drag. The `move` mode still sends a relative `delta`, which the engine applies in order.
+- Checked: `tsc --noEmit` clean. Not run in a browser.
