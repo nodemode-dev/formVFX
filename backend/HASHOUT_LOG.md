@@ -184,3 +184,10 @@ Living context for the engine service. Code carries almost no comments; the reas
 - What was wrong: `_engine` keeps at most two side engines and stops the oldest under `_lock`, but a request that already got that side (info, frame, audio for a third `.fvxlink` project at about the same time) kept calling it after the lock was released. Its call was queued behind the stop sentinel, the side thread had exited, and the future was never resolved, so the HTTP request never returned. If `Engine()` failed inside the side thread, every call to that side hung the same way. `render` created side engines outside the lock and without the cap.
 - What changed: `_Side.stop` marks the side `closed`; `call` on a closed side raises `RpcError` ("closed to make room for another one; retry") instead of queueing. Calls queued before the stop still run, because they sit ahead of the sentinel. A failed `Engine()` is kept and every call to that side fails with it. `render` takes `_lock` and applies the same two-side cap and LRU order as `_engine`.
 - Checked: a scratch harness importing `link.py` with stubbed siblings and a fake engine: a call queued before `stop` completed, a call after `stop` raised at once, and calls to a side whose `Engine()` raised failed instead of hanging. Not run against the real engine.
+
+## build_app finds the app by its product name (0.55.2)
+
+- Kind: fix. Logged: v0.55.2 · 2026-11-10. Refers to the root `build_app` (the macOS branch).
+- What was wrong: the product name became FormVFX in 4d1f93d, so Tauri bundles `FormVFX.app`, but `build_app` still looked for, staged and installed `formvfx.app`. On a case-sensitive volume the build stopped with "the build finished but .../formvfx.app is missing"; on the default APFS it installed the app as `/Applications/formvfx.app`.
+- What changed: `build_app` reads `productName` from `src-tauri/tauri.conf.json` beside `version` and uses `$name.app` for the bundle, the disk image stage and the installed copy. The disk image file name, the volume name and the Linux branch are unchanged.
+- Checked: `bash -n build_app`; the one-liner prints FormVFX here. Not run on macOS.

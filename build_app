@@ -109,16 +109,17 @@ rm -f "$tlog"
 
 bundle="$FORMVFX_ROOT/src-tauri/target/release/bundle"
 version="$("$py" -c 'import json, sys; print(json.load(open(sys.argv[1]))["version"])' src-tauri/tauri.conf.json)"
+name="$("$py" -c 'import json, sys; print(json.load(open(sys.argv[1]))["productName"])' src-tauri/tauri.conf.json)"
 
 if [ "$os" = macos ]; then
-  app="$bundle/macos/formvfx.app"
+  app="$bundle/macos/$name.app"
   [ -d "$app" ] || fx_die "the build finished but $app is missing"
   codesign --verify --deep --strict "$app" 2>/dev/null || fx_say "codesign could not verify the app; it is ad-hoc signed, so macOS may ask once before it opens"
   step "packing the disk image"
   mkdir -p "$bundle/dmg"
   dmg="$bundle/dmg/formvfx_${version}_$(uname -m).dmg"
   stage="$(mktemp -d)"
-  ditto "$app" "$stage/formvfx.app"
+  ditto "$app" "$stage/$name.app"
   ln -s /Applications "$stage/Applications"
   rm -f "$dmg"
   hdiutil create -quiet -volname formvfx -srcfolder "$stage" -ov -format UDZO "$dmg"
@@ -133,10 +134,10 @@ if [ "$os" = macos ]; then
       osascript -e 'tell application "formvfx" to quit' >/dev/null 2>&1 || true
       sleep 2
     fi
-    rm -rf "$dest/formvfx.app"
-    ditto "$app" "$dest/formvfx.app"
-    xattr -dr com.apple.quarantine "$dest/formvfx.app" 2>/dev/null || true
-    target_app="$dest/formvfx.app"
+    rm -rf "$dest/$name.app"
+    ditto "$app" "$dest/$name.app"
+    xattr -dr com.apple.quarantine "$dest/$name.app" 2>/dev/null || true
+    target_app="$dest/$name.app"
     fx_say "installed: $target_app"
   fi
   if [ "$open_app" = 1 ]; then open "${target_app:-$app}"; fi
