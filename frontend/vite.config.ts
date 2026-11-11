@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 
 const FRONTEND_PORT = 5250;
-const BACKEND_PORT = 8250;
+const BACKEND_PORT = Number(process.env.FORMVFX_PORT) || 8250;
 const engine = `http://127.0.0.1:${BACKEND_PORT}`;
 const proxy = {
   '/api': { target: engine, changeOrigin: true, ws: true },

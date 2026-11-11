@@ -337,3 +337,10 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - What was wrong: the pan correction after a zoom about a point used `(after[0] - before[0]) * zoom`, but `toComp` divides x by `zoom * pixelAspect`. In a comp with non-square pixels (anamorphic 2.0, D1 0.91) the point under the pointer slid sideways on every wheel step.
 - What changed: the x correction is also multiplied by the comp's pixel aspect (1 when unset); y is unchanged.
 - Checked: a scratch script with the viewer's `origin` and `toComp` maths (pixel aspect 2, zoom 0.25 to 0.5 about (800, 100)) gives the same comp point before and after; `tsc --noEmit` clean. Not run in a browser.
+
+## The dev proxy follows FORMVFX_PORT (0.55.2)
+
+- Kind: fix. Logged: v0.55.2 · 2026-11-10. Refers to `vite.config.ts` (`BACKEND_PORT`).
+- What was wrong: `boot_backend` suggests `FORMVFX_PORT=8251` when 8250 is taken, and the engine and `boot_all` follow it, but the Vite proxy for `/api` and `/mcp` was fixed at 8250, so the interface on 5250 talked to whatever still held 8250 or failed to connect.
+- What changed: `BACKEND_PORT` is `Number(process.env.FORMVFX_PORT) || 8250`. The interface port, `strictPort` and `host: false` are unchanged.
+- Checked: loaded the config with Vite's `loadConfigFromFile`: unset gives 8250, `FORMVFX_PORT=8251` gives 8251, a non-number falls back to 8250, `server.host` stays false. Not run as a full `./formvfx` boot.
