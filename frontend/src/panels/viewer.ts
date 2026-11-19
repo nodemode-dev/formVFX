@@ -171,6 +171,7 @@ export class ViewerPanel implements Panel {
     this.buildBar();
     this.bind();
     ctx.store.watch((st) => this.onState(st));
+    document.addEventListener('nm:ui-settings-changed', () => this.draw());
     ctx.frames.onFrame = (f) => void this.onFrame(f);
     document.addEventListener(
       'pointerdown',
