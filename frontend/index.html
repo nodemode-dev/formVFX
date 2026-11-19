@@ -31,7 +31,7 @@
    and accent are on documentElement before the first paint. That is the
    entire mechanism behind "no theme flash on hard reload".
 
-   Keep the PROFILES table in sync with themes.ts (same 14 ids). Only the
+   Keep the PROFILES table in sync with themes.ts (same ids). Only the
    surface-visible vars are needed here; themes.ts re-applies everything
    once the bundle loads. The body class for light profiles is applied by a
    MutationObserver the instant body appears, still before paint. */

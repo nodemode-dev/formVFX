@@ -381,3 +381,10 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - The viewer pasteboard and the timeline ruler and tracks are canvases that read their colours when they draw, and nothing redrew them on a theme change, so after a live switch they kept the old colours until the next draw. Both panels now redraw on `nm:ui-settings-changed`. This changes the other themes too, in the right direction.
 - Checked: engine and Vite dev server on loopback ports, headless Chrome 1440 by 900, 4x CPU throttle, 150 ms and 1.6 Mbit/s, cache off. Cold load and a hard reload with `amoled` saved: 14 screenshots each from the first commit on, every corner and the centre of the page `#000000` in all. Once ready, titlebar, options bar, status bar, home, project panel, dock groups, viewer surround, timeline layer list, tracks and ruler `#000000` at four corners and the centre. A live switch Studio Dark to AMOLED Black and back (1143 elements): none added, none removed, no box moved; every surface `#000000` after the switch. Not run: the desktop window, a real OLED screen, a loaded project (the native core is not built here, so the comp area itself was not seen).
 
+## The boot table note no longer states a count (0.56.0)
+
+- Kind: fix. Logged: v0.56.0 · 2026-11-18. Refers to `index.html` (the note above the `PROFILES` table).
+- What was wrong: the note said the table matches `themes.ts` with "14 ids"; both lists hold 29 (read from `THEMES` and from the table, same names in the same order), so the number was false and would go stale at the next theme.
+- What changed: the number is gone from the note. Nothing else.
+- Checked: the ids of `THEMES` and of the `PROFILES` keys compared by a throwaway script: 29 and 29, equal.
+
