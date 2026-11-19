@@ -14,7 +14,10 @@ from pathlib import Path
 
 from .ffmpeg_record import FILES, RELEASE
 
-SOURCE = "https://github.com/nodemode-dev/formcut-binaries/releases/download"
+SOURCES = (
+    "https://github.com/nodemode-dev/formai-binaries/releases/download",
+    "https://github.com/nodemode-dev/formcut-binaries/releases/download",
+)
 DOCUMENTS = ("LGPL-2.1.txt", "THIRD-PARTY-NOTICES.txt", "ffmpeg-licence.json")
 
 log = logging.getLogger(__name__)
@@ -39,9 +42,10 @@ def folder() -> Path:
     return base / "formcut-binaries" / f"ffmpeg-{RELEASE}"
 
 
-def source() -> str:
-    base = os.environ.get("FORMCUT_FFMPEG_RELEASE") or f"{SOURCE}/ffmpeg-{RELEASE}"
-    return f"{base.rstrip('/')}/ffmpeg-lgpl-{RELEASE}-{host_triple()}.tar.gz"
+def sources() -> list[str]:
+    override = os.environ.get("FORMCUT_FFMPEG_RELEASE")
+    bases = [override] if override else [f"{base}/ffmpeg-{RELEASE}" for base in SOURCES]
+    return [f"{base.rstrip('/')}/ffmpeg-lgpl-{RELEASE}-{host_triple()}.tar.gz" for base in bases]
 
 
 def _names(program: str) -> tuple[str, str]:
@@ -137,11 +141,19 @@ def fetch() -> Path | None:
     pins = FILES.get(host_triple())
     if not pins:
         raise ValueError(f"no ffmpeg build is recorded for {host_triple()}")
-    with tempfile.TemporaryDirectory() as scratch:
-        archive = Path(scratch) / "ffmpeg.tar.gz"
-        _download(source(), archive)
-        _install(archive, pins, folder())
-    return prefer()
+    failures: list[str] = []
+    for url in sources():
+        try:
+            with tempfile.TemporaryDirectory() as scratch:
+                archive = Path(scratch) / "ffmpeg.tar.gz"
+                _download(url, archive)
+                _install(archive, pins, folder())
+        except Exception as error:
+            log.info("ffmpeg could not be taken from %s: %s", url, error)
+            failures.append(f"{url}: {error}")
+            continue
+        return prefer()
+    raise ValueError("; ".join(failures))
 
 
 def _run() -> None:
