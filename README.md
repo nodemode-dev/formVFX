@@ -114,11 +114,11 @@ Version 0.55.4 · Apache-2.0 · compositing engine: FormVFX's own, in Rust (`nat
 
 | Platform | Download | Release |
 |---|---|---|
-| macOS | [Download FormVFX for macOS](https://formai.studio/get/formvfx/macos) | [FormVFX releases on FormCompiler](https://github.com/nodemode-dev/formcompiler/releases?q=formvfx-v&expanded=true) |
-| Windows | [Download FormVFX for Windows](https://formai.studio/get/formvfx/windows) | [FormVFX releases on FormCompiler](https://github.com/nodemode-dev/formcompiler/releases?q=formvfx-v&expanded=true) |
-| Linux | [Download FormVFX for Linux](https://formai.studio/get/formvfx/linux) | [FormVFX releases on FormCompiler](https://github.com/nodemode-dev/formcompiler/releases?q=formvfx-v&expanded=true) |
+| macOS | [Download FormVFX for macOS](https://formai.studio/get/formvfx/macos) | [FormVFX releases](https://github.com/nodemode-dev/formvfx/releases) |
+| Windows | [Download FormVFX for Windows](https://formai.studio/get/formvfx/windows) | [FormVFX releases](https://github.com/nodemode-dev/formvfx/releases) |
+| Linux | [Download FormVFX for Linux](https://formai.studio/get/formvfx/linux) | [FormVFX releases](https://github.com/nodemode-dev/formvfx/releases) |
 
-All FormVFX builds are compiled and released from [FormCompiler](https://github.com/nodemode-dev/formcompiler); this repo holds the source.
+All FormVFX builds are compiled by [FormCompiler](https://github.com/nodemode-dev/formcompiler) and released on this repository's Releases page; this repo holds the source.
 
 ## Demo
 
