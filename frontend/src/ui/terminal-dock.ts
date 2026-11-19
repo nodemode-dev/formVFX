@@ -2,6 +2,7 @@ import type { FitAddon } from '@xterm/addon-fit';
 import type { Terminal } from '@xterm/xterm';
 import type { Ctx } from '../app/ctx';
 import { api, wsUrl } from '../engine/client';
+import { windowKey } from '../engine/window-key';
 import { ChatPane } from './chat-pane';
 import { el, escapeHtml, isMac, q, setClass, setDisabled, setHidden, setStyleVar, setText } from './dom';
 import { icon } from './icons';
@@ -393,6 +394,7 @@ export class TerminalDock {
     t.socket = socket;
     let opened = false;
     socket.addEventListener('open', () => {
+      socket.send(JSON.stringify({ type: 'key', key: windowKey() }));
       opened = true;
       t.tries = 0;
       t.term.reset();

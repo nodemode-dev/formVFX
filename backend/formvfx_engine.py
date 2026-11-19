@@ -85,8 +85,11 @@ def serve(headless: bool) -> None:
     os.environ["FORMVFX_PORT"] = str(port)
     from app import __version__
     from app.core import discovery
+    from app.core import window_key
     from app.main import app
 
+    if window_key.stdout_mode():
+        print(window_key.LINE + window_key.KEY, flush=True)
     print(f"Uvicorn running on http://127.0.0.1:{port}", flush=True)
     discovery.publish(f"http://127.0.0.1:{port}", __version__)
     server = uvicorn.Server(uvicorn.Config(app, log_level="warning"))

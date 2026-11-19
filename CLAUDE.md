@@ -4,7 +4,7 @@ A motion graphics and visual effects compositor in the form family beside formvi
 
 ## Two kinds of work
 
-**Making motion graphics with formvfx** (a title, an animation, an effect, a render): use the `formvfx` MCP server (`.mcp.json` runs `./formvfx mcp`, which starts the engine when needed) with the `formvfx-harness` skill in `.claude/skills/formvfx-harness`. Start with `status`, build with `batch`, look with `render_frame` and `contact_sheet`. The first change asks the person once in the formvfx window; agents started from formvfx's Terminal panel never ask.
+**Making motion graphics with formvfx** (a title, an animation, an effect, a render): use the `formvfx` MCP server (`.mcp.json` runs `./formvfx mcp`, which starts the engine when needed) with the `formvfx-harness` skill in `.claude/skills/formvfx-harness`. Start with `status`, build with `batch`, look with `render_frame` and `contact_sheet`. The first change asks the person once in the formvfx window; agents started in formvfx's Claude Code, Codex or Cursor tabs never ask, and programs run in a plain Terminal tab ask like any outside agent. Only the formvfx window holds the per-launch window key that every change through the engine needs, except `/mcp` and `/api/rpc`, where consent applies.
 
 **Changing formvfx's code**: route through `.claude/skills/formvfx-skillset/SKILL.md` (subsystem map, rules, specialists) and read the living logs `frontend/HASHOUT_LOG.md`, `backend/HASHOUT_LOG.md` and `native/fvx-core/HASHOUT_LOG.md` before editing.
 

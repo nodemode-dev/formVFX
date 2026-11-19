@@ -53,6 +53,8 @@ The engine is frozen with PyInstaller `--onefile` (`setup/freeze_backend`). Thes
 | pydantic, pydantic_core, annotated-types, annotated-doc, typing-inspection, anyio, h11, httptools, PyYAML, watchfiles | MIT |
 | uvloop | MIT or Apache-2.0 |
 | click, idna, python-dotenv, websockets | BSD-3-Clause |
+| keyring 25.7.0 (keeps the key that seals the agent allow list in the system keychain), jaraco.classes, jaraco.context, jaraco.functools, more-itertools, jeepney (Linux) | MIT |
+| SecretStorage (Linux), pywin32-ctypes (Windows), keychain access for keyring | BSD-3-Clause |
 | fvx-core (formvfx's own compositing engine) | Apache-2.0 |
 
 certifi is not installed in the engine's environment and is not frozen.

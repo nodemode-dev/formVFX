@@ -19,6 +19,7 @@ class Bus:
         self.clients: set[Client] = set()
         self._ids = itertools.count(1)
         self._replies: dict[int, asyncio.Future] = {}
+        self._asked: dict[int, set[Client]] = {}
 
     def bind(self, loop: asyncio.AbstractEventLoop) -> None:
         self.loop = loop
@@ -63,6 +64,7 @@ class Bus:
         rid = next(self._ids)
         fut: asyncio.Future = asyncio.get_running_loop().create_future()
         self._replies[rid] = fut
+        self._asked[rid] = set(windows)
         payload = {**message, "requestId": rid}
         for w in windows:
             try:
@@ -75,10 +77,11 @@ class Bus:
             return None
         finally:
             self._replies.pop(rid, None)
+            self._asked.pop(rid, None)
 
-    def answer(self, rid: int, value: dict) -> bool:
+    def answer(self, rid: int, value: dict, client: Client) -> bool:
         fut = self._replies.get(rid)
-        if fut and not fut.done():
+        if fut and not fut.done() and client.kind == "ui" and client in self._asked.get(rid, ()):
             fut.set_result(value)
             return True
         return False

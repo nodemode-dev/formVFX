@@ -3,6 +3,7 @@ import { add, apply, applyVec, dist, handles, inQuad, invert, quadHitsBox, segDi
 import type { Frame } from '../engine/frames';
 import { timecode } from '../engine/time';
 import type { Overlays, UiState } from '../engine/types';
+import { keyHeaders } from '../engine/window-key';
 import type { Panel } from '../ui/dock';
 import { el, q, setClass, setText } from '../ui/dom';
 import { icon } from '../ui/icons';
@@ -1974,7 +1975,7 @@ export class ViewerPanel implements Panel {
     if (files.length) {
       const fd = new FormData();
       for (const f of files) fd.append('files', f, f.name);
-      const res = await fetch('/api/fs/upload', { method: 'POST', body: fd, headers: { 'x-formvfx-local': '1' } });
+      const res = await fetch('/api/fs/upload', { method: 'POST', body: fd, headers: { 'x-formvfx-local': '1', ...keyHeaders() } });
       const { paths } = await res.json();
       await this.ctx.run('file.import', { paths, addToComp: true, position: c });
     }

@@ -41,4 +41,4 @@ The interface renders engine state and sends commands; it holds no editing logic
 
 ## Agents
 
-The MCP tools are a thin, well-described layer over commands (plus rendering to images). Permission is a per-boot token for agents in the Terminal panel and an ask-once dialog for the rest.
+The MCP tools are a thin, well-described layer over commands (plus rendering to images). Permission is a token of their own for agents in the Claude Code, Codex and Cursor tabs (and each Chat run), dead when the tab closes, and an ask-once dialog for the rest, answered only by the window that holds the engine's per-launch window key.

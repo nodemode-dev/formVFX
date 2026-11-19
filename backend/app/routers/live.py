@@ -5,6 +5,8 @@ import json
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from .. import __version__
+from ..agent import consent
+from ..core import window_key
 from ..engine import rpc
 from ..engine.host import host
 
@@ -15,8 +17,7 @@ _SLOW = {"frame.png", "engine.info"}
 @router.websocket("/api/live")
 async def live(socket: WebSocket) -> None:
     await socket.accept()
-    kind = socket.query_params.get("kind", "ui")
-    client = host.bus.join("ui" if kind == "ui" else "watch", socket.query_params.get("name", ""))
+    client = host.bus.join("watch", socket.query_params.get("name", ""))
 
     async def pump() -> None:
         while True:
@@ -44,9 +45,18 @@ async def live(socket: WebSocket) -> None:
                 continue
             if not isinstance(message, dict):
                 continue
+            params = message.get("params") if isinstance(message.get("params"), dict) else {}
+            if message.get("method") == "window":
+                if client.kind != "ui" and window_key.valid(params.get("key")):
+                    client.kind = "ui"
+                continue
             if message.get("method") == "reply":
-                params = message.get("params") or {}
-                host.bus.answer(int(params.get("requestId") or 0), params.get("value") or {})
+                if client.kind == "ui":
+                    with contextlib.suppress(TypeError, ValueError):
+                        host.bus.answer(int(params.get("requestId") or 0), params.get("value") or {}, client)
+                continue
+            if client.kind != "ui" and consent.mutating_rpc(message):
+                put({"jsonrpc": "2.0", "id": message.get("id"), "error": {"code": -32003, "message": window_key.REFUSED}})
                 continue
             if message.get("method") in _SLOW:
                 t = asyncio.create_task(slow(message))

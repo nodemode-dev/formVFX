@@ -131,9 +131,18 @@ def test_rpc_route_refuses_a_changing_command_with_no_window(client):
 
 
 def test_rpc_route_lets_the_window_itself_through(client):
-    body = {"jsonrpc": "2.0", "id": 6, "method": "command.execute", "params": {"command": "app.capabilities", "params": {}}}
-    out = client.post("/api/rpc", json=body, headers={**LOCAL_HEADER, "x-formvfx-source": "ui"}).json()
+    from app.core import window_key
+
+    body = {"jsonrpc": "2.0", "id": 6, "method": "command.execute", "params": {"command": "comp.new", "params": {"name": "Window"}}}
+    out = client.post("/api/rpc", json=body, headers={**LOCAL_HEADER, window_key.HEADER: window_key.KEY}).json()
     assert "error" not in out
+
+
+def test_rpc_route_does_not_take_a_window_claim_without_the_key(client):
+    body = {"jsonrpc": "2.0", "id": 7, "method": "command.execute", "params": {"command": "comp.new", "params": {"name": "Claimed"}}}
+    out = client.post("/api/rpc", json=body, headers={**LOCAL_HEADER, "x-formvfx-source": "ui"}).json()
+    assert out["error"]["code"] == -32003
+    assert consent_refusals()["no_window"] in out["error"]["message"]
 
 
 def test_a_decline_blocks_the_agent_for_the_cooldown(client, window):

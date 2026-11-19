@@ -1,4 +1,5 @@
 import { Emitter } from './events';
+import { keyHeaders, windowKey } from './window-key';
 
 export const LOCAL_HEADERS: Record<string, string> = { 'x-formvfx-local': '1', 'x-formvfx-source': 'ui' };
 
@@ -45,7 +46,7 @@ export function wsUrl(path: string): string {
 
 export async function api<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
   const headers = new Headers(init.headers);
-  for (const [k, v] of Object.entries(LOCAL_HEADERS)) headers.set(k, v);
+  for (const [k, v] of Object.entries({ ...LOCAL_HEADERS, ...keyHeaders() })) headers.set(k, v);
   if (init.body && typeof init.body === 'string' && !headers.has('content-type')) headers.set('content-type', 'application/json');
   const res = await fetch(path, { ...init, headers });
   if (!res.ok) throw new RpcFailure(await res.text(), res.status);
@@ -67,6 +68,7 @@ export class Client {
     this.ws = ws;
     ws.onopen = () => {
       this.retry = 250;
+      ws.send(JSON.stringify({ method: 'window', params: { key: windowKey() } }));
     };
     ws.onmessage = (ev) => this.receive(String(ev.data));
     ws.onclose = () => {

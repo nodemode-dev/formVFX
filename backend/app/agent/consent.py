@@ -4,10 +4,10 @@ import json
 import secrets
 import time
 
-from ..core import config
+from ..core import config, seal
 from ..engine.host import host
 
-TOKEN = secrets.token_urlsafe(24)
+TOKENS: set[str] = set()
 _session: set[str] = set()
 _declined: dict[str, float] = {}
 _QUERY_IDS = {
@@ -26,16 +26,43 @@ def _store():
     return config.data_dir() / "agents.json"
 
 
-def _always() -> set[str]:
+def issue() -> str:
+    token = secrets.token_urlsafe(32)
+    TOKENS.add(token)
+    return token
+
+
+def revoke(token: str) -> None:
+    TOKENS.discard(token)
+
+
+def in_app(value: str | None) -> bool:
+    if not isinstance(value, str) or not value:
+        return False
+    return any(secrets.compare_digest(value.encode("utf-8"), t.encode("utf-8")) for t in list(TOKENS))
+
+
+def _stored() -> dict:
     try:
-        return set(json.loads(_store().read_text(encoding="utf-8")).get("allowed", []))
+        raw = json.loads(_store().read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        return set()
+        return {}
+    return raw if isinstance(raw, dict) else {}
+
+
+def _checked() -> dict:
+    stored = _stored()
+    allowed = stored.get("allowed")
+    return seal.effective({**stored, "allowed": sorted(str(a) for a in allowed) if isinstance(allowed, list) else []})
+
+
+def _always() -> set[str]:
+    return set(_checked()["allowed"])
 
 
 def _remember(client: str) -> None:
     allowed = _always() | {client}
-    _store().write_text(json.dumps({"allowed": sorted(allowed)}, indent=2), encoding="utf-8")
+    _store().write_text(json.dumps(seal.sign({"allowed": sorted(allowed)}), indent=2), encoding="utf-8")
 
 
 def forget_all() -> None:
@@ -68,11 +95,12 @@ def client_key(source: str) -> str:
 
 
 def state() -> dict:
-    return {"policy": config.agents_policy(), "session": sorted(_session), "always": sorted(_always())}
+    checked = _checked()
+    return {"policy": config.agents_policy(), "session": sorted(_session), "always": sorted(checked["allowed"]), "seal": checked["seal"], "sealBroken": checked["sealBroken"]}
 
 
 async def gate(source: str, token: str | None, mutating: bool, detail: str = "") -> str | None:
-    if token and secrets.compare_digest(token, TOKEN):
+    if in_app(token):
         return None
     policy = config.agents_policy()
     if policy == "allow" or not mutating:

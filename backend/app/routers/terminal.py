@@ -6,6 +6,7 @@ import shutil
 from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
 
 from ..agent import claude_code, terminals, workspace
+from ..core import window_key
 
 router = APIRouter(prefix="/api/terminal", tags=["terminal"])
 AGENTS = terminals.AGENTS
@@ -108,6 +109,14 @@ async def close(request: Request) -> dict:
 @router.websocket("/{sid}/ws")
 async def attach(socket: WebSocket, sid: str) -> None:
     await socket.accept()
+    try:
+        first = json.loads(await asyncio.wait_for(socket.receive_text(), 10))
+    except (asyncio.TimeoutError, ValueError, WebSocketDisconnect, RuntimeError):
+        first = None
+    if not isinstance(first, dict) or first.get("type") != "key" or not window_key.valid(first.get("key")):
+        with contextlib.suppress(Exception):
+            await socket.close(code=4403, reason=window_key.REFUSED)
+        return
     try:
         session = terminals.get(sid)
     except KeyError:

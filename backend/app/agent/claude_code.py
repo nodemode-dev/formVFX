@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import json
 import os
+import secrets
 import shlex
 import shutil
 import subprocess
 import time
 from pathlib import Path
 
+from ..core import config
 from . import consent, workspace
 
 NOTE = (
@@ -34,6 +36,7 @@ class NotInstalled(RuntimeError):
 
 _KEEP = {"CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX", "CLAUDE_CONFIG_DIR"}
 _cache: dict = {"at": 0.0, "info": None}
+_FILES: dict[str, Path] = {}
 
 
 def _candidates() -> list[Path]:
@@ -98,16 +101,42 @@ def info(fresh: bool = False) -> dict:
     return result
 
 
-def mcp_config(base_url: str) -> str:
+def mcp_config(base_url: str, token: str) -> str:
     return json.dumps({
         "mcpServers": {
             "formvfx": {
                 "type": "http",
                 "url": base_url.rstrip("/") + "/mcp",
-                "headers": {"x-formvfx-agent-token": consent.TOKEN, "x-formvfx-source": "mcp:Claude Code in formvfx"},
+                "headers": {"x-formvfx-agent-token": token, "x-formvfx-source": "mcp:Claude Code in formvfx"},
             }
         }
     })
+
+
+def issue(base_url: str) -> tuple[str, str]:
+    token = consent.issue()
+    try:
+        folder = config.data_dir() / "AgentTokens"
+        folder.mkdir(mode=0o700, parents=True, exist_ok=True)
+        path = folder / f"mcp-{secrets.token_hex(8)}.json"
+        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(mcp_config(base_url, token))
+    except BaseException:
+        consent.revoke(token)
+        raise
+    _FILES[token] = path
+    return token, str(path)
+
+
+def revoke(token: str) -> None:
+    consent.revoke(token)
+    path = _FILES.pop(token, None)
+    if path is not None:
+        try:
+            path.unlink()
+        except OSError:
+            pass
 
 
 def child_env(base: dict) -> dict:
@@ -123,11 +152,11 @@ def _wrap(cmd: list[str]) -> list[str]:
     return [shell, "-l", "-c", "exec " + shlex.join(cmd)]
 
 
-def argv(base_url: str, prompt: str | None = None, resume: str | None = None) -> list[str]:
+def argv(mcp_file: str, prompt: str | None = None, resume: str | None = None) -> list[str]:
     path = cli()
     if not path:
         raise NotInstalled(INSTALL)
-    cmd = [path, "--mcp-config", mcp_config(base_url), "--allowedTools", "mcp__formvfx", "ToolSearch", "--append-system-prompt", NOTE]
+    cmd = [path, "--mcp-config", mcp_file, "--allowedTools", "mcp__formvfx", "ToolSearch", "--append-system-prompt", NOTE]
     if resume:
         cmd += ["--resume", resume]
     if prompt:
@@ -135,13 +164,13 @@ def argv(base_url: str, prompt: str | None = None, resume: str | None = None) ->
     return _wrap(cmd)
 
 
-def headless(base_url: str, prompt: str, resume: str | None = None, note: str = NOTE) -> list[str]:
+def headless(mcp_file: str, prompt: str, resume: str | None = None, note: str = NOTE) -> list[str]:
     path = cli()
     if not path:
         raise NotInstalled(INSTALL)
     cmd = [
         path, "-p", prompt, "--output-format", "stream-json", "--verbose", "--include-partial-messages",
-        "--mcp-config", mcp_config(base_url), "--allowedTools", "mcp__formvfx", "ToolSearch", "--append-system-prompt", note,
+        "--mcp-config", mcp_file, "--allowedTools", "mcp__formvfx", "ToolSearch", "--append-system-prompt", note,
     ]
     if resume:
         cmd += ["--resume", resume]

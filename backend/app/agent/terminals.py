@@ -40,7 +40,7 @@ def environment(base_url: str) -> dict:
     ws = workspace.ensure()
     env = dict(os.environ)
     env["FORMVFX_URL"] = base_url
-    env["FORMVFX_AGENT_TOKEN"] = consent.TOKEN
+    env.pop("FORMVFX_AGENT_TOKEN", None)
     env["FORMVFX_AGENT_NAME"] = "terminal"
     env["FORMVFX_WORKSPACE"] = str(ws)
     env["PATH"] = str(ws / "bin") + os.pathsep + env.get("PATH", "")
@@ -77,6 +77,7 @@ class Session:
         self.process = None
         self.pump: threading.Thread | None = None
         self.inbox: queue.SimpleQueue = queue.SimpleQueue()
+        self.on_close: list = []
 
     def describe(self) -> dict:
         return {"id": self.id, "title": self.title, "kind": self.kind, "alive": self.alive}
@@ -347,6 +348,9 @@ def close(sid: str) -> bool:
         session.gen += 1
         session.alive = False
     _stop(session)
+    for done in session.on_close:
+        with contextlib.suppress(Exception):
+            done()
     _notify(session, session.seq, None)
     return True
 
@@ -377,12 +381,19 @@ def open_claude(base_url: str, prompt: str | None, resume: str | None, cols: int
         if running is not None:
             feed(running, prompt)
             return running
+    agent, mcp_file = claude_code.issue(base_url)
     try:
-        argv = claude_code.argv(base_url, prompt, resume)
+        argv = claude_code.argv(mcp_file, prompt, resume)
+        env = claude_code.child_env(environment(base_url))
+        session = open_session("claude", argv, env, cols, rows, "Claude Code (from Chat)" if resume else None)
     except claude_code.NotInstalled as e:
+        claude_code.revoke(agent)
         raise NotInstalled(str(e)) from e
-    env = claude_code.child_env(environment(base_url))
-    return open_session("claude", argv, env, cols, rows, "Claude Code (from Chat)" if resume else None)
+    except BaseException:
+        claude_code.revoke(agent)
+        raise
+    session.on_close.append(lambda: claude_code.revoke(agent))
+    return session
 
 
 def find_agent(binary: str) -> str | None:
@@ -408,7 +419,16 @@ def open_agent(kind: str, base_url: str, cols: int, rows: int) -> Session:
     if not path:
         raise NotInstalled(f"{TITLES[kind]} is not installed on this computer. Install it, sign in once in a terminal, then try again.")
     argv = [path] if not POSIX else login_shell() + ["-c", "exec " + shlex.join([path])]
-    return open_session(kind, argv, environment(base_url), cols, rows)
+    agent = consent.issue()
+    env = environment(base_url)
+    env["FORMVFX_AGENT_TOKEN"] = agent
+    try:
+        session = open_session(kind, argv, env, cols, rows)
+    except BaseException:
+        consent.revoke(agent)
+        raise
+    session.on_close.append(lambda: consent.revoke(agent))
+    return session
 
 
 atexit.register(close_all)

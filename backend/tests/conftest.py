@@ -66,7 +66,7 @@ def set_policy(mode):
 
 
 def inapp_token():
-    return importlib.import_module("app.agent.consent").TOKEN
+    return importlib.import_module("app.agent.consent").issue()
 
 
 _SANDBOX = Path(tempfile.mkdtemp(prefix=f"{APP_ID}-tests-"))
