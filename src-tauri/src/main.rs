@@ -128,6 +128,26 @@ fn main() {
                         }
                     }
                 }
+                let grace = std::time::Instant::now() + std::time::Duration::from_secs(10);
+                while port.is_some() && key.is_none() && std::time::Instant::now() < grace {
+                    match rx.try_recv() {
+                        Ok(CommandEvent::Stdout(bytes)) => {
+                            key = key_pattern
+                                .captures(&String::from_utf8_lossy(&bytes))
+                                .map(|found| found[1].to_string());
+                        }
+                        Ok(_) => {}
+                        Err(_) => {
+                            let _ = tauri::async_runtime::spawn_blocking(|| {
+                                std::thread::sleep(std::time::Duration::from_millis(20))
+                            })
+                            .await;
+                        }
+                    }
+                }
+                if key.is_none() {
+                    port = None;
+                }
                 match port {
                     Some(found) => {
                         let url: tauri::Url = format!("http://127.0.0.1:{found}")
