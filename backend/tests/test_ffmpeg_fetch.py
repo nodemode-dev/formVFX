@@ -95,3 +95,40 @@ def test_the_override_is_never_followed_by_the_built_in_addresses(world, monkeyp
         ffmpeg_fetch.fetch()
     assert world["asked"] == ffmpeg_fetch.sources()
     assert not world["where"].exists()
+
+
+def test_the_download_needs_no_extra_package(tmp_path, monkeypatch):
+    import http.server
+    import sys
+    import threading
+    import urllib.error
+
+    body = b"x" * (3 << 20)
+
+    class Serve(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            if self.path != "/archive.tar.gz":
+                self.send_response(404)
+                self.end_headers()
+                return
+            self.send_response(200)
+            self.send_header("content-length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args):
+            pass
+
+    monkeypatch.setitem(sys.modules, "httpx", None)
+    monkeypatch.setenv("NO_PROXY", "127.0.0.1")
+    server = http.server.HTTPServer(("127.0.0.1", 0), Serve)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    base = f"http://127.0.0.1:{server.server_address[1]}"
+    try:
+        ffmpeg_fetch._download(f"{base}/archive.tar.gz", tmp_path / "a.tar.gz")
+        assert (tmp_path / "a.tar.gz").read_bytes() == body
+        with pytest.raises(urllib.error.HTTPError):
+            ffmpeg_fetch._download(f"{base}/missing.tar.gz", tmp_path / "b.tar.gz")
+    finally:
+        server.shutdown()
+        server.server_close()

@@ -94,13 +94,14 @@ def _digest(path: Path) -> str:
 
 
 def _download(url: str, target: Path) -> None:
-    import httpx
+    import ssl
+    import urllib.request
 
-    with httpx.stream("GET", url, follow_redirects=True, timeout=120) as response:
-        response.raise_for_status()
-        with target.open("wb") as out:
-            for chunk in response.iter_bytes(1 << 20):
-                out.write(chunk)
+    context = ssl.create_default_context()
+    if sys.platform == "darwin" and os.path.isfile("/etc/ssl/cert.pem"):
+        context.load_verify_locations("/etc/ssl/cert.pem")
+    with urllib.request.urlopen(url, timeout=120, context=context) as response, target.open("wb") as out:
+        shutil.copyfileobj(response, out, 1 << 20)
 
 
 def _root(unpacked: Path, first: str) -> Path:
