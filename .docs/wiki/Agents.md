@@ -16,7 +16,7 @@ Window > Chat with Claude (Alt+Cmd or Ctrl+J) opens a chat that answers in forma
 
 - In the repository, `.mcp.json` (Claude Code), `.codex/config.toml` (Codex) and `.cursor/mcp.json` (Cursor) run `./formvfx mcp`.
 - `./formvfx agents install` (or Install in the Agents panel) adds the MCP server and the skill to your Claude Code, Codex and Cursor setup, backing up any file it changes.
-- The first change from an outside agent asks once in the formvfx window: Allow (this session), Allow Always (remembered) or Don't Allow. Reads never ask. Only the window can answer, and Forget all in the Agents panel clears the Allow Always list. `FORMVFX_AGENTS=deny` on the engine refuses every outside agent's changes without asking, including agents you chose Allow Always for; no setting skips the question. With no window open an outside agent's changes are refused, so open formvfx first, or start the agent from the Claude Code, Codex or Cursor button in formvfx.
+- The first change from an outside agent asks once in the formvfx window: Allow (this session), Allow Always (remembered) or Don't Allow. Reads never ask. Only the window can answer, and Forget all in the Agents panel clears the Allow Always list. `FORMVFX_AGENTS=deny` on the engine refuses every agent's changes without asking: outside agents, including ones you chose Allow Always for, and formvfx's own Chat and its Claude Code, Codex and Cursor tabs. You still edit in the window, agents can still read, and no setting skips the question. With no window open an outside agent's changes are refused, so open formvfx first, or start the agent from the Claude Code, Codex or Cursor button in formvfx.
 
 ## The tools
 

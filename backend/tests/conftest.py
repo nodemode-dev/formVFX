@@ -57,7 +57,7 @@ def tool_catalogue():
 def consent_refusals():
     return {
         "no_window": "No formvfx window is open to ask the person for permission",
-        "deny": "Outside agents are turned off",
+        "deny": "Agents are turned off in this formvfx",
     }
 
 

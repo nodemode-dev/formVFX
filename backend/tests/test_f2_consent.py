@@ -113,9 +113,12 @@ def test_inapp_token_skips_the_ask(client):
     assert not reply["result"].get("isError")
 
 
-def test_inapp_token_skips_a_deny_policy(client):
+def test_a_deny_policy_stops_the_apps_own_tabs_too(client):
     set_policy("deny")
-    assert not refused(call(client, CHANGING_TOOL, {TOKEN_HEADER: inapp_token()}), "deny")
+    token = {TOKEN_HEADER: inapp_token()}
+    reply = call(client, CHANGING_TOOL, token)
+    assert refused(reply, "deny") and reply["result"].get("isError")
+    assert not refused(call(client, READ_TOOL, token), "deny")
 
 
 @pytest.mark.parametrize("token", ["", "wrong-token", "x" * 64])

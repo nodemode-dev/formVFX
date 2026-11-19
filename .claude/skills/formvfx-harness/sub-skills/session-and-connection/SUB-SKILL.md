@@ -24,7 +24,7 @@ description: How an agent reaches formvfx. Use when the formvfx MCP server or it
 
 - Reads (status, get_comp, get_layer, render_frame, contact_sheet, list_commands and every query command) never ask.
 - The first change from an outside agent opens a dialog in the formvfx window: **Allow** (this session), **Allow Always** (remembered), **Don't Allow**. Tell the person a prompt is waiting in formvfx when you make the first change.
-- `FORMVFX_AGENTS=deny` on the engine refuses outside agents' changes without asking, even from one the person set to Allow Always; agents started with formvfx's own Claude Code, Codex or Cursor buttons still work. Nothing else changes the policy: there is no setting that skips the question, so an outside agent with no window open cannot change anything; the person opens formvfx, or starts the agent from one of those buttons.
+- `FORMVFX_AGENTS=deny` on the engine refuses every agent's changes without asking, even from one the person set to Allow Always, and also from formvfx's own Chat and its Claude Code, Codex and Cursor tabs; reads still work. Nothing else changes the policy: there is no setting that skips the question, so an outside agent with no window open cannot change anything; the person opens formvfx, or starts the agent from formvfx's Claude Code, Codex or Cursor button.
 - The Agents panel shows who is allowed and can forget them.
 
 ## When something is wrong
@@ -35,7 +35,7 @@ description: How an agent reaches formvfx. Use when the formvfx MCP server or it
 | `No formvfx window is open to ask the person for permission` | The policy is `ask` and no window is open. Ask the person to open formvfx (or start the agent from its Claude Code, Codex or Cursor button), then retry. |
 | `something is listening on ... but does not answer` | A process holds the engine's port and does not answer. No second engine was started. Ask the person to stop that process (the message names the `lsof` line) or set `FORMVFX_PORT`. |
 | `Nobody answered the permission request` | The dialog timed out. Ask the person to answer it in the formvfx window. |
-| `Outside agents are turned off (FORMVFX_AGENTS=deny)` | Only agents started with formvfx's own Claude Code, Codex or Cursor buttons may edit. Suggest starting the agent from one of them. |
+| `Agents are turned off in this formvfx (FORMVFX_AGENTS=deny)` | No agent may edit, formvfx's own Chat and agent tabs included. Tell the person; they make the change in the window, or start formvfx again without that setting. |
 | `The formvfx engine stopped answering` | The engine exited or is busy past the timeout. `status` again; if it fails, ask the person to restart formvfx. |
 
 Background work (renders started with `wait: false`, tracking, roto, Selection-Aware-Fill, the watch folder, footage checks) is listed by `jobs.list`, waited for with `jobs.wait {timeout}` and stopped with `jobs.cancel {job}`. `editor.state` gives the whole editor at once (selection, open comps, Footage panel, jobs, undo). When a feature misbehaves on the person's machine, `help.systemReport {quiet: true}` checks FFmpeg, the GPU and the data folder, and `help.enableLogging {on: true}` records every command with its result in `logs/formvfx.log`.

@@ -23,6 +23,8 @@ _READ_RPC = {"command.list", "command.describe", "ui.state", "ui.overlays", "ui.
 ASK_SECONDS = 180
 ANSWERS = ["deny", "once", "session", "always"]
 SCOPE = "agent"
+BLOCKED = ("Agents are turned off in this formvfx (FORMVFX_AGENTS=deny), its own Chat and agent tabs included. "
+           "Tell the person: they can make the change in the window, or start formvfx again without that setting.")
 _PLAIN = {"cli": "The formvfx command line", "terminal": "A program in a formvfx terminal tab"}
 
 
@@ -134,13 +136,12 @@ def state() -> dict:
 
 
 async def gate(source: str, token: str | None, mutating: bool, detail: str = "", what: str = "") -> str | None:
-    if in_app(token):
-        return None
-    policy = config.agents_policy()
     if not mutating:
         return None
-    if policy == "deny":
-        return "Outside agents are turned off (FORMVFX_AGENTS=deny). Start the agent from formvfx's Terminal panel instead."
+    if config.agents_policy() == "deny":
+        return BLOCKED
+    if in_app(token):
+        return None
     key = client_key(source)
     if key in _session or key in _always():
         return None
