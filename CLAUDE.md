@@ -25,7 +25,7 @@ A motion graphics and visual effects compositor in the form family beside formvi
 
 ## After changing the MCP tools or the engine's commands
 
-Run `./formvfx agents sync` so `.claude/skills/formvfx-harness/references/` and the `.agents/skills` mirror follow; `./formvfx agents sync --check` fails while they drift.
+Run `./formvfx agents sync` so `.claude/skills/formvfx-harness/references/` and the `.agents/skills` mirror follow; `./formvfx agents sync --check` fails while they drift. The same sync writes `agents/manifest.json`, the list of tools, skills and dock tabs the family spec reads; `./formvfx agents sync --manifest-only` does that part without a built engine.
 
 ## Trademarks, copyright and licences
 
