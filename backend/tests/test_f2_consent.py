@@ -95,11 +95,11 @@ def test_deny_policy_still_lets_a_read_only_tool_through(client):
     assert not call(client, READ_TOOL)["result"].get("isError")
 
 
-def test_allow_policy_lets_a_changing_tool_through(client):
+def test_allow_policy_no_longer_skips_the_ask(client):
     set_policy("allow")
     reply = call(client, CHANGING_TOOL)
-    assert not refused(reply, "no_window")
-    assert not reply["result"].get("isError")
+    assert refused(reply, "no_window")
+    assert reply["result"].get("isError")
 
 
 def test_unknown_policy_value_falls_back_to_ask(client):

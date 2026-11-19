@@ -72,5 +72,4 @@ def cors_origins() -> list[str]:
 
 
 def agents_policy() -> str:
-    value = os.environ.get("FORMVFX_AGENTS", "ask").strip().lower()
-    return value if value in ("ask", "allow", "deny") else "ask"
+    return "deny" if os.environ.get("FORMVFX_AGENTS", "").strip().lower() == "deny" else "ask"

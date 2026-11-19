@@ -23,7 +23,7 @@ description: How an agent reaches formvfx. Use when the formvfx MCP server or it
 
 - Reads (status, get_comp, get_layer, render_frame, contact_sheet, list_commands and every query command) never ask.
 - The first change from an outside agent opens a dialog in the formvfx window: **Allow** (this session), **Allow Always** (remembered), **Don't Allow**. Tell the person a prompt is waiting in formvfx when you make the first change.
-- `FORMVFX_AGENTS` on the engine sets the policy: `ask` (default), `allow` (never ask) or `deny` (refuse outside agents; Terminal agents still work). The engine reads it when it starts, so setting it in the agent's own shell changes nothing for an engine that is already running. For headless work with no window: `FORMVFX_AGENTS=allow ./formvfx serve` in the formvfx folder (an engine the command line or `./formvfx mcp` starts inherits the variable from that shell).
+- `FORMVFX_AGENTS=deny` on the engine refuses outside agents (Terminal agents still work). Nothing else changes the policy: there is no setting that skips the question, so an outside agent with no window open cannot change anything; start the agent from the Terminal panel.
 - The Agents panel shows who is allowed and can forget them.
 
 ## When something is wrong
@@ -31,7 +31,7 @@ description: How an agent reaches formvfx. Use when the formvfx MCP server or it
 | Message | What to do |
 | --- | --- |
 | `The formvfx engine is not running and could not be started` | Ask the person to run `./formvfx boot` in the formvfx folder or open the desktop app, then retry. |
-| `No formvfx window is open to ask the person for permission` | The policy is `ask` and no window is open. Ask the person to open formvfx (or start the agent from its Terminal panel), or, for headless work, to restart the engine with `FORMVFX_AGENTS=allow ./formvfx serve`, then retry. |
+| `No formvfx window is open to ask the person for permission` | The policy is `ask` and no window is open. Ask the person to open formvfx (or start the agent from its Terminal panel), then retry. |
 | `something is listening on ... but does not answer` | A process holds the engine's port and does not answer. No second engine was started. Ask the person to stop that process (the message names the `lsof` line) or set `FORMVFX_PORT`. |
 | `Nobody answered the permission request` | The dialog timed out. Ask the person to answer it in the formvfx window. |
 | `Outside agents are turned off (FORMVFX_AGENTS=deny)` | Only Terminal agents may edit. Suggest starting the agent from the Terminal panel. |
