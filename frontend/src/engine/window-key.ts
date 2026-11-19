@@ -19,6 +19,15 @@ function remember(value: string): void {
   }
 }
 
+async function stillWorks(): Promise<boolean> {
+  try {
+    const res = await fetch('/api/window/check', { method: 'POST', headers: { 'x-formvfx-local': '1', [HEADER]: key } });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function loadWindowKey(): Promise<void> {
   const holder = window as unknown as { __FORMVFX_WINDOW_KEY?: unknown };
   const given = holder.__FORMVFX_WINDOW_KEY;
@@ -27,6 +36,9 @@ export async function loadWindowKey(): Promise<void> {
     key = given;
     return;
   }
+  key = remembered();
+  if (key && (await stillWorks())) return;
+  key = '';
   try {
     const res = await fetch('/api/window/key', { method: 'POST', headers: { 'x-formvfx-local': '1' } });
     const body = res.ok ? ((await res.json()) as { key?: unknown }) : {};

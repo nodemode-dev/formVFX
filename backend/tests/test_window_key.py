@@ -48,6 +48,11 @@ def test_a_wrong_window_key_is_refused_and_the_right_one_is_taken(client, keyed)
     assert client.post("/api/chat/reset", headers=keyed).status_code == 200
 
 
+def test_the_key_check_answers_only_to_the_right_key(client, keyed):
+    assert client.post("/api/window/check", headers=LOCAL_HEADER).status_code == 403
+    assert client.post("/api/window/check", headers=keyed).json() == {"ok": True}
+
+
 def test_the_development_bootstrap_answers_once_then_refuses(client, monkeypatch):
     from app.core import window_key
 

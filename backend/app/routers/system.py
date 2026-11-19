@@ -31,6 +31,11 @@ def claim_window_key() -> dict:
     return {"key": key}
 
 
+@router.post("/api/window/check")
+def check_window_key() -> dict:
+    return {"ok": True}
+
+
 @router.get("/api/system")
 def system() -> dict:
     return {
