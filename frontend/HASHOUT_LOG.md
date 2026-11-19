@@ -365,3 +365,10 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - What changed: the page takes the packaged global first, then the kept key, which it checks with `POST /api/window/check` (a route that does nothing and needs the key, so the guard answers 200 or 403); only when the kept key is missing or refused does it ask the bootstrap route. The check route is not on the open list: a request without the key is refused like any other write.
 - Checked: engine on 24000, Vite on 24050, headless Chrome. Load: one bootstrap request (200) and a write from the page answered 200. Two reloads: no bootstrap request, one check (200) each, a write answered 200 each time, `secondWindowClaim` stayed false. After an engine restart the kept key was checked (403), the bootstrap answered 200 and a write answered 200.
 
+## A changed agent permission is reported in the Agents panel (0.56.0)
+
+- Kind: fix. Logged: v0.56.0 · 2026-11-19. Refers to `src/panels/agents.ts` (`load`, the `.fx-agents-allowed` line).
+- What was wrong: when the stored Allow Always list is changed outside the app the engine ignores it and reports `sealBroken`, but the window showed nothing, so the person saw an empty list and no reason.
+- What changed: while `sealBroken` is true the Permissions line, which already exists and is rewritten in place, starts with "The saved agent permission was changed outside FormVFX, so it is back to Ask." No element is added, so nothing moves. It goes away once the person allows again, because that rewrites the sealed list. English only: the translation tables are keyed by the English text and a new string shows in English until the next translation pass (see the i18n entry above).
+- Checked: a stand-in file-backed keyring, a sealed list made through the consent gate, one name added to `agents.json` by hand, the engine and Vite started on it, the Agents panel opened in headless Chrome: the line showed the sentence followed by the usual policy text, one row high (16 px) in a 1440 pixel window. In a narrow panel the line wraps, as the policy text did before.
+
