@@ -175,3 +175,50 @@ def test_always_is_remembered_in_the_data_folder(client, window, sandbox):
     call(client, CHANGING_TOOL, agent="remembered-agent")
     stored = (sandbox / "data" / "agents.json").read_text(encoding="utf-8")
     assert "remembered-agent" in stored
+
+
+def passed_the_gate(reply):
+    text = text_of(reply)
+    return not any(said in text for said in (*consent_refusals().values(), "declined", "Nobody answered"))
+
+
+def test_allow_once_runs_that_call_and_the_next_call_asks_again(client, window):
+    from app.agent import consent
+
+    fake = window({"allow": True, "remember": "once"})
+    assert passed_the_gate(call(client, CHANGING_TOOL, agent="once-agent"))
+    assert passed_the_gate(call(client, CHANGING_TOOL, agent="once-agent"))
+    assert len(fake.asked) == 2
+    assert consent.state()["session"] == [] and consent.state()["always"] == []
+
+
+def test_the_question_says_who_asks_for_what_and_which_answers_stand(client, window):
+    import time
+
+    from app.agent import consent
+
+    fake = window({"allow": False})
+    before = time.time() * 1000
+    call(client, CHANGING_TOOL, agent="Named Agent")
+    asked = fake.asked[0]
+    assert asked["type"] == "consent" and asked["client"] == "mcp:Named Agent" and asked["detail"] == "execute"
+    assert isinstance(asked["requestId"], int)
+    assert asked["agent"] == "Named Agent" and asked["agentKey"] == "named agent"
+    assert asked["what"] == "Run the command comp.new (tool execute)"
+    assert asked["answers"] == ["deny", "once", "session", "always"] and asked["scope"] == "agent"
+    assert asked["timeoutSec"] == consent.ASK_SECONDS
+    assert before + consent.ASK_SECONDS * 1000 - 1000 <= asked["expiresAt"] <= time.time() * 1000 + consent.ASK_SECONDS * 1000
+
+
+def test_the_question_from_the_command_line_names_it_in_plain_words(client, window):
+    fake = window({"allow": True, "remember": "once"})
+    body = {"jsonrpc": "2.0", "id": 8, "method": "command.execute", "params": {"command": "comp.new", "params": {"name": "X"}}}
+    client.post("/api/rpc", json=body, headers={**LOCAL_HEADER, "x-formvfx-source": "cli"})
+    asked = fake.asked[0]
+    assert asked["agent"] == "The formvfx command line" and asked["agentKey"] == "cli"
+    assert asked["what"] == "Run the command comp.new" and asked["detail"] == ""
+
+
+def test_the_state_says_which_answers_the_engine_takes(client):
+    state = client.get("/api/agents/consent").json()
+    assert state["answers"] == ["deny", "once", "session", "always"] and state["scope"] == "agent" and state["timeoutSec"] == 180

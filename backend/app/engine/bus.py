@@ -35,6 +35,9 @@ class Bus:
     def windows(self) -> list[Client]:
         return [c for c in self.clients if c.kind == "ui"]
 
+    def ticket(self) -> int:
+        return next(self._ids)
+
     def _deliver(self, message: dict, kinds: tuple[str, ...] | None) -> None:
         for c in list(self.clients):
             if kinds and c.kind not in kinds:
@@ -61,7 +64,8 @@ class Bus:
         windows = self.windows()
         if not windows:
             return None
-        rid = next(self._ids)
+        given = message.get("requestId")
+        rid = given if isinstance(given, int) and given not in self._replies else next(self._ids)
         fut: asyncio.Future = asyncio.get_running_loop().create_future()
         self._replies[rid] = fut
         self._asked[rid] = set(windows)

@@ -123,6 +123,51 @@ def test_only_the_asked_window_can_answer_a_consent_prompt(client, key):
     consent._declined.clear()
 
 
+def _until(socket, kind):
+    while True:
+        message = json.loads(socket.receive_text())
+        if message.get("type") == kind:
+            return message
+
+
+def test_every_window_is_told_when_a_consent_request_is_answered_or_runs_out(client, key, monkeypatch):
+    from app.agent import consent
+    from app.engine.host import host
+
+    os.environ.pop("FORMVFX_AGENTS", None)
+    consent.forget_all()
+    consent._declined.clear()
+    body = {"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "execute", "arguments": {"command": "comp.new", "params": {"name": "Asked"}}}}
+    with client.websocket_connect("/api/live") as first, client.websocket_connect("/api/live") as second:
+        for window in (first, second):
+            window.receive_text()
+            window.send_text(json.dumps({"method": "window", "params": {"key": key}}))
+        deadline = time.monotonic() + 5
+        while len(host.bus.windows()) < 2 and time.monotonic() < deadline:
+            time.sleep(0.05)
+        assert len(host.bus.windows()) == 2
+        result = {}
+        worker = threading.Thread(target=lambda: result.update(reply=client.post(MCP_PATH, json=body, headers={"x-formvfx-source": "mcp:withdrawn"}).json()))
+        worker.start()
+        asked = _until(first, "consent")
+        assert _until(second, "consent")["requestId"] == asked["requestId"]
+        first.send_text(json.dumps({"method": "reply", "params": {"requestId": asked["requestId"], "value": {"allow": True, "remember": "once"}}}))
+        worker.join(10)
+        gone = {"type": "consentClosed", "requestId": asked["requestId"], "reason": "answered", "answer": "once", "agentKey": "withdrawn"}
+        assert _until(first, "consentClosed") == gone and _until(second, "consentClosed") == gone
+        monkeypatch.setattr(consent, "ASK_SECONDS", 1)
+        worker = threading.Thread(target=lambda: result.update(late=client.post(MCP_PATH, json=body, headers={"x-formvfx-source": "mcp:withdrawn"}).json()))
+        worker.start()
+        asked = _until(first, "consent")
+        assert asked["timeoutSec"] == 1
+        worker.join(10)
+        gone = {"type": "consentClosed", "requestId": asked["requestId"], "reason": "expired", "answer": None, "agentKey": "withdrawn"}
+        assert _until(first, "consentClosed") == gone and _until(second, "consentClosed") == gone
+    assert "Nobody answered" in result["late"]["result"]["content"][0]["text"]
+    consent.forget_all()
+    consent._declined.clear()
+
+
 def test_a_terminal_socket_without_the_key_is_closed(client, keyed):
     from app.agent import terminals
 

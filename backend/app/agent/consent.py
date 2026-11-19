@@ -20,6 +20,10 @@ _QUERY_IDS = {
     "essential.list", "essential.templates", "effect.plugins.list", "face.models", "file.scripts.list", "scriptui.list",
 }
 _READ_RPC = {"command.list", "command.describe", "ui.state", "ui.overlays", "ui.graph", "ui.flowchart", "text.library", "roto.objectPreview", "menu.bar", "menu.titles", "effects.catalog", "frame.png", "engine.info", "activity.list", "project.json", "link.info", "render.status", "formext.list"}
+ASK_SECONDS = 180
+ANSWERS = ["deny", "once", "session", "always"]
+SCOPE = "agent"
+_PLAIN = {"cli": "The formvfx command line", "terminal": "A program in a formvfx terminal tab"}
 
 
 def _store():
@@ -94,12 +98,42 @@ def client_key(source: str) -> str:
     return source.split(":", 1)[-1].strip().lower() or "agent"
 
 
+def agent_name(source: str) -> str:
+    name = source.split(":", 1)[-1].strip()
+    return _PLAIN.get(name.lower()) or name or "An outside agent"
+
+
+def asked_tool(name: str, args: dict) -> str:
+    command = args.get("command") if name == "execute" else None
+    return f"Run the command {command} (tool {name})" if isinstance(command, str) and command else f"Use the tool {name}"
+
+
+def asked_rpc(message) -> str:
+    calls = [m for m in (message if isinstance(message, list) else [message]) if isinstance(m, dict) and mutating_rpc(m)]
+    if not calls:
+        return ""
+    first = calls[0]
+    command = (first.get("params") or {}).get("command") if first.get("method") == "command.execute" else None
+    what = f"Run the command {command}" if isinstance(command, str) and command else f"Call {first.get('method') or 'the engine'}"
+    return what if len(calls) == 1 else f"{what} and {len(calls) - 1} more"
+
+
+def answer_of(reply: dict | None) -> str | None:
+    if not reply:
+        return None
+    if not reply.get("allow"):
+        return "deny"
+    remember = reply.get("remember")
+    return remember if remember in ("once", "always") else "session"
+
+
 def state() -> dict:
     checked = _checked()
-    return {"policy": config.agents_policy(), "session": sorted(_session), "always": sorted(checked["allowed"]), "seal": checked["seal"], "sealBroken": checked["sealBroken"]}
+    return {"policy": config.agents_policy(), "session": sorted(_session), "always": sorted(checked["allowed"]), "seal": checked["seal"], "sealBroken": checked["sealBroken"],
+            "answers": list(ANSWERS), "scope": SCOPE, "timeoutSec": ASK_SECONDS}
 
 
-async def gate(source: str, token: str | None, mutating: bool, detail: str = "") -> str | None:
+async def gate(source: str, token: str | None, mutating: bool, detail: str = "", what: str = "") -> str | None:
     if in_app(token):
         return None
     policy = config.agents_policy()
@@ -115,13 +149,23 @@ async def gate(source: str, token: str | None, mutating: bool, detail: str = "")
     if not host.bus.windows():
         return ("No formvfx window is open to ask the person for permission. Open formvfx (./formvfx boot, then http://localhost:5250, "
                 "or the desktop app) and allow this agent, or start the agent from formvfx's Terminal panel.")
-    reply = await host.bus.ask_window({"type": "consent", "client": source, "detail": detail}, timeout=180)
+    rid = host.bus.ticket()
+    request = {"type": "consent", "client": source, "detail": detail, "requestId": rid, "agent": agent_name(source), "agentKey": key,
+               "what": what or "Change the project", "answers": list(ANSWERS), "scope": SCOPE, "timeoutSec": ASK_SECONDS,
+               "expiresAt": int((time.time() + ASK_SECONDS) * 1000)}
+    reply, reason = None, "cancelled"
+    try:
+        reply = await host.bus.ask_window(request, timeout=ASK_SECONDS)
+        reason = "expired" if reply is None else "answered"
+    finally:
+        host.bus.publish({"type": "consentClosed", "requestId": rid, "reason": reason, "answer": answer_of(reply), "agentKey": key}, kinds=("ui",))
     if not reply:
         return "Nobody answered the permission request in the formvfx window. Ask the person to allow the agent there, then retry."
     if reply.get("allow"):
         if reply.get("remember") == "always":
             _remember(key)
-        _session.add(key)
+        if reply.get("remember") != "once":
+            _session.add(key)
         return None
     _declined[key] = time.monotonic() + 600
     return "The person declined edits from this agent. Ask them in chat what they want instead."
