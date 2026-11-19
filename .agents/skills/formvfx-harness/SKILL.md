@@ -15,7 +15,7 @@ These tools are the hands. This skill is the knowledge of how a motion designer 
 - A **composition** has a size, frame rate, duration, work area and background, and a stack of **layers**. Layer 1 is on top.
 - A **layer** is a solid, text, shape, null, adjustment, camera, light, footage, precomposition or 3D model. It has an in and out point, switches (visible, solo, lock, shy, 3D, motion blur, adjustment...), a blend mode, an optional parent and an optional track matte.
 - Every value a layer has is a **property** in its tree, addressed by a path: `transform/position`, `effects/#1/blurriness`, `masks/#2/feather`, `text/animators/#1/selectors/#1/offset`, `contents/trim/end`. Properties are static, keyframed or driven by an expression.
-- Every action is a **command** (about 500). Commands that change the project are undoable; `batch` makes several one step.
+- Every action is a **command** (`references/commands.md` lists them all). Commands that change the project are undoable; `batch` makes several one step.
 
 `references/concepts.md` has the details that save the most time: how layers, compositions and properties are addressed, composition time versus layer time, value formats, colours, effect point parameters, and the result each kind of command returns.
 

@@ -16,7 +16,7 @@ On Debian or Ubuntu the shell needs `libwebkit2gtk-4.1-dev build-essential libxd
 ## How it starts
 
 1. The splash window appears.
-2. The shell starts `formvfx-engine` with port 0; the engine picks a free port, prints its URL and serves the built interface from inside the binary.
+2. The shell starts `formvfx-engine` with port 0; the engine picks a free port, prints its per-launch window key and its URL, and serves the built interface from inside the binary. The shell hands the key to the main window only; if the key does not arrive within 10 seconds of the URL, the shell does not open the window.
 3. The shell opens the main window on that URL and closes the splash. Opening an `.fvxproj` file (or an `.ecproj` from an earlier release) passes it to the engine, which opens it.
 4. Quitting the app stops the engine.
 
