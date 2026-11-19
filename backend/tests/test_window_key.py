@@ -210,6 +210,60 @@ def test_a_claude_code_tab_gets_its_own_token_in_a_private_file_that_dies_with_t
     assert not consent.in_app(token)
 
 
+def _stand_in(folder, name, body):
+    script = folder / name
+    script.write_text(f"#!/bin/sh\n{body}\n")
+    script.chmod(0o755)
+    return script
+
+
+@pytest.mark.skipif(os.name == "nt", reason="the stand-ins are shell scripts")
+@pytest.mark.parametrize("kind,binary", [("codex", "codex"), ("cursor", "cursor-agent")])
+def test_a_codex_or_cursor_tab_gets_its_own_token_in_its_environment_until_the_tab_closes(client, keyed, tmp_path, monkeypatch, kind, binary):
+    from app.agent import consent, terminals
+
+    _stand_in(tmp_path, binary, "sleep 30")
+    monkeypatch.setenv("PATH", f"{tmp_path}{os.pathsep}{os.environ.get('PATH', '')}")
+    assert client.post("/api/terminal/launch", headers=LOCAL_HEADER, json={"agent": kind}).status_code == 403
+    made = client.post("/api/terminal/launch", headers=keyed, json={"agent": kind, "cols": 80, "rows": 24})
+    assert made.status_code == 200 and made.json()["kind"] == kind
+    session = terminals.get(made.json()["id"])
+    token = session.env["FORMVFX_AGENT_TOKEN"]
+    assert consent.in_app(token)
+    assert all(token not in part for part in session.argv)
+    assert client.post("/api/terminal/close", headers=keyed, json={"id": session.id}).status_code == 200
+    assert not consent.in_app(token)
+
+
+@pytest.mark.skipif(os.name == "nt", reason="the stand-ins are shell scripts")
+def test_the_exit_notice_is_a_text_frame_unless_the_socket_asks_for_typed_control_frames(client, key, keyed, tmp_path, monkeypatch):
+    from app.agent import terminals
+
+    _stand_in(tmp_path, "codex", "echo started\nread line")
+    monkeypatch.setenv("PATH", f"{tmp_path}{os.pathsep}{os.environ.get('PATH', '')}")
+    sid = client.post("/api/terminal/launch", headers=keyed, json={"agent": "codex"}).json()["id"]
+    try:
+        with client.websocket_connect(f"/api/terminal/{sid}/ws") as present, client.websocket_connect(f"/api/terminal/{sid}/ws") as typed:
+            present.send_text(json.dumps({"type": "key", "key": key}))
+            typed.send_text(json.dumps({"type": "key", "key": key, "control": "binary"}))
+            hello = typed.receive()
+            assert json.loads(hello["bytes"]) == {"type": "hello", "id": sid, "kind": "codex", "alive": True}
+            present.send_text(json.dumps({"type": "input", "data": "bye\r"}))
+            seen = {"present": [], "typed": []}
+            for name, socket in (("present", present), ("typed", typed)):
+                while True:
+                    frame = socket.receive()
+                    seen[name].append(frame)
+                    if "exit" in (frame.get("text") or "") or frame.get("bytes"):
+                        break
+            assert seen["present"][-1].get("text") == '{"type": "exit"}'
+            assert all(frame.get("bytes") is None for frame in seen["present"])
+            assert json.loads(seen["typed"][-1]["bytes"]) == {"type": "exit"}
+            assert all('"exit"' not in (frame.get("text") or "") for frame in seen["typed"])
+    finally:
+        terminals.close(sid)
+
+
 class _Keychain:
     def __init__(self):
         import keyring.backend

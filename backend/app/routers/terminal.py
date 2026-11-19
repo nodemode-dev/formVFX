@@ -5,7 +5,7 @@ import shutil
 
 from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
 
-from ..agent import claude_code, terminals, workspace
+from ..agent import claude_code, programs, terminals, workspace
 from ..core import window_key
 
 router = APIRouter(prefix="/api/terminal", tags=["terminal"])
@@ -54,6 +54,11 @@ def status() -> dict:
         "launch": AGENTS,
         "claude": claude_code.info(),
     }
+
+
+@router.get("/agents")
+def agents(fresh: bool = False) -> dict:
+    return programs.status(fresh=fresh)
 
 
 @router.get("/list")
@@ -125,16 +130,25 @@ async def attach(socket: WebSocket, sid: str) -> None:
     queue: asyncio.Queue = asyncio.Queue()
     backlog, last = session.attach(queue)
     exit_frame = json.dumps({"type": "exit"})
+    typed = first.get("control") == "binary"
+
+    async def control(frame: str) -> None:
+        if typed:
+            await socket.send_bytes(frame.encode("utf-8"))
+        else:
+            await socket.send_text(frame)
 
     async def outbound() -> None:
+        if typed:
+            await control(json.dumps({"type": "hello", "id": session.id, "kind": session.kind, "alive": session.alive}))
         if backlog:
             await socket.send_text(backlog)
         if not session.alive:
-            await socket.send_text(exit_frame)
+            await control(exit_frame)
         while True:
             seq, text = await queue.get()
             if text is None:
-                await socket.send_text(exit_frame)
+                await control(exit_frame)
                 if terminals.SESSIONS.get(sid) is not session:
                     break
             elif seq > last:
