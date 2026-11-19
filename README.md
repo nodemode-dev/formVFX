@@ -85,7 +85,7 @@
 
 ## Built for agents
 
-Claude Code starts inside the app already connected, and the command line and MCP server reach the same commands as the interface.
+Claude Code starts inside the app already connected, and the command line and MCP server reach the same commands as the interface. Outside agents and the command line ask once in the app window before they change anything.
 
 ```sh
 ./formvfx state                 # the open project, active comp, selection and time

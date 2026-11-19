@@ -59,4 +59,4 @@ Every tool result over MCP also carries `revision`, the project's change counter
 
 ## Permission
 
-The first change an outside agent makes asks the person in the formvfx window (Allow, Allow Always, Don't Allow). Agents started from formvfx's Terminal panel are trusted and never ask. Reads never ask. If no window is open to ask, the error explains how to proceed; `session-and-connection` has the details.
+The first change an outside agent makes asks the person in the formvfx window (Allow, Allow Always, Don't Allow). Agents started with formvfx's own Claude Code, Codex or Cursor buttons are trusted and never ask; the command line and a program started in a plain shell tab ask like any outside agent. Reads never ask. If no window is open to ask, the error explains how to proceed; `session-and-connection` has the details.

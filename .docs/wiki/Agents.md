@@ -4,7 +4,7 @@ formvfx exposes all of its commands to agents. Changes they make appear in the w
 
 ## In the terminal dock
 
-The terminal dock (Cmd or Ctrl+J) sits under the panels and holds tabs: shells in formvfx's agent workspace (`~/Formvfx/agent-workspace`), Claude Code tabs and one Chat tab. The robot button starts Claude Code there, and More agents starts Codex or Cursor when installed; each finds the `formvfx` MCP server and the `formvfx-harness` skill in the folder. Agents started here are trusted and never see a permission prompt. Tabs keep running while the dock is hidden, and Restart runs a tab's program again.
+The terminal dock (Cmd or Ctrl+J) sits under the panels and holds tabs: shells in formvfx's agent workspace (`~/Formvfx/agent-workspace`), Claude Code tabs and one Chat tab. The robot button starts Claude Code there, and More agents starts Codex or Cursor when installed; each finds the `formvfx` MCP server and the `formvfx-harness` skill in the folder. Agents started with the Claude Code, Codex and Cursor buttons are trusted and never see a permission prompt; a program you start yourself in a shell tab asks like any outside agent. Tabs keep running while the dock is hidden, and Restart runs a tab's program again.
 
 Window > Start Claude Code (Shift+Cmd or Ctrl+J) opens the dock with a Claude Code tab in one step; the line under the dock sends it a request in plain words. The title bar's Agent button has the same entries.
 
@@ -16,11 +16,11 @@ Window > Chat with Claude (Alt+Cmd or Ctrl+J) opens a chat that answers in forma
 
 - In the repository, `.mcp.json` (Claude Code), `.codex/config.toml` (Codex) and `.cursor/mcp.json` (Cursor) run `./formvfx mcp`.
 - `./formvfx agents install` (or Install in the Agents panel) adds the MCP server and the skill to your Claude Code, Codex and Cursor setup, backing up any file it changes.
-- The first change from an outside agent asks once in the formvfx window: Allow, Allow Always or Don't Allow. `FORMVFX_AGENTS=deny` on the engine refuses outside agents; no setting skips the question, so an agent that works with no window open is started from formvfx's Terminal panel.
+- The first change from an outside agent asks once in the formvfx window: Allow (this session), Allow Always (remembered) or Don't Allow. Reads never ask. Only the window can answer, and Forget all in the Agents panel clears the Allow Always list. `FORMVFX_AGENTS=deny` on the engine refuses every outside agent's changes without asking, including agents you chose Allow Always for; no setting skips the question. With no window open an outside agent's changes are refused, so open formvfx first, or start the agent from the Claude Code, Codex or Cursor button in formvfx.
 
 ## The tools
 
-`status`, `list_commands`, `describe_command`, `execute`, `batch`, `get_comp`, `get_layer`, `get_property`, `set_property`, `set_keyframes`, `apply_effect`, `list_effects`, `text_preset`, `shapes_from_svg`, `planar_track`, `object_matte`, `render_frame`, `contact_sheet`, `render`, `dynamic_link`, `project`, `import_files`, `history`, `ui`, `wait`, `run_script`, `guide`. The full reference is `.claude/skills/formvfx-harness/references/tools.md`.
+`status`, `list_commands`, `describe_command`, `execute`, `batch`, `get_comp`, `get_layer`, `get_property`, `set_property`, `set_keyframes`, `apply_effect`, `list_effects`, `text_preset`, `shapes_from_svg`, `planar_track`, `object_matte`, `render_frame`, `contact_sheet`, `render`, `dynamic_link`, `project`, `import_files`, `history`, `ui`, `wait`, `run_script`, `guide`, `extensions_list`, `extension_command`. The full reference is `.claude/skills/formvfx-harness/references/tools.md`.
 
 ## Command line
 
@@ -32,6 +32,8 @@ Window > Chat with Claude (Alt+Cmd or Ctrl+J) opens a chat that answers in forma
 ./formvfx batch '[{"command": "layer.newText", "params": {"text": "Hello"}}]'
 ./formvfx frame out.png --time 1.5
 ```
+
+The command line counts as an outside agent. `state`, `commands`, `describe`, `frame` and every command that only reads never ask. `exec` or `batch` with a command that changes the project, and `render`, ask once in the formvfx window like any outside agent (Allow Always covers later runs). They fail with the reason when no window is open or when `FORMVFX_AGENTS=deny` is set, so a script that changes the project needs the formvfx window open and answered first.
 
 ## The skill
 
