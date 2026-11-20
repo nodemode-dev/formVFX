@@ -1,9 +1,8 @@
 import json
+import logging
 import os
 import socket
 import sys
-import threading
-import time
 from pathlib import Path
 
 if sys.stdin is None:
@@ -34,56 +33,74 @@ def selfcheck() -> int:
     return 0 if report["ok"] else 1
 
 
-def _alive(pid: int) -> bool:
-    if os.name == "nt":
-        import ctypes
-
-        handle = ctypes.windll.kernel32.OpenProcess(0x00100000, False, pid)
-        if not handle:
-            return False
-        try:
-            return ctypes.windll.kernel32.WaitForSingleObject(handle, 0) != 0
-        finally:
-            ctypes.windll.kernel32.CloseHandle(handle)
+def leave(data) -> None:
     try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        return True
-    return True
+        from app.core import discovery, runtime
+
+        if data is not None:
+            runtime.release(data)
+        discovery.withdraw()
+    finally:
+        os._exit(0)
 
 
-def _watch_parent() -> None:
-    raw = os.environ.get("FORMVFX_PARENT_PID", "").strip()
-    if not raw.isdigit():
+def watch_shell(data) -> None:
+    from app.core import startup
+
+    shell = startup.shell_pid()
+    if shell <= 1:
         return
-    pid = int(raw)
 
-    def loop() -> None:
-        while _alive(pid):
-            time.sleep(1.0)
-        try:
-            from app.core import discovery
+    def gone() -> None:
+        logging.getLogger("formvfx").info("the app that started this engine is gone (process %s), stopping", shell)
+        leave(data)
 
-            discovery.withdraw()
-        finally:
-            os._exit(0)
-
-    threading.Thread(target=loop, name="formvfx-parent-watch", daemon=True).start()
+    startup.watch(shell, gone)
 
 
-def serve(headless: bool) -> None:
+def prepare() -> tuple[int, Path | None]:
+    from app.core import config, runtime, startup
+
+    try:
+        data = config.data_dir()
+        logs = runtime.start_logging(data).parent
+    except OSError as err:
+        print(f"formvfx cannot use its data folder: {err}", file=sys.stderr)
+        return 5, None
+    startup.keep_errors(logs)
+    log = logging.getLogger("formvfx")
+    if startup.alone():
+        beside = startup.app_beside(Path(sys.executable))
+        if beside is not None and startup.open_app(beside):
+            log.info("started without its app, so it opened %s and stopped", beside)
+            return 0, None
+        log.error("started without its app, and no app program was found near %s", sys.executable)
+        print("formvfx-engine is a part of FormVFX and serves nothing on its own. Open FormVFX instead.", file=sys.stderr)
+        return 4, None
+    try:
+        runtime.claim(data)
+    except runtime.AlreadyRunning as err:
+        log.error("%s", err)
+        print(err, file=sys.stderr)
+        return 2, None
+    return 0, data
+
+
+def serve(headless: bool) -> int:
+    port = int(os.environ.get("FORMVFX_PORT") or ("8250" if headless else "0"))
+    data = None
+    if not headless:
+        os.environ["FORMVFX_DESKTOP"] = "1"
+        code, data = prepare()
+        if data is None:
+            return code
+    watch_shell(data)
+
     import uvicorn
-
-    _watch_parent()
 
     dist = _bundle() / "frontend_dist"
     if (dist / "index.html").is_file():
         os.environ.setdefault("FORMVFX_DIST", str(dist))
-    if not headless:
-        os.environ["FORMVFX_DESKTOP"] = "1"
-    port = int(os.environ.get("FORMVFX_PORT") or ("8250" if headless else "0"))
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind(("127.0.0.1", port))
@@ -91,8 +108,11 @@ def serve(headless: bool) -> None:
     port = sock.getsockname()[1]
     os.environ["FORMVFX_PORT"] = str(port)
     from app import __version__
+    from app.core import config
     from app.core import discovery
     from app.core import window_key
+
+    config.PORT = port
     from app.main import app
 
     if window_key.stdout_mode():
@@ -100,7 +120,21 @@ def serve(headless: bool) -> None:
     print(f"Uvicorn running on http://127.0.0.1:{port}", flush=True)
     discovery.publish(f"http://127.0.0.1:{port}", __version__)
     server = uvicorn.Server(uvicorn.Config(app, log_level="warning"))
-    server.run(sockets=[sock])
+    if data is None:
+        server.run(sockets=[sock])
+        return 0
+    import signal
+
+    from app.core import runtime
+
+    runtime.start_logging(data)
+    logging.getLogger("formvfx").info("serving on http://127.0.0.1:%s", port)
+    signal.signal(signal.SIGTERM, lambda _signum, _frame: leave(data))
+    try:
+        server.run(sockets=[sock])
+    finally:
+        runtime.release(data)
+    return 0
 
 
 def main() -> int:
@@ -121,8 +155,13 @@ def main() -> int:
 
         print(native.module().gpu_probe(), flush=True)
         return 0
-    serve(headless="--headless" in args)
-    return 0
+    try:
+        return serve(headless="--headless" in args)
+    except Exception:
+        log = logging.getLogger("formvfx")
+        if log.handlers:
+            log.exception("the engine stopped on an error")
+        raise
 
 
 if __name__ == "__main__":
