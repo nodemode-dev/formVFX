@@ -183,7 +183,7 @@ export function formvfxDock(deps: DockDeps): DockAdapter {
     tabs: () => ({ builtin: ['chat', 'shell', 'claude', 'codex', 'cursor'] }),
     classes: { iconButton: 'cv-icon-btn', button: 'cv-btn', primaryButton: 'cv-btn-primary', input: 'cv-input', select: 'cv-input fx-select', note: 'cv-note' },
     t: (_key, english) => english,
-    onTheme: (handler) => window.addEventListener('nm:ui-settings-changed', handler),
+    onTheme: (handler) => document.addEventListener('nm:ui-settings-changed', handler),
     keyHeaders,
     errors: {
       message: (err) => (err instanceof EngineError ? err.message : err instanceof RpcFailure ? failText(err) : null),
@@ -266,7 +266,7 @@ export function formvfxDock(deps: DockDeps): DockAdapter {
     },
     storedChoice: {
       get: async (): Promise<StoredChoiceState> => {
-        const s = (await call<{ consent?: { policy?: string; sealBroken?: boolean } }>('/api/agents/status')).consent ?? {};
+        const s = await call<{ policy?: string; sealBroken?: boolean }>('/api/agents/consent');
         return { value: s.policy === 'deny' ? 'blocked' : 'ask', changedOutside: s.sealBroken === true };
       },
       set: async () => {
