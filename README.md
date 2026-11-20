@@ -16,7 +16,7 @@
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-Vite-3178c6?style=flat-square&logo=typescript&logoColor=white">
   <img alt="macOS, Windows, Linux" src="https://img.shields.io/badge/macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-native-2f7bf5?style=flat-square">
   <img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-3a3a3a?style=flat-square">
-  <img alt="Status: in development" src="https://img.shields.io/badge/status-in%20development-d69e2e?style=flat-square">
+  <img alt="Status: released" src="https://img.shields.io/badge/status-released-d69e2e?style=flat-square">
 </p>
 
 <p align="center">
@@ -148,7 +148,7 @@ cd formvfx
 On Windows use `formvfx.bat install` then `formvfx.bat`. The interface is on port 5250 and the engine on 8250; `FORMVFX_GPU=0` keeps rendering on the CPU.
 
 > [!IMPORTANT]
-> **Status:** in development. [`docs/PARITY.md`](docs/PARITY.md) lists where FormVFX trails the reference compositor and what it does not do yet.
+> **Status:** released. FormVFX is built and bundled for macOS, Windows and Linux and has been tested on all three. [`docs/PARITY.md`](docs/PARITY.md) lists where FormVFX trails the reference compositor and what it does not do yet.
 
 **Contributing:** branch from `main`, keep changes to source here, and leave packaging and releases to FormCompiler. See [`.docs/BRANCHING.md`](.docs/BRANCHING.md) and [`AGENTS.md`](AGENTS.md).
 
