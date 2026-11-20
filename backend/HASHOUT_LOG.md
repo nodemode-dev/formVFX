@@ -385,3 +385,11 @@ Living context for the engine service. Code carries almost no comments; the reas
 - The window that cannot be built used to close the loading window and leave the app with no window; it now shows "FormVFX could not open its window." the same way.
 - `windows-sys` 0.61.2 (the version most of the lock already uses), Windows only, the four features. The hand line in `Cargo.lock` was proved: the old lock with this `Cargo.toml` and stub sources, `cargo update --workspace --offline`, gave a lock identical to the one committed. `cargo metadata --locked --offline` resolves.
 - Seen here: the two files in a scratch crate passed `cargo check --target x86_64-pc-windows-msvc` with no error and no warning (rustc 1.97.0) and its 6 unit tests. The shell itself was not compiled and nothing ran on Windows or macOS.
+
+## The Windows engine is frozen with no console window (0.59.0)
+
+- Kind: change. Logged: 2026-11-20. Refers to `setup/freeze_backend` and `setup/freeze_backend.bat`.
+- Why: the owner's D3, the family's rule: a Windows engine is packaged with no console window, as FormWeb's is. Before, the Windows build of this engine opened a console window beside the app.
+- What changed: on Windows both scripts give PyInstaller `--noconsole` unless `FORMVFX_ENGINE_WINDOWED=0`, the opt-out for a person who wants to see the engine's console. The other systems are untouched.
+- Why this is safe here: `formvfx_engine.py` already replaces a missing standard input, output and error with the null device before anything else runs, so `--selfcheck`, `--gpu-probe` and the refusal sentences still run when there is no console; the shell reads the address and the window key through the pipes tauri-plugin-shell gives the engine, which a program with no console still has.
+- Checked: `bash -n setup/freeze_backend`, and the `.bat` by reading. No Windows build has shown it.
