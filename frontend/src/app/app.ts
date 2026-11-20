@@ -100,7 +100,7 @@ class App {
   private palette!: Palette;
   private viewer!: ViewerPanel;
   private timeline!: TimelinePanel;
-  private tdock!: TermDock;
+  private tdock!: TermDock<'antigravity'>;
   private effects!: EffectsPresetsPanel;
   private home!: HomeScreen;
   private status!: HTMLElement;
@@ -144,6 +144,7 @@ class App {
           { label: 'Chat with Claude', shortcut: 'Alt+Cmd+J', run: () => void this.tdock.show('chat') },
           { label: 'Start Codex', run: () => void this.tdock.program('codex') },
           { label: 'Start Cursor', run: () => void this.tdock.program('cursor') },
+          { label: 'Start Antigravity', run: () => void this.tdock.program('antigravity') },
           { label: 'Agents', run: () => this.dock.show('agents') },
           { label: 'Live Link', run: () => this.dock.show('dynamicLink') },
           { label: 'Command Palette...', shortcut: 'Cmd+K', run: () => void this.palette.open() },
@@ -321,6 +322,7 @@ class App {
             { label: 'Chat with Claude', shortcut: 'Alt+Cmd+J', run: () => void this.tdock.show('chat') },
             { label: 'Start Codex', run: () => void this.tdock.program('codex') },
             { label: 'Start Cursor', run: () => void this.tdock.program('cursor') },
+            { label: 'Start Antigravity', run: () => void this.tdock.program('antigravity') },
             '-',
             { label: 'Agent Workspace Layout', run: () => this.workspace('Agent') },
             { label: 'Agent Activity and Setup', run: () => this.dock.show('agents') },

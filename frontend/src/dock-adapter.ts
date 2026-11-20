@@ -1,5 +1,5 @@
 import type { Ctx } from './app/ctx';
-import type { ConsentChoice, ConsentRequest, DockAdapter, DockAgentStatus, DockChannel, DockLegacy, DockOwnChat, DockTerminal, PtyKind, StoredChoiceState } from './dock/adapter';
+import type { ConsentChoice, ConsentRequest, DockAdapter, DockAgentStatus, DockChannel, DockLegacy, DockOwnChat, DockProgramStatus, DockTerminal, PtyKind, StoredChoiceState } from './dock/adapter';
 import { api, RpcFailure, wsUrl, type ServerEvent } from './engine/client';
 import { keyHeaders, windowKey } from './engine/window-key';
 import { ChatPane } from './ui/chat-pane';
@@ -122,8 +122,10 @@ function channel(id: string): DockChannel {
 }
 
 interface TermInfo { id: string; title: string; kind?: string; alive?: boolean }
-const KINDS: PtyKind[] = ['shell', 'claude', 'codex', 'cursor'];
-const record = (info: TermInfo): DockTerminal => ({ id: info.id, title: info.title, alive: info.alive !== false, kind: KINDS.find((k) => k === info.kind) ?? 'shell' });
+const KINDS: (PtyKind | 'antigravity')[] = ['shell', 'claude', 'codex', 'cursor', 'antigravity'];
+type Told = DockProgramStatus & { finding?: string; said?: string };
+const told = (p: Told): DockProgramStatus => (p.finding !== undefined && p.finding !== 'runs' && typeof p.said === 'string' ? { ...p, note: p.said } : p);
+const record = (info: TermInfo): DockTerminal<'antigravity'> => ({ id: info.id, title: info.title, alive: info.alive !== false, kind: KINDS.find((k) => k === info.kind) ?? 'shell' });
 
 const UNNAMED = new Set(['cli', 'terminal', 'agent']);
 const CHOICES: ConsentChoice[] = ['deny', 'once', 'always'];
@@ -157,7 +159,7 @@ export interface DockDeps {
   openSettings(): void;
 }
 
-export function formvfxDock(deps: DockDeps): DockAdapter {
+export function formvfxDock(deps: DockDeps): DockAdapter<'antigravity'> {
   const client = deps.ctx.client;
   const waiting = new Set<string>();
   return {
@@ -180,7 +182,7 @@ export function formvfxDock(deps: DockDeps): DockAdapter {
     passKey: isDockKey,
     isDockChord: () => false,
     chordLabel: () => `${mod}+J`,
-    tabs: () => ({ builtin: ['chat', 'shell', 'claude', 'codex', 'cursor'] }),
+    tabs: () => ({ builtin: ['chat', 'shell', 'claude', 'codex', 'cursor', 'antigravity'] }),
     classes: { iconButton: 'cv-icon-btn', button: 'cv-btn', primaryButton: 'cv-btn-primary', input: 'cv-input', select: 'cv-input fx-select', note: 'cv-note' },
     t: (_key, english) => english,
     onTheme: (handler) => document.addEventListener('nm:ui-settings-changed', handler),
@@ -190,7 +192,7 @@ export function formvfxDock(deps: DockDeps): DockAdapter {
       kind: (err) => {
         if (err instanceof TypeError) return 'unreachable';
         if (!(err instanceof EngineError)) return null;
-        if (/not installed/i.test(err.message)) return 'notInstalled';
+        if (/not installed|was not found\. Looked in|but does not start/i.test(err.message)) return 'notInstalled';
         if (err.status === 502 || err.status === 503 || err.status === 504) return 'unreachable';
         if (err.status === 403) return 'refused';
         return (err.status === 404 || err.status === 405) && /^(Not Found|Method Not Allowed)$/i.test(err.message) ? 'oldEngine' : null;
@@ -219,7 +221,10 @@ export function formvfxDock(deps: DockDeps): DockAdapter {
       channel,
       scrollback: 8000,
     },
-    agentStatus: () => call<DockAgentStatus>('/api/terminal/agents'),
+    agentStatus: async () => {
+      const now = await call<Record<string, Told>>('/api/terminal/agents');
+      return Object.fromEntries(Object.entries(now).map(([kind, p]) => [kind, told(p)])) as DockAgentStatus<'antigravity'>;
+    },
     chat: {
       pane: (host): DockOwnChat => {
         const chat = new ChatPane(deps.ctx);

@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
-"""./formvfx agents: Claude Code, Codex and Cursor driving formvfx.
+"""./formvfx agents: Claude Code, Codex, Cursor and Antigravity driving formvfx.
 
   sync [--check] [--manifest-only]
                     regenerate the formvfx-harness skill's generated references from the engine (commands, effects,
                     property paths, MCP tools), mirror .claude/skills/formvfx-harness to .agents/skills and write
                     agents/manifest.json (what formvfx offers agents); --check exits 1 when anything drifted;
                     --manifest-only does just the manifest and needs no built engine
-  install [--dry-run] [claude|codex|cursor ...]
-                    set the clients up for this user account: the MCP server and the skill (all three by default)
+  install [--dry-run] [claude|codex|cursor|antigravity ...]
+                    set the clients up for this user account: the MCP server and the skill (all four by default;
+                    Antigravity gets the MCP server only, in ~/.gemini/config/mcp_config.json)
   status            which clients are on this computer and whether the skill is in step
 """
 
@@ -29,7 +30,7 @@ GENERATED = ("commands.md", "effects.md", "property-paths.md", "tools.md")
 SKILLS = ROOT / ".claude" / "skills"
 MANIFEST = ROOT / "agents" / "manifest.json"
 APP = "formvfx"
-DOCK = {"present": True, "positions": ["bottom", "right"], "tabs": ["chat", "terminal", "claude-code", "codex", "cursor"]}
+DOCK = {"present": True, "positions": ["bottom", "right"], "tabs": ["chat", "terminal", "claude-code", "codex", "cursor", "antigravity"]}
 DOCK_FOLDER = ROOT / "frontend" / "src" / "dock"
 LOOKUP = ROOT / "backend" / "app" / "agent" / "agent_lookup.py"
 LOOKUP_HASHES = {"1.0.0": "252ea9bb9419d4990f174f91914f09800497bc69e98f849f5643bbf4217cc3f3", "1.0.1": "62667f9b68b7d101e1896ce617240424e33b7e498c560bc79d45f0ab26c77d51"}
