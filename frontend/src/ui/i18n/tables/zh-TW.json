@@ -1827,7 +1827,7 @@
 "Start Capture": "開始捕捉",
 "Start Claude Code": "啟動 Claude Code",
 "Start Claude Code here": "在此處啟動 Claude Code",
-"Start Claude Code, Codex or Cursor in the Terminal panel: they open in formvfx's agent workspace and already know every command. From any other folder, set your account up once": "在「終端」面板中啟動 Claude Code、Codex 或 Cursor：它們會在 formvfx 的 AI 代理工作區中開啟，並已瞭解所有命令。若從其他資料夾啟動，請先設定一次帳戶",
+"Start Claude Code, Codex, Cursor or Antigravity in the Terminal panel: they open set up for formvfx and already know every command. From any other folder, set your account up once": "在「終端」面板中啟動 Claude Code、Codex、Cursor 或 Antigravity：它們開啟時已為 formvfx 設定好，並已瞭解所有命令。若從其他資料夾啟動，請先設定一次帳戶",
 "Start Cleared": "從清除狀態開始",
 "Start Codex": "啟動 Codex",
 "Start Codex here": "在此處啟動 Codex",

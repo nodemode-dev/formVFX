@@ -1827,7 +1827,7 @@
 "Start Capture": "Aloita tallennus",
 "Start Claude Code": "Käynnistä Claude Code",
 "Start Claude Code here": "Käynnistä Claude Code tässä",
-"Start Claude Code, Codex or Cursor in the Terminal panel: they open in formvfx's agent workspace and already know every command. From any other folder, set your account up once": "Käynnistä Claude Code, Codex tai Cursor Terminal-paneelissa: ne avautuvat formvfx:n agenttityötilassa ja tuntevat jo kaikki komennot. Muusta kansiosta tilisi asetetaan kerran",
+"Start Claude Code, Codex, Cursor or Antigravity in the Terminal panel: they open set up for formvfx and already know every command. From any other folder, set your account up once": "Käynnistä Claude Code, Codex, Cursor tai Antigravity Terminal-paneelissa: ne avautuvat valmiiksi formvfx:ää varten ja tuntevat jo kaikki komennot. Muusta kansiosta tilisi asetetaan kerran",
 "Start Cleared": "Aloita tyhjästä",
 "Start Codex": "Käynnistä Codex",
 "Start Codex here": "Käynnistä Codex tässä",

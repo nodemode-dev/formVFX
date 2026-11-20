@@ -1827,7 +1827,7 @@
 "Start Capture": "캡처 시작",
 "Start Claude Code": "Claude Code 시작",
 "Start Claude Code here": "여기서 Claude Code 시작",
-"Start Claude Code, Codex or Cursor in the Terminal panel: they open in formvfx's agent workspace and already know every command. From any other folder, set your account up once": "터미널 패널에서 Claude Code, Codex 또는 Cursor를 시작하십시오. 이들은 formvfx의 에이전트 작업 공간에서 열리며 모든 명령을 이미 알고 있습니다. 다른 폴더에서 시작하려면 먼저 계정을 한 번 설정하십시오",
+"Start Claude Code, Codex, Cursor or Antigravity in the Terminal panel: they open set up for formvfx and already know every command. From any other folder, set your account up once": "터미널 패널에서 Claude Code, Codex, Cursor 또는 Antigravity를 시작하십시오. 이들은 formvfx에 맞게 설정된 상태로 열리며 모든 명령을 이미 알고 있습니다. 다른 폴더에서 시작하려면 먼저 계정을 한 번 설정하십시오",
 "Start Cleared": "지운 상태로 시작",
 "Start Codex": "Codex 시작",
 "Start Codex here": "여기서 Codex 시작",

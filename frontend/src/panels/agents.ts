@@ -31,7 +31,7 @@ export class AgentsPanel implements Panel {
     this.el = el(`<div class="fx-agents">
       <section class="fx-agents-sec">
         <div class="fx-agents-h">${icon('agent', 14)}<span>Drive formvfx with an agent</span></div>
-        <p class="fx-note">Start Claude Code, Codex or Cursor in the Terminal panel: they open in formvfx's agent workspace and already know every command. From any other folder, set your account up once:</p>
+        <p class="fx-note">Start Claude Code, Codex, Cursor or Antigravity in the Terminal panel: they open set up for formvfx and already know every command. From any other folder, set your account up once:</p>
         <div class="fx-agents-row">
           <button class="cv-btn" type="button" data-install="claude">Set up Claude Code</button>
           <button class="cv-btn" type="button" data-install="codex">Set up Codex</button>

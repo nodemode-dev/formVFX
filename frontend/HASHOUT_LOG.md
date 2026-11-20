@@ -418,3 +418,11 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - Not changed: `keyHeaders` stays, the automation ids were not mapped onto the module's new `data-dock-part` names, and the channel does not report its reconnecting as a tab status (steps 2 to 4 of the move, each more than one obvious change here).
 - Checked: `tsc --noEmit` clean; every file's SHA-256 equals `MANIFEST.json`; `agents sync --manifest-only` wrote the manifest and its check passes. The engine side was seen with a stand-in `agy` (see the backend log). Not looked at in a browser: no window was opened for this change, so the fourth button, its row and the two menu items were not seen drawn, and no pixel comparison was made. Not run: Windows, macOS, the desktop shell, a production build, a real `agy`.
 
+## The Agents panel names all four agent programs (0.59.0)
+
+- Kind: fix. Logged: 2026-11-20. Refers to `src/panels/agents.ts` (the first note of the panel) and the same key in the 23 tables of `src/ui/i18n/tables/*.json`.
+- Why: the note said to start "Claude Code, Codex or Cursor" although the Terminal panel starts Antigravity too, and said they open in the agent workspace, which an Antigravity tab no longer does (it has a folder of its own since this version).
+- What changed: "Start Claude Code, Codex, Cursor or Antigravity in the Terminal panel: they open set up for formvfx and already know every command." The key of the tables changed with it, in every table at once; each translation was rewritten for the list and that clause, the rest of it kept. No native speaker has read them. The key is 180 characters, under the 240 the walker translates.
+- Found with a search for "Cursor" across `src`: the other hits name one program each (menu items, button labels). One table key, "Claude Code starts here already connected ... Codex and Cursor read the MCP server ...", is used by no source file, so nothing a person sees carries it; left as it is.
+- Checked: every table parses as JSON, `setup/lint_text.py` has no finding. Not seen in a browser in a language other than English.
+
