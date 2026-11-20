@@ -4,7 +4,7 @@ formvfx is a motion graphics and visual effects compositor: a project of footage
 
 ## The window
 
-- **Title bar** · the menus (File, Edit, Composition, Layer, Effect, Animation, View, Window, Help), the open project's name, the workspace menu, undo and redo, command search, the Agent button (the Terminal, Claude Code, Chat, Codex, Cursor and the Agent workspace) and Settings.
+- **Title bar** · the menus (File, Edit, Composition, Layer, Effect, Animation, View, Window, Help), the open project's name, the workspace menu, undo and redo, command search, the Agent button (the Terminal, Claude Code, Chat, Codex, Cursor, Antigravity and the Agent workspace) and Settings.
 - **Toolbar** · selection, hand, zoom, orbit, pan behind, the shape tools (rectangle, rounded rectangle, ellipse, polygon, star), the pen, the type tool, brush, clone stamp and eraser, Roto Paint and the puppet tools. A shape tool with a non-shape layer selected draws a mask instead.
 - **Panels** · Project, Composition (the viewer), Timeline, Effect Controls, Effects & Presets, Info, Preview, Align, Character, Paragraph, Tracker, Render Queue, Template Controls, Flowchart, History, Audio, Footage, Media Browser, Brushes, Paint, Selection-Aware-Fill, Color Scopes, Markers, Metadata, Motion Sketch, Smoother, Wiggler, Progress, Learn, Chat, Terminal, Agents and Live Link. Window > Panels opens any of them; drag a tab onto another group to dock it there, or use Undock Panel from the tab's menu; the backtick key maximises the focused panel.
 - **Workspaces** · Default, Animation, Effects, Text, Motion Tracking, Agent and Minimal (Window > Workspace or the title bar). Save Changes to this Workspace and Save as New Workspace keep your layout.

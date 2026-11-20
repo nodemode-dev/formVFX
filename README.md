@@ -48,7 +48,7 @@
     <td width="25%" valign="top"><h3>Its own engine</h3>A compositing engine written in Rust, rendering on the GPU through wgpu or on the CPU, whichever is faster for the comp.</td>
     <td width="25%" valign="top"><h3>Plug-ins that load</h3>Loads OpenFX plug-ins and sandboxed WebAssembly effect plug-ins, with their on-screen handles in the viewer.</td>
     <td width="25%" valign="top"><h3>Templates open</h3>Opens <code>.mogrt</code> templates and <code>.aep</code> projects, and keeps its own <code>.fvxproj</code> projects.</td>
-    <td width="25%" valign="top"><h3>Agent-ready</h3>The same commands from the interface, the command line and an MCP server, so Claude Code, Codex and Cursor can drive every tool.</td>
+    <td width="25%" valign="top"><h3>Agent-ready</h3>The same commands from the interface, the command line and an MCP server, so Claude Code, Codex, Cursor and Antigravity can drive every tool.</td>
   </tr>
 </table>
 
@@ -91,7 +91,7 @@ Claude Code starts inside the app already connected, and the command line and MC
 ./formvfx state                 # the open project, active comp, selection and time
 ./formvfx exec comp.list        # list the compositions
 ./formvfx render --wait         # render the Render Queue and poll until it is done
-./formvfx mcp                   # MCP server on stdio for Claude Code, Codex and Cursor
+./formvfx mcp                   # MCP server on stdio for Claude Code, Codex, Cursor and Antigravity
 ```
 
 `.mcp.json`, `.codex/config.toml` and `.cursor/mcp.json` are already wired in this repo. See [`AGENTS.md`](AGENTS.md).
