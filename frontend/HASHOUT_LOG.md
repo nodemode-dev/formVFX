@@ -433,3 +433,12 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - No translation was added: this app's language tables carry none of the panel's sentences, so the guide shows in English, as it did before.
 - Checked: `tests/test_dock_manifest.py` 9 passed; `./formvfx agents sync --check` says in step. Not seen in a browser.
 
+
+## Every FormVis token name is defined here, and the three local layers are aliases of FormVis's names
+
+- Kind: change. Logged: 2026-11-20. Refers to `src/styles/tokens.css`.
+- Why: the family's design alignment. FormVFX's shared token values already equal FormVis's (163 of 163 declarations alike against FormVis `origin/main` 94ee0022), so this is the names FormVis has and FormVFX did not, and FormVFX's own names for the same things made aliases.
+- Added with FormVis's values: `--z-under` -1, `--z-local-2` 2, `--z-local-4` 4, `--z-local-5` 5, `--cv-tabs-h` 34px, `--cv-action-blue` #3b82f6, `--cv-action-violet` #8b5cf6. None of them is used by a rule here yet; they are there so the shared panel and anything copied from FormVis resolve.
+- Made aliases, same values as before: `--z-dock-split: var(--z-local-2)`, `--z-props: var(--z-local-4)`, `--z-props-resize: var(--z-local-5)` (the same three layers: the dock split, the open Properties column, its resize edge). `--shadow-ink` and the `--fx-*` names have no FormVis counterpart and stay as they are.
+- Not changed: no rule, no literal, no layout; the accent, the font size and the z values are FormVFX's own as before.
+- Checked: the token declarations of both files compared (170 FormVis names, all defined here, no value differs). Resolved custom properties on the root in a browser, Studio Dark, Light and Midnight: 242 before, 249 after, exactly the seven names above, no value changed. Screenshots at 1440x900 of the start page and the splash page in the same three themes, before and after: byte for byte identical.
