@@ -322,3 +322,10 @@ Living context for the engine service. Code carries almost no comments; the reas
 - An autouse fixture replaces the finder's `system_folders` with an empty list, so `/usr/local/bin` and the like are not searched in the test process. An engine a test starts as its own process inherits the PATH and the shell, where the stand-ins come first.
 - The run ends with one line: how many times a stand-in was started, and with which arguments.
 - Checked by running the four agent test files with a second set of decoys first on PATH, each logging to a file outside the sandbox: that file stayed empty, and the summary line counted the sandbox's own stand-ins. Not done on Windows, where the stand-ins are not made.
+
+## The engine starts without output streams (after 0.56.0, unreleased)
+
+- Kind: fix. Logged: 2026-11-19. Refers to `formvfx_engine.py` (the lines after the standard library imports, before anything of the app is imported).
+- Why: a Windows engine built without a console has `sys.stdout`, `sys.stderr` and `sys.stdin` set to `None`. In another app of the family such an engine stopped at start; this entry is the file the packaging freezes, so the same could happen here.
+- What changed: each of the three streams that is `None` is replaced by the null device, opened as text, before any module of the app or the server is imported. A stream that exists is left alone, so a normal start prints what it printed.
+- Checked on Linux by starting `python formvfx_engine.py --headless` with all three streams closed (`>&- 2>&- <&-`), own port and data folder: with the change `/api/health` answered and the process held the null device on descriptors 0 and 1; without it the same start gave no answer. Started normally it still printed its "Uvicorn running on" line. Not run on Windows, and not as a frozen engine.

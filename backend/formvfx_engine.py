@@ -6,6 +6,13 @@ import threading
 import time
 from pathlib import Path
 
+if sys.stdin is None:
+    sys.stdin = open(os.devnull, encoding="utf-8")
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, "w", encoding="utf-8")
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, "w", encoding="utf-8")
+
 
 def _bundle() -> Path:
     return Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
