@@ -361,3 +361,9 @@ Living context for the engine service. Code carries almost no comments; the reas
 - No other shell change was needed for the engine side: the shell already gives the engine its process id in `FORMVFX_PARENT_PID`, the variable the engine watches.
 - Not compiled and not run on any system: the desktop shell cannot be built on the machine this was written on.
 - Held, for the next pass: the Windows job object (`win_job.rs`), `engine_start.rs` with the engine's last lines and exit code in the failure text, a limit on the wait for the address, and a sentence when the main window fails to build (that arm still only closes the loading window).
+
+## An engine that has ended but was not yet collected counts as gone where there is no /proc (0.59.0)
+
+- What was seen: in FormCut's macOS check, ending a leftover engine waited until the wait ran out and the start was refused with "could not stop an engine that was left running". `gone_by` asks `alive`, and `_alive_posix` asks `kill(pid, 0)`, which still answers for a process that has ended and whose parent has not collected it. Only a read of `/proc` tells such a process apart, and macOS has none. This start-up file is the same file, so it has the same fault.
+- What changed (`app/core/startup.py` :: `finished`, `gone_by`): `finished(pid)` asks `ps -o stat= -p <pid>` where there is no `/proc` (never on Windows, never on Linux) and answers true for a state that starts with `Z`. `gone_by` stops waiting when the process is not alive or is finished. `alive` is unchanged, so the watch on the app's shell starts no program.
+- Seen here, on Linux, with `PROC` pointed at a folder that does not exist: without the change `claim` raised `Busy` with the sentence above for a holder that had been ended; with it the holder is replaced. `tests/test_startup.py::test_a_holder_that_has_ended_but_was_not_collected_counts_as_gone_where_there_is_no_proc` holds that. Not run on macOS.
