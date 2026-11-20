@@ -97,6 +97,7 @@ const SKIP = [
   '.xterm', '.fx-term-host', '.fx-chat-text', '.fx-doc-name', '.fx-item-name', '.fx-name', '.fx-col-name', '.fx-ctab-name',
   '.fx-footage-name', '.fx-mb-name', '.fx-rq-name', '.fx-eg-tpl-name', '.fx-files-name', '.fx-flow-label', '.fx-rename',
   '.fx-term-cwd', '.fx-agents-mcp', '.fx-agents-ws', '.fx-act-c', '.fx-chat-model',
+  '.ft-term', '.ft-notranslate', '.ft-dock-tab-title', '.ft-consent-what',
 ].join(', ');
 const textEn = new WeakMap<Text, { en: string; shown: string }>();
 const attrEn = new WeakMap<Element, Map<string, { en: string; shown: string }>>();

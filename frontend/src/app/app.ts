@@ -22,7 +22,7 @@ import { ViewerPanel } from '../panels/viewer';
 import { askSaveChanges, Dialog } from '../ui/dialogs';
 import { buildDemo, DEMO_NAMES, DEMOS, type DemoId } from './demos';
 import { Dock, WORKSPACES } from '../ui/dock';
-import { el, escapeHtml, isMac, q, revealApp, setClass, setText } from '../ui/dom';
+import { el, q, revealApp, setClass, setText } from '../ui/dom';
 import { HomeScreen, HOME_PRESETS } from '../ui/home';
 import type { HomeItem } from '../ui/home-files';
 import { icon } from '../ui/icons';
@@ -38,7 +38,8 @@ import { ExtensionHost, type ExtensionOpen } from '../ui/extensions';
 import { FormExtHost } from '../formext/host';
 import { ExtensionsPanel } from '../panels/extensions';
 import { ShortcutEditor } from '../ui/shortcut-editor';
-import { TerminalDock } from '../ui/terminal-dock';
+import { Dock as TermDock } from '../dock/dock';
+import { formvfxDock, isDockKey } from '../dock-adapter';
 import { LearnCoach } from '../ui/learn';
 import { TemplateGallery } from '../ui/templates';
 import { applyTheme, DEFAULT_ACCENT, DEFAULT_INTENSITY, DEFAULT_THEME, saveChoice } from '../ui/themes';
@@ -99,14 +100,13 @@ class App {
   private palette!: Palette;
   private viewer!: ViewerPanel;
   private timeline!: TimelinePanel;
-  private tdock!: TerminalDock;
+  private tdock!: TermDock;
   private effects!: EffectsPresetsPanel;
   private home!: HomeScreen;
   private status!: HTMLElement;
   private toolbar!: HTMLElement;
   private wsSelect!: HTMLSelectElement;
   private revealed = false;
-  private consent: Dialog | null = null;
 
   start(): void {
     applyTheme();
@@ -127,7 +127,6 @@ class App {
       </header>
       <div class="cv-options fx-toolbar" data-automation-id="toolbar"></div>
       <main class="fx-main"></main>
-      <section class="fx-tdock" aria-label="Terminal" hidden></section>
       <footer class="cv-status fx-status"></footer>
     </div>`);
     appEl.appendChild(shell);
@@ -140,11 +139,11 @@ class App {
       savedWorkspaces: () => this.dock.savedNames(),
       after: {
         Window: [
-          { label: 'Terminal', shortcut: 'Cmd+J', run: () => void this.tdock.toggle() },
+          { label: 'Terminal', shortcut: 'Cmd+J', run: () => this.tdock.toggle() },
           { label: 'Start Claude Code', shortcut: 'Shift+Cmd+J', run: () => void this.tdock.claude() },
-          { label: 'Chat with Claude', shortcut: 'Alt+Cmd+J', run: () => void this.tdock.showChat() },
-          { label: 'Start Codex', run: () => void this.tdock.launch('codex') },
-          { label: 'Start Cursor', run: () => void this.tdock.launch('cursor') },
+          { label: 'Chat with Claude', shortcut: 'Alt+Cmd+J', run: () => void this.tdock.show('chat') },
+          { label: 'Start Codex', run: () => void this.tdock.program('codex') },
+          { label: 'Start Cursor', run: () => void this.tdock.program('cursor') },
           { label: 'Agents', run: () => this.dock.show('agents') },
           { label: 'Live Link', run: () => this.dock.show('dynamicLink') },
           { label: 'Command Palette...', shortcut: 'Cmd+K', run: () => void this.palette.open() },
@@ -170,10 +169,21 @@ class App {
     this.toolbar = q(shell, '.fx-toolbar');
     this.status = q(shell, '.fx-status');
     q(shell, '.fx-main').appendChild(this.dock.el);
-    this.tdock = new TerminalDock(q(shell, '.fx-tdock'), shell, ctx);
-    this.tdock.context = () => this.agentContext();
-    this.tdock.note = () => this.agentNote();
-    this.tdock.onLayout = () => this.dock.resized();
+    this.tdock = new TermDock(formvfxDock({
+      ctx,
+      context: () => this.agentContext(),
+      note: () => this.agentNote(),
+      fail: (message) => toast(message, 'error'),
+      claude: (prompt, resume) => void this.tdock.claude(prompt, resume),
+      isOpen: () => this.tdock.isOpen(),
+      openSettings: () => this.dock.show('agents'),
+    }));
+    this.tdock.onChange = () => this.dock.resized();
+    this.tdock.onResize = () => this.dock.resized();
+    this.tdock.root.addEventListener('focusin', () => {
+      if (this.home?.isShown && document.activeElement instanceof HTMLElement) document.activeElement.blur();
+    });
+    this.tdock.mount(shell, this.status);
     this.buildTitleTools(shell);
     this.buildToolbar();
     this.buildStatus();
@@ -207,13 +217,14 @@ class App {
     document.addEventListener(
       'keydown',
       (e) => {
-        if (e.code !== 'KeyJ' || !(isMac ? e.metaKey : e.ctrlKey)) return;
+        if (!isDockKey(e)) return;
         if (this.native?.owned.has(normalizeCombo(['Cmd', e.altKey ? 'Alt' : '', e.shiftKey ? 'Shift' : '', 'J'].filter(Boolean).join('+')))) return;
         e.preventDefault();
         e.stopPropagation();
-        if (e.altKey) void this.tdock.showChat();
+        if (e.repeat) return;
+        if (e.altKey) void this.tdock.show('chat');
         else if (e.shiftKey) void this.tdock.claude();
-        else void this.tdock.toggle();
+        else this.tdock.toggle();
       },
       true,
     );
@@ -230,14 +241,14 @@ class App {
   }
 
   private showPanel(id: string): void {
-    if (id === 'terminal') void this.tdock.show();
-    else if (id === 'chat') void this.tdock.showChat();
+    if (id === 'terminal') void this.tdock.show('shell');
+    else if (id === 'chat') void this.tdock.show('chat');
     else this.dock.show(id);
   }
 
   private workspace(name: string): void {
     this.dock.switchTo(name);
-    if (name === 'Agent') void this.tdock.claudeTab();
+    if (name === 'Agent') void this.tdock.show('claude');
   }
 
   private agentContext(): string {
@@ -305,11 +316,11 @@ class App {
         if (t === 'agent') {
           const r = b.getBoundingClientRect();
           contextMenu(r.left, r.bottom + 4, [
-            { label: 'Open Terminal', shortcut: 'Cmd+J', run: () => void this.tdock.show() },
+            { label: 'Open Terminal', shortcut: 'Cmd+J', run: () => void this.tdock.show('shell') },
             { label: 'Start Claude Code', shortcut: 'Shift+Cmd+J', run: () => void this.tdock.claude() },
-            { label: 'Chat with Claude', shortcut: 'Alt+Cmd+J', run: () => void this.tdock.showChat() },
-            { label: 'Start Codex', run: () => void this.tdock.launch('codex') },
-            { label: 'Start Cursor', run: () => void this.tdock.launch('cursor') },
+            { label: 'Chat with Claude', shortcut: 'Alt+Cmd+J', run: () => void this.tdock.show('chat') },
+            { label: 'Start Codex', run: () => void this.tdock.program('codex') },
+            { label: 'Start Cursor', run: () => void this.tdock.program('cursor') },
             '-',
             { label: 'Agent Workspace Layout', run: () => this.workspace('Agent') },
             { label: 'Agent Activity and Setup', run: () => this.dock.show('agents') },
@@ -488,7 +499,6 @@ class App {
     });
     ctx.client.events.on('toast', (ev) => toast(String(ev.message), ev.error ? 'error' : 'info'));
     ctx.client.events.on('openUrl', (ev) => window.open(String(ev.url), '_blank'));
-    ctx.client.events.on('consent', (ev) => this.askConsent(ev));
     ctx.client.events.on('uiRequest', (ev) => this.uiRequest(ev));
     ctx.client.events.on('uiAction', (ev) => {
       if (ev.action === 'tool' && typeof ev.tool === 'string') ctx.setTool(ev.tool as ToolId);
@@ -510,7 +520,7 @@ class App {
   private async paste(e: ClipboardEvent): Promise<void> {
     ctx.ui.emit('pasted', true);
     const t = e.target as HTMLElement | null;
-    if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || t?.isContentEditable || t?.closest?.('.fx-term-host, .xterm, .fx-tdock, .cv-scrim')) return;
+    if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || t?.isContentEditable || t?.closest?.('.fx-term-host, .xterm, .ft-dock, .ft-consent, .ft-tour, .cv-scrim')) return;
     if (this.viewer.isTyping) return;
     e.preventDefault();
     const d = e.clipboardData;
@@ -710,29 +720,6 @@ class App {
     d.open();
   }
 
-  private askConsent(ev: ServerEvent): void {
-    const rid = ev.requestId;
-    const who = String(ev.client ?? 'An agent').replace(/^mcp:/, '');
-    this.consent?.close();
-    const d = new Dialog('Allow an agent to edit?', 460);
-    d.scrim.dataset.automationId = 'consent';
-    d.body.appendChild(el(`<p class="fx-note"><strong>${escapeHtml(who)}</strong> wants to change this project through formvfx's tools (${escapeHtml(String(ev.detail ?? 'edit'))}). Every change is undoable. Agents you start from the terminal dock never ask.</p>`));
-    let answered = false;
-    const answer = (allow: boolean, remember: string): void => {
-      if (answered) return;
-      answered = true;
-      ctx.client.reply(rid, { allow, remember });
-      d.close();
-      d.scrim.remove();
-    };
-    d.onClose = () => answer(false, 'none');
-    d.button('Don’t Allow', 'ghost', () => answer(false, 'none'));
-    d.button('Allow Always', '', () => answer(true, 'always'));
-    d.button('Allow', 'primary', () => answer(true, 'session'));
-    this.consent = d;
-    d.open();
-  }
-
   private uiRequest(ev: ServerEvent): void {
     if (ev.what === 'extensions.list') return ctx.client.reply(ev.requestId, this.formext.agentList());
     if (ev.what === 'extensions.command') {
@@ -745,8 +732,8 @@ class App {
 
   private uiState(): Record<string, unknown> {
     const visible = this.dock.panelIds().filter((id) => this.dock.isVisible(id));
-    if (this.tdock.isOpen) visible.push('terminal');
-    if (this.tdock.chatOpen()) visible.push('chat');
+    if (this.tdock.isOpen()) visible.push('terminal');
+    if (this.tdock.isShowing('chat')) visible.push('chat');
     return {
       windows: 1,
       workspace: this.dock.workspace,

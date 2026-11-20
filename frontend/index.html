@@ -101,6 +101,22 @@
   }
 })();
   </script>
+  <script>
+(function () {
+  var root = document.documentElement, s = null, old = 0;
+  try { s = JSON.parse(localStorage.getItem('formvfx.termdock') || 'null'); old = Number(localStorage.getItem('formvfx.termdock.h')); } catch (e) { s = null; }
+  if (!s || typeof s !== 'object') s = old >= 140 ? { h: old } : {};
+  var W = window.innerWidth, H = window.innerHeight;
+  var h = Math.round(Math.max(140, Math.min(H * 0.7, typeof s.h === 'number' ? s.h : 280)));
+  var w = Math.round(Math.max(320, Math.min(W * 0.4, typeof s.w === 'number' ? s.w : 420)));
+  root.setAttribute('data-ft-dock', s.open === true ? 'open' : 'closed');
+  root.setAttribute('data-ft-dock-side', s.side === 'right' && W >= 1100 ? 'right' : 'bottom');
+  root.setAttribute('data-ft-dock-h', String(h));
+  root.setAttribute('data-ft-dock-w', String(w));
+  root.style.setProperty('--ft-dock-size', h + 'px');
+  root.style.setProperty('--ft-dock-wsize', w + 'px');
+})();
+  </script>
   <link rel="stylesheet" href="/src/styles/fonts.css">
   <link rel="stylesheet" href="/src/styles/tokens.css">
   <link rel="stylesheet" href="/src/styles/shell.css">
@@ -112,6 +128,8 @@
   <link rel="stylesheet" href="/src/styles/ux-panels.css">
   <link rel="stylesheet" href="/src/styles/ux-viewer.css">
   <link rel="stylesheet" href="/src/styles/scrollbars.css">
+  <link rel="stylesheet" href="/src/dock/dock.css">
+  <link rel="stylesheet" href="/src/styles/dock-tokens.css">
 </head>
 <body>
   <div id="app"></div>

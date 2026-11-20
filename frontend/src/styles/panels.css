@@ -444,34 +444,7 @@
    overrode the hidden attribute, so any group hidden from the Window menu still took its space). */
 .cv-group[hidden] { display: none !important; }
 
-/* The terminal dock: a full-width strip under the panel dock, tabs for shells, Claude Code and Chat, one ask line. */
-.fx-tdock { position: relative; display: grid; grid-template-rows: 34px minmax(0, 1fr) 40px; min-width: 0; min-height: 0; background: var(--surface-0); border-top: 1px solid var(--line-1); }
-.fx-tdock[hidden] { display: none; }
-.fx-tdock-rsz { position: absolute; top: -3px; left: 0; right: 0; height: 6px; cursor: row-resize; z-index: var(--z-raised); }
-.fx-tdock-rsz:hover, .fx-tdock-rsz.is-dragging { background: var(--accent-line); }
-.fx-tdock-head { display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-2); background: var(--surface-1); border-bottom: 1px solid var(--line-0); min-width: 0; }
-.fx-tdock-tabs { display: flex; align-items: center; gap: 2px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
-.fx-tdock-tabs::-webkit-scrollbar { display: none; }
-.fx-tdock-tab { display: inline-flex; align-items: center; gap: 6px; flex: none; height: 26px; padding: 0 6px 0 9px; border: 1px solid transparent; border-radius: var(--radius); background: transparent; color: var(--text-muted); font: inherit; font-size: var(--fs-12); white-space: nowrap; cursor: pointer; }
-.fx-tdock-tab:hover { color: var(--text-primary); }
-.fx-tdock-tab.is-on { border-color: var(--line-2); background: var(--surface-raised); color: var(--text-primary); }
-.fx-tdock-tab.is-agent .icon, .fx-tdock-tab.is-chat .icon { color: var(--accent-color); }
-.fx-tdock-tab-x { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: var(--radius-xs); color: var(--text-muted); }
-.fx-tdock-tab-x:hover { background: var(--surface-2); color: var(--text-primary); }
-.fx-tdock-spacer { flex: 1; }
-.fx-tdock-head .cv-icon-btn { width: 26px; height: 26px; }
-.fx-tdock-head [hidden] { display: none; }
-.fx-tdock-stage { position: relative; min-height: 0; min-width: 0; overflow: hidden; }
-.fx-tdock-term { position: absolute; inset: 6px 4px 0 10px; }
-.fx-tdock-term[hidden] { display: none; }
-.fx-tdock-term .xterm-viewport { background: transparent; }
-.fx-tdock-empty { position: absolute; inset: 0; display: grid; place-items: center; margin: 0; padding: 0 var(--space-4); text-align: center; }
-.fx-tdock-empty[hidden] { display: none; }
-.fx-tdock-ask { display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-2); background: var(--surface-1); border-top: 1px solid var(--line-0); }
-.fx-tdock-ask-mark { display: inline-grid; place-items: center; color: var(--accent-color); }
-.fx-tdock-ask-input { flex: 1; height: 28px; }
-.fx-tdock-ask .cv-icon-btn { width: 28px; height: 28px; }
-
+.fx-cp-spacer { flex: 1; }
 .fx-cp { position: absolute; inset: 0; display: grid; grid-template-rows: 30px minmax(0, 1fr); background: var(--surface-0); }
 .fx-cp[hidden] { display: none; }
 .fx-cp-bar { display: flex; align-items: center; gap: var(--space-2); padding: 0 var(--space-3); border-bottom: 1px solid var(--line-0); min-width: 0; }
