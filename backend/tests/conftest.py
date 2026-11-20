@@ -208,3 +208,11 @@ def engine():
         proc.wait(timeout=10)
     except subprocess.TimeoutExpired:
         proc.kill()
+
+
+@pytest.fixture(scope="session")
+def engine_window(engine):
+    req = urllib.request.Request(engine["base"] + "/api/window/key", data=b"", method="POST", headers=LOCAL_HEADER)
+    with urllib.request.urlopen(req, timeout=10) as r:
+        key = json.loads(r.read().decode("utf-8"))["key"]
+    return {"base": engine["base"], "headers": {**LOCAL_HEADER, "x-formvfx-window-key": key}}
