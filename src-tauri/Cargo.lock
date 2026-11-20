@@ -893,7 +893,7 @@ dependencies = [
 
 [[package]]
 name = "formvfx"
-version = "0.58.0"
+version = "0.60.0"
 dependencies = [
  "objc2",
  "objc2-app-kit",
@@ -905,6 +905,7 @@ dependencies = [
  "tauri-plugin-dialog",
  "tauri-plugin-shell",
  "tauri-plugin-updater",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

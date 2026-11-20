@@ -418,3 +418,27 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - Not changed: `keyHeaders` stays, the automation ids were not mapped onto the module's new `data-dock-part` names, and the channel does not report its reconnecting as a tab status (steps 2 to 4 of the move, each more than one obvious change here).
 - Checked: `tsc --noEmit` clean; every file's SHA-256 equals `MANIFEST.json`; `agents sync --manifest-only` wrote the manifest and its check passes. The engine side was seen with a stand-in `agy` (see the backend log). Not looked at in a browser: no window was opened for this change, so the fourth button, its row and the two menu items were not seen drawn, and no pixel comparison was made. Not run: Windows, macOS, the desktop shell, a production build, a real `agy`.
 
+## The Agents panel names all four agent programs (0.59.0)
+
+- Kind: fix. Logged: 2026-11-20. Refers to `src/panels/agents.ts` (the first note of the panel) and the same key in the 23 tables of `src/ui/i18n/tables/*.json`.
+- Why: the note said to start "Claude Code, Codex or Cursor" although the Terminal panel starts Antigravity too, and said they open in the agent workspace, which an Antigravity tab no longer does (it has a folder of its own since this version).
+- What changed: "Start Claude Code, Codex, Cursor or Antigravity in the Terminal panel: they open set up for formvfx and already know every command." The key of the tables changed with it, in every table at once; each translation was rewritten for the list and that clause, the rest of it kept. No native speaker has read them. The key is 180 characters, under the 240 the walker translates.
+- Found with a search for "Cursor" across `src`: the other hits name one program each (menu items, button labels). One table key, "Claude Code starts here already connected ... Codex and Cursor read the MCP server ...", is used by no source file, so nothing a person sees carries it; left as it is.
+- Checked: every table parses as JSON, `setup/lint_text.py` has no finding. Not seen in a browser in a language other than English.
+
+## The shared dock is module 2.2.1: its guide names Codex, Cursor and Antigravity (0.59.0)
+
+- Kind: change. Logged: 2026-11-20. Refers to `src/dock/` and `backend/tests/test_dock_manifest.py`.
+- What changed: `CONTRACT.md`, `MANIFEST.json` and `strings.ts` copied byte for byte from FormVis commit 23b01889 (the commit named in the wave's dock note); the other 13 files of the folder were already the same as there. The guide's two sentences for a computer with Claude Code end with "Codex, Cursor and Antigravity each get a button of their own here when they are on this computer." The manifest test expects 2.2.1.
+- No translation was added: this app's language tables carry none of the panel's sentences, so the guide shows in English, as it did before.
+- Checked: `tests/test_dock_manifest.py` 9 passed; `./formvfx agents sync --check` says in step. Not seen in a browser.
+
+
+## Every FormVis token name is defined here, and the three local layers are aliases of FormVis's names
+
+- Kind: change. Logged: 2026-11-20. Refers to `src/styles/tokens.css`.
+- Why: the family's design alignment. FormVFX's shared token values already equal FormVis's (163 of 163 declarations alike against FormVis `origin/main` 94ee0022), so this is the names FormVis has and FormVFX did not, and FormVFX's own names for the same things made aliases.
+- Added with FormVis's values: `--z-under` -1, `--z-local-2` 2, `--z-local-4` 4, `--z-local-5` 5, `--cv-tabs-h` 34px, `--cv-action-blue` #3b82f6, `--cv-action-violet` #8b5cf6. None of them is used by a rule here yet; they are there so the shared panel and anything copied from FormVis resolve.
+- Made aliases, same values as before: `--z-dock-split: var(--z-local-2)`, `--z-props: var(--z-local-4)`, `--z-props-resize: var(--z-local-5)` (the same three layers: the dock split, the open Properties column, its resize edge). `--shadow-ink` and the `--fx-*` names have no FormVis counterpart and stay as they are.
+- Not changed: no rule, no literal, no layout; the accent, the font size and the z values are FormVFX's own as before.
+- Checked: the token declarations of both files compared (170 FormVis names, all defined here, no value differs). Resolved custom properties on the root in a browser, Studio Dark, Light and Midnight: 242 before, 249 after, exactly the seven names above, no value changed. Screenshots at 1440x900 of the start page and the splash page in the same three themes, before and after: byte for byte identical.

@@ -1827,7 +1827,7 @@
 "Start Capture": "Rögzítés indítása",
 "Start Claude Code": "A Claude Code indítása",
 "Start Claude Code here": "A Claude Code indítása itt",
-"Start Claude Code, Codex or Cursor in the Terminal panel: they open in formvfx's agent workspace and already know every command. From any other folder, set your account up once": "Indítsa el a Claude Code-ot, a Codexet vagy a Cursort a Terminál panelen: a formvfx ügynöki munkaterületén nyílnak meg, és már ismerik az összes parancsot. Bármely más mappából először egyszer állítsa be a fiókját",
+"Start Claude Code, Codex, Cursor or Antigravity in the Terminal panel: they open set up for formvfx and already know every command. From any other folder, set your account up once": "Indítsa el a Claude Code-ot, a Codexet, a Cursort vagy az Antigravityt a Terminál panelen: a formvfx-hez beállítva nyílnak meg, és már ismerik az összes parancsot. Bármely más mappából először egyszer állítsa be a fiókját",
 "Start Cleared": "Indítás törölt állapotban",
 "Start Codex": "A Codex indítása",
 "Start Codex here": "A Codex indítása itt",

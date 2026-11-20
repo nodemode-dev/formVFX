@@ -16,6 +16,7 @@ import time
 from collections import deque
 from pathlib import Path
 
+from ..core import config
 from ..engine.host import host
 from . import claude_code, consent, workspace
 
@@ -24,6 +25,8 @@ SCROLLBACK = 256 * 1024
 AGENTS = {"claude": "claude", "codex": "codex", "cursor": "cursor-agent", "antigravity": "agy"}
 TITLES = {"claude": "Claude Code", "codex": "Codex", "cursor": "Cursor", "antigravity": "Antigravity"}
 TAB_FILE = (".agents", "mcp_config.json")
+TAB_ROOT = ("agent-tabs", "antigravity")
+TAB_GUIDE = "AGENTS.md"
 TAB_HEADER = "x-formvfx-agent-token"
 
 
@@ -403,8 +406,33 @@ def find_agent(binary: str) -> str | None:
     return claude_code.located(kind).path if kind else None
 
 
+def tab_folder(guide: Path) -> Path:
+    folder = config.data_dir().joinpath(*TAB_ROOT, os.urandom(6).hex())
+    folder.mkdir(parents=True)
+    with contextlib.suppress(OSError):
+        (folder / TAB_GUIDE).write_bytes(guide.read_bytes())
+    return folder
+
+
+def drop_tab_folder(folder: Path, token: str, guide: Path) -> None:
+    remove_tab_entry(folder, token)
+    path = folder.joinpath(*TAB_FILE)
+    with contextlib.suppress(OSError, ValueError):
+        if _tab_servers(path) == {"mcpServers": {}}:
+            path.unlink()
+    with contextlib.suppress(OSError):
+        if (folder / TAB_GUIDE).read_bytes() == guide.read_bytes():
+            (folder / TAB_GUIDE).unlink()
+    for emptied in (path.parent, folder):
+        with contextlib.suppress(OSError):
+            emptied.rmdir()
+
+
 def _tab_servers(path: Path) -> dict:
-    data = json.loads(path.read_text(encoding="utf-8") or "{}") if path.exists() else {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8") or "{}") if path.exists() else {}
+    except ValueError:
+        data = None
     if not isinstance(data, dict) or not isinstance(data.get("mcpServers", {}), dict):
         raise OSError(f"{path} is not an MCP servers file formvfx can read, so it was left alone")
     return data
@@ -451,19 +479,21 @@ def open_agent(kind: str, base_url: str, cols: int, rows: int) -> Session:
     agent = consent.issue()
     env = claude_code.child_env(environment(base_url), path)
     env["FORMVFX_AGENT_TOKEN"] = agent
-    folder = workspace.ensure() if kind == "antigravity" else None
+    guide = workspace.root() / TAB_GUIDE
+    folder = None
     try:
-        if folder is not None:
+        if kind == "antigravity":
+            folder = tab_folder(guide)
             write_tab_entry(folder, base_url, agent)
-        session = open_session(kind, argv, env, cols, rows)
+        session = open_session(kind, argv, env, cols, rows, cwd=str(folder) if folder else None)
     except BaseException:
         consent.revoke(agent)
         if folder is not None:
-            remove_tab_entry(folder, agent)
+            drop_tab_folder(folder, agent, guide)
         raise
     session.on_close.append(lambda: consent.revoke(agent))
     if folder is not None:
-        session.on_close.append(lambda: remove_tab_entry(folder, agent))
+        session.on_close.append(lambda: drop_tab_folder(folder, agent, guide))
     return session
 
 

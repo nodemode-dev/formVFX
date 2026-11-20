@@ -10,8 +10,10 @@ cd "$FORMVFX_ROOT/backend"
 sep=":"
 [ "$(fx_os)" = windows ] && sep=";"
 ext="$(fx_exe)"
+extra=()
+if [ "$(fx_os)" = windows ] && [ "${FORMVFX_ENGINE_WINDOWED:-1}" != 0 ]; then extra+=(--noconsole); fi
 rm -rf build/pyinstaller dist-engine
-pyinstaller --noconfirm --clean --onefile --name formvfx-engine \
+pyinstaller --noconfirm --clean --onefile "${extra[@]}" --name formvfx-engine \
   --distpath dist-engine --workpath build/pyinstaller --specpath build/pyinstaller \
   --add-data "$FORMVFX_ROOT/frontend/dist${sep}frontend_dist" \
   --add-data "$FORMVFX_ROOT/backend/app/agent/templates${sep}agent_templates" \

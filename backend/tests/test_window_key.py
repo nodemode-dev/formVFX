@@ -239,28 +239,69 @@ def test_a_codex_or_cursor_tab_gets_its_own_token_in_its_environment_until_the_t
 
 
 @pytest.mark.skipif(os.name == "nt", reason="the stand-ins are shell scripts")
-def test_an_antigravity_tab_gets_its_entry_in_the_workspace_file_until_the_tab_closes(client, keyed, tmp_path, monkeypatch):
+def test_each_antigravity_tab_gets_a_folder_of_its_own_with_its_entry_until_the_tab_closes(client, keyed, tmp_path, monkeypatch):
+    from pathlib import Path
+
     from app.agent import consent, terminals, workspace
+
+    _stand_in(tmp_path, "agy", 'pwd > "$FORMVFX_WORKSPACE/../agy-$$.cwd"\nsleep 30')
+    monkeypatch.setenv("PATH", f"{tmp_path}{os.pathsep}{os.environ.get('PATH', '')}")
+    shared = workspace.ensure() / ".agents" / "mcp_config.json"
+    shared.parent.mkdir(parents=True, exist_ok=True)
+    seed = json.dumps({"mcpServers": {"other": {"command": "/bin/true"}}, "theme": "kept"})
+    shared.write_text(seed, encoding="utf-8")
+    tabs = []
+    for _ in range(2):
+        made = client.post("/api/terminal/launch", headers=keyed, json={"agent": "antigravity", "cols": 80, "rows": 24})
+        assert made.status_code == 200 and made.json()["kind"] == "antigravity" and made.json()["title"].startswith("Antigravity")
+        tabs.append(terminals.get(made.json()["id"]))
+    first, second = tabs
+    folders = [Path(tab.cwd) for tab in tabs]
+    tokens = [tab.env["FORMVFX_AGENT_TOKEN"] for tab in tabs]
+    assert folders[0] != folders[1] and tokens[0] != tokens[1]
+    assert all(folder.parent == workspace.root().parent / "agent-tabs" / "antigravity" for folder in folders)
+    for folder, token in zip(folders, tokens):
+        held = folder / ".agents" / "mcp_config.json"
+        entry = json.loads(held.read_text(encoding="utf-8"))["mcpServers"]["formvfx_tab"]
+        assert entry["serverUrl"].endswith("/mcp") and entry["headers"]["x-formvfx-agent-token"] == token
+        assert stat.S_IMODE(os.stat(held).st_mode) == 0o600 and consent.in_app(token)
+        assert (folder / "AGENTS.md").read_bytes() == (workspace.root() / "AGENTS.md").read_bytes()
+    started = set()
+    for _ in range(100):
+        started = {note.read_text().strip() for note in workspace.root().parent.glob("agy-*.cwd")}
+        if len(started) == 2:
+            break
+        time.sleep(0.1)
+    assert started == {str(folder.resolve()) for folder in folders}
+    assert client.post("/api/terminal/close", headers=keyed, json={"id": first.id}).status_code == 200
+    assert not folders[0].exists() and not consent.in_app(tokens[0])
+    kept = json.loads((folders[1] / ".agents" / "mcp_config.json").read_text(encoding="utf-8"))
+    assert kept["mcpServers"]["formvfx_tab"]["headers"]["x-formvfx-agent-token"] == tokens[1] and consent.in_app(tokens[1])
+    assert client.post("/api/terminal/close", headers=keyed, json={"id": second.id}).status_code == 200
+    assert not folders[1].exists() and not consent.in_app(tokens[1])
+    assert shared.read_text(encoding="utf-8") == seed
+    shared.unlink()
+    for note in workspace.root().parent.glob("agy-*.cwd"):
+        note.unlink()
+
+
+@pytest.mark.skipif(os.name == "nt", reason="the stand-ins are shell scripts")
+def test_an_antigravity_tab_folder_that_holds_something_else_is_kept_when_the_tab_closes(client, keyed, tmp_path, monkeypatch):
+    from pathlib import Path
+
+    from app.agent import terminals
 
     _stand_in(tmp_path, "agy", "sleep 30")
     monkeypatch.setenv("PATH", f"{tmp_path}{os.pathsep}{os.environ.get('PATH', '')}")
-    kept = workspace.ensure() / ".agents" / "mcp_config.json"
-    kept.parent.mkdir(parents=True, exist_ok=True)
-    seed = {"mcpServers": {"other": {"command": "/bin/true"}}, "theme": "kept"}
-    kept.write_text(json.dumps(seed), encoding="utf-8")
     made = client.post("/api/terminal/launch", headers=keyed, json={"agent": "antigravity", "cols": 80, "rows": 24})
-    assert made.status_code == 200 and made.json()["kind"] == "antigravity" and made.json()["title"].startswith("Antigravity")
+    assert made.status_code == 200
     session = terminals.get(made.json()["id"])
-    token = session.env["FORMVFX_AGENT_TOKEN"]
-    now = json.loads(kept.read_text(encoding="utf-8"))
-    assert now["theme"] == "kept" and now["mcpServers"]["other"] == seed["mcpServers"]["other"]
-    entry = now["mcpServers"]["formvfx_tab"]
-    assert entry["serverUrl"].endswith("/mcp") and entry["headers"]["x-formvfx-agent-token"] == token
-    assert stat.S_IMODE(os.stat(kept).st_mode) == 0o600 and consent.in_app(token)
+    folder = Path(session.cwd)
+    (folder / "notes.txt").write_text("mine", encoding="utf-8")
     assert client.post("/api/terminal/close", headers=keyed, json={"id": session.id}).status_code == 200
-    assert json.loads(kept.read_text(encoding="utf-8")) == seed
-    assert not consent.in_app(token)
-    kept.unlink()
+    assert sorted(item.name for item in folder.iterdir()) == ["notes.txt"]
+    (folder / "notes.txt").unlink()
+    folder.rmdir()
 
 
 @pytest.mark.skipif(os.name == "nt", reason="the stand-ins are shell scripts")

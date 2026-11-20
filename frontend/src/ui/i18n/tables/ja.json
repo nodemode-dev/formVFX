@@ -1827,7 +1827,7 @@
 "Start Capture": "キャプチャを開始",
 "Start Claude Code": "Claude Code を起動",
 "Start Claude Code here": "ここで Claude Code を起動",
-"Start Claude Code, Codex or Cursor in the Terminal panel: they open in formvfx's agent workspace and already know every command. From any other folder, set your account up once": "ターミナルパネルで Claude Code、Codex、Cursor を起動できます。これらは formvfx のエージェントワークスペースで開き、すべてのコマンドを把握しています。ほかのフォルダーから起動する場合は、先にアカウントを一度設定してください",
+"Start Claude Code, Codex, Cursor or Antigravity in the Terminal panel: they open set up for formvfx and already know every command. From any other folder, set your account up once": "ターミナルパネルで Claude Code、Codex、Cursor、Antigravity を起動できます。これらは formvfx 用に設定された状態で開き、すべてのコマンドを把握しています。ほかのフォルダーから起動する場合は、先にアカウントを一度設定してください",
 "Start Cleared": "消去した状態で開始",
 "Start Codex": "Codex を起動",
 "Start Codex here": "ここで Codex を起動",
