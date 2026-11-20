@@ -193,7 +193,7 @@ def test_a_claude_code_tab_gets_its_own_token_in_a_private_file_that_dies_with_t
     from app.agent import consent, terminals
 
     fake = tmp_path / "claude"
-    fake.write_text("#!/bin/sh\nsleep 30\n")
+    fake.write_text('#!/bin/sh\nif [ "$1" = "--version" ]; then echo "1.0 (stand-in)"; exit 0; fi\nsleep 30\n')
     fake.chmod(0o755)
     monkeypatch.setenv("FORMVFX_CLAUDE_BIN", str(fake))
     session = terminals.open_claude("http://127.0.0.1:1", None, None, 80, 24)
@@ -215,7 +215,7 @@ def test_a_claude_code_tab_gets_its_own_token_in_a_private_file_that_dies_with_t
 
 def _stand_in(folder, name, body):
     script = folder / name
-    script.write_text(f"#!/bin/sh\n{body}\n")
+    script.write_text(f'#!/bin/sh\nif [ "$1" = "--version" ]; then echo "1.0 (stand-in)"; exit 0; fi\n{body}\n')
     script.chmod(0o755)
     return script
 
@@ -236,6 +236,31 @@ def test_a_codex_or_cursor_tab_gets_its_own_token_in_its_environment_until_the_t
     assert all(token not in part for part in session.argv)
     assert client.post("/api/terminal/close", headers=keyed, json={"id": session.id}).status_code == 200
     assert not consent.in_app(token)
+
+
+@pytest.mark.skipif(os.name == "nt", reason="the stand-ins are shell scripts")
+def test_an_antigravity_tab_gets_its_entry_in_the_workspace_file_until_the_tab_closes(client, keyed, tmp_path, monkeypatch):
+    from app.agent import consent, terminals, workspace
+
+    _stand_in(tmp_path, "agy", "sleep 30")
+    monkeypatch.setenv("PATH", f"{tmp_path}{os.pathsep}{os.environ.get('PATH', '')}")
+    kept = workspace.ensure() / ".agents" / "mcp_config.json"
+    kept.parent.mkdir(parents=True, exist_ok=True)
+    seed = {"mcpServers": {"other": {"command": "/bin/true"}}, "theme": "kept"}
+    kept.write_text(json.dumps(seed), encoding="utf-8")
+    made = client.post("/api/terminal/launch", headers=keyed, json={"agent": "antigravity", "cols": 80, "rows": 24})
+    assert made.status_code == 200 and made.json()["kind"] == "antigravity" and made.json()["title"].startswith("Antigravity")
+    session = terminals.get(made.json()["id"])
+    token = session.env["FORMVFX_AGENT_TOKEN"]
+    now = json.loads(kept.read_text(encoding="utf-8"))
+    assert now["theme"] == "kept" and now["mcpServers"]["other"] == seed["mcpServers"]["other"]
+    entry = now["mcpServers"]["formvfx_tab"]
+    assert entry["serverUrl"].endswith("/mcp") and entry["headers"]["x-formvfx-agent-token"] == token
+    assert stat.S_IMODE(os.stat(kept).st_mode) == 0o600 and consent.in_app(token)
+    assert client.post("/api/terminal/close", headers=keyed, json={"id": session.id}).status_code == 200
+    assert json.loads(kept.read_text(encoding="utf-8")) == seed
+    assert not consent.in_app(token)
+    kept.unlink()
 
 
 @pytest.mark.skipif(os.name == "nt", reason="the stand-ins are shell scripts")

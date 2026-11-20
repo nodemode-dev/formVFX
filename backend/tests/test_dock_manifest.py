@@ -50,6 +50,40 @@ def test_agents_sync_names_a_shared_file_edited_in_place(tmp_path, monkeypatch, 
     assert agents.dock_problems()[0].startswith("frontend/src/dock/MANIFEST.json: missing or unreadable")
 
 
+LOOKUP = "backend/app/agent/agent_lookup.py"
+
+
+def test_the_shared_finder_matches_the_hash_recorded_for_its_version():
+    agents = _agents()
+    version = re.search(r'^VERSION = "([^"]+)"$', (REPO / LOOKUP).read_text(encoding="utf-8"), re.M).group(1)
+    assert agents.LOOKUP_HASHES[version] == hashlib.sha256((REPO / LOOKUP).read_bytes()).hexdigest()
+    assert agents.lookup_problems() == []
+
+
+def test_agents_sync_names_the_shared_finder_edited_in_place_or_missing(tmp_path, monkeypatch, capsys):
+    agents = _agents()
+    copy = tmp_path / LOOKUP
+    copy.parent.mkdir(parents=True)
+    shutil.copy(REPO / LOOKUP, copy)
+    monkeypatch.setattr(agents, "LOOKUP", copy)
+    assert agents.lookup_problems() == []
+    with open(copy, "a", encoding="utf-8") as f:
+        f.write("\n")
+    version = re.search(r'^VERSION = "([^"]+)"$', (REPO / LOOKUP).read_text(encoding="utf-8"), re.M).group(1)
+    said = f"{copy.as_posix()}: does not match the hash recorded for version {version} (the shared finder changes only as a whole new version)"
+    assert agents.lookup_problems() == [said]
+    for check in (True, False):
+        assert agents.sync(check, manifest_only=True) == 1
+        assert said in capsys.readouterr().out
+    copy.unlink()
+    assert agents.lookup_problems() == [f"{copy.as_posix()}: missing (the shared finder for the agent programs)"]
+
+
+def test_the_shared_finder_imports_nothing_from_the_app():
+    imports = set(re.findall(r"^\s*(?:from|import)\s+([\w.]+)", (REPO / LOOKUP).read_text(encoding="utf-8"), re.M))
+    assert imports == {"__future__", "dataclasses", "os", "pathlib", "re", "shutil", "signal", "subprocess", "sys", "threading", "time", "winreg"}
+
+
 def test_the_shared_dock_imports_nothing_from_the_app():
     outside = sorted({i for p in DOCK.glob("*.ts") for i in _imports(p) if not i.startswith(("./", "@xterm/"))})
     assert outside == [], outside

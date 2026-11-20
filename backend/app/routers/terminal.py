@@ -1,7 +1,6 @@
 import asyncio
 import contextlib
 import json
-import shutil
 
 from fastapi import APIRouter, HTTPException, Request, WebSocket, WebSocketDisconnect
 
@@ -50,7 +49,7 @@ def status() -> dict:
         "pty": terminals.POSIX,
         "shell": terminals.login_shell()[0],
         "cwd": str(ws),
-        "agents": {name: (claude_code.cli() is not None) if name == "claude" else shutil.which(binary) is not None for name, binary in AGENTS.items()},
+        "agents": {name: programs.find(name) is not None for name in AGENTS},
         "launch": AGENTS,
         "claude": claude_code.info(),
     }

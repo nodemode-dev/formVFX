@@ -3,14 +3,11 @@ from __future__ import annotations
 import json
 import os
 import secrets
-import shlex
-import shutil
-import subprocess
 import time
 from pathlib import Path
 
 from ..core import config
-from . import consent, workspace
+from . import agent_lookup, consent, workspace
 
 TAB_ENTRY = "formvfx_tab"
 NOTE = (
@@ -30,74 +27,50 @@ CHAT_NOTE = (
 INSTALL = "Claude Code is not installed on this computer. Install it from https://claude.com/claude-code, run claude once in a terminal to sign in, then try again."
 
 
+OTHERWISE = ""
+OVERRIDES = {"claude": ("FORMVFX_CLAUDE_BIN",), "codex": ("FORMVFX_CODEX_BIN",), "cursor": ("FORMVFX_CURSOR_BIN",), "antigravity": ("FORMVFX_ANTIGRAVITY_BIN",)}
+
+
 class NotInstalled(RuntimeError):
     pass
 
 
-
-_KEEP = {"CLAUDE_CODE_OAUTH_TOKEN", "CLAUDE_CODE_USE_BEDROCK", "CLAUDE_CODE_USE_VERTEX", "CLAUDE_CONFIG_DIR"}
 _cache: dict = {"at": 0.0, "info": None}
 _FILES: dict[str, Path] = {}
 
 
-def _candidates() -> list[Path]:
-    home = Path.home()
-    names = ("claude.exe", "claude.cmd", "claude") if os.name == "nt" else ("claude",)
-    dirs = [
-        home / ".claude" / "local",
-        home / ".local" / "bin",
-        home / ".npm-global" / "bin",
-        home / ".bun" / "bin",
-        home / ".volta" / "bin",
-        Path("/opt/homebrew/bin"),
-        Path("/usr/local/bin"),
-        Path("/usr/bin"),
-    ]
-    if os.name == "nt":
-        appdata = os.environ.get("APPDATA")
-        if appdata:
-            dirs.insert(0, Path(appdata) / "npm")
-    return [d / n for d in dirs for n in names]
+def setting(kind: str) -> str | None:
+    return None
 
 
-def _login_shell_lookup() -> str | None:
-    if os.name == "nt":
-        return None
-    shell = os.environ.get("SHELL") or "/bin/sh"
-    try:
-        out = subprocess.run([shell, "-l", "-c", "command -v claude"], capture_output=True, text=True, timeout=8)
-    except (OSError, subprocess.SubprocessError):
-        return None
-    path = out.stdout.strip().splitlines()[-1] if out.stdout.strip() else ""
-    return path if path and Path(path).is_file() else None
+def located(kind: str, fresh: bool = False) -> agent_lookup.Found:
+    found = agent_lookup.find(kind, setting=setting(kind), override_vars=OVERRIDES.get(kind, ()), shell_timeout=10.0, fresh=fresh)
+    return agent_lookup.check(found, child_env(dict(os.environ), found.path), 15.0, fresh)
+
+
+def said(found: agent_lookup.Found) -> str:
+    return agent_lookup.sentence(found, agent_lookup.install(found.program), OTHERWISE)
+
+
+def usable(kind: str) -> str:
+    found = located(kind)
+    if found.state != "runs":
+        found = located(kind, fresh=True)
+    if found.state != "runs" or not found.path:
+        raise NotInstalled(said(found))
+    return found.path
 
 
 def cli() -> str | None:
-    pref = os.environ.get("FORMVFX_CLAUDE_BIN", "").strip()
-    if pref and Path(pref).expanduser().is_file():
-        return str(Path(pref).expanduser())
-    found = shutil.which("claude")
-    if found:
-        return found
-    for c in _candidates():
-        if c.is_file():
-            return str(c)
-    return _login_shell_lookup()
+    return located("claude").path
 
 
 def info(fresh: bool = False) -> dict:
     now = time.monotonic()
     if not fresh and _cache["info"] is not None and now - _cache["at"] < 60:
         return _cache["info"]
-    path = cli()
-    version = None
-    if path:
-        try:
-            out = subprocess.run([path, "--version"], capture_output=True, text=True, timeout=15)
-            version = (out.stdout or out.stderr).strip().splitlines()[0] if (out.stdout or out.stderr).strip() else None
-        except (OSError, subprocess.SubprocessError):
-            version = None
-    result = {"installed": bool(path), "path": path, "version": version, "folder": str(workspace.ensure())}
+    found = located("claude", fresh)
+    result = agent_lookup.answer(found, agent_lookup.install("claude"), OTHERWISE) | {"folder": str(workspace.ensure())}
     _cache.update(at=now, info=result)
     return result
 
@@ -140,23 +113,18 @@ def revoke(token: str) -> None:
             pass
 
 
-def child_env(base: dict) -> dict:
-    env = {k: v for k, v in base.items() if not k.startswith("CLAUDE") or k in _KEEP}
+def child_env(base: dict, path: str | None = None) -> dict:
+    env = agent_lookup.child_env(path, base=base, front=[workspace.root() / "bin"], shell_timeout=10.0)
     env.pop("FORMVFX_CALLER_DIR", None)
     return env
 
 
 def _wrap(cmd: list[str]) -> list[str]:
-    if os.name == "nt":
-        return cmd
-    shell = os.environ.get("SHELL") or "/bin/sh"
-    return [shell, "-l", "-c", "exec " + shlex.join(cmd)]
+    return agent_lookup.start_argv(cmd)
 
 
 def argv(mcp_file: str, prompt: str | None = None, resume: str | None = None) -> list[str]:
-    path = cli()
-    if not path:
-        raise NotInstalled(INSTALL)
+    path = usable("claude")
     cmd = [path, "--mcp-config", mcp_file, "--strict-mcp-config", "--allowedTools", "mcp__" + TAB_ENTRY, "ToolSearch", "--append-system-prompt", NOTE]
     if resume:
         cmd += ["--resume", resume]
@@ -166,9 +134,7 @@ def argv(mcp_file: str, prompt: str | None = None, resume: str | None = None) ->
 
 
 def headless(mcp_file: str, prompt: str, resume: str | None = None, note: str = NOTE) -> list[str]:
-    path = cli()
-    if not path:
-        raise NotInstalled(INSTALL)
+    path = usable("claude")
     cmd = [
         path, "-p", prompt, "--output-format", "stream-json", "--verbose", "--include-partial-messages",
         "--mcp-config", mcp_file, "--strict-mcp-config", "--allowedTools", "mcp__" + TAB_ENTRY, "ToolSearch", "--append-system-prompt", note,

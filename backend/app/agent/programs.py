@@ -6,31 +6,27 @@ import subprocess
 import sys
 import time
 
-from . import claude_code, terminals
+from . import agent_lookup, claude_code, terminals
 
 INSTALL = {
     "claude": "irm https://claude.ai/install.ps1 | iex" if sys.platform == "win32" else "curl -fsSL https://claude.ai/install.sh | bash",
     "codex": "npm install -g @openai/codex",
     "cursor": "curl https://cursor.com/install -fsS | bash",
+    "antigravity": agent_lookup.install("antigravity"),
 }
 _cache: dict = {"at": 0.0, "value": None}
 
 
 def find(kind: str) -> str | None:
-    return claude_code.cli() if kind == "claude" else terminals.find_agent(terminals.AGENTS[kind])
+    return claude_code.located(kind).path
 
 
 def _run(path: str, *args: str, timeout: float = 10) -> str | None:
     try:
-        out = subprocess.run([path, *args], capture_output=True, text=True, timeout=timeout, stdin=subprocess.DEVNULL, env=claude_code.child_env(dict(os.environ)))
+        out = agent_lookup.run([path, *args], claude_code.child_env(dict(os.environ), path), timeout)
     except (OSError, subprocess.SubprocessError):
         return None
     return (out.stdout or out.stderr).strip()
-
-
-def _version(path: str) -> str | None:
-    lines = (_run(path, "--version") or "").splitlines()
-    return lines[0].strip()[:80] or None if lines else None
 
 
 def _signed_in(kind: str, path: str) -> bool | None:
@@ -51,13 +47,10 @@ def status(fresh: bool = False) -> dict:
         return _cache["value"]
     out = {}
     for kind, binary in terminals.AGENTS.items():
-        path = find(kind)
-        out[kind] = {
-            "installed": path is not None,
-            "version": _version(path) if path else None,
-            "signedIn": _signed_in(kind, path) if path else None,
+        found = claude_code.located(kind, fresh)
+        out[kind] = agent_lookup.answer(found, INSTALL[kind], claude_code.OTHERWISE) | {
+            "signedIn": _signed_in(kind, found.path) if found.state == "runs" and found.path else None,
             "install": INSTALL[kind],
-            "path": path,
             "program": binary,
             "title": terminals.TITLES[kind],
         }

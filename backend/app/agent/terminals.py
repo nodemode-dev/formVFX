@@ -4,25 +4,27 @@ import asyncio
 import atexit
 import codecs
 import contextlib
+import json
 import os
 import queue
 import select
-import shlex
-import shutil
 import signal
 import struct
 import subprocess
 import threading
 import time
 from collections import deque
+from pathlib import Path
 
 from ..engine.host import host
 from . import claude_code, consent, workspace
 
 POSIX = os.name == "posix"
 SCROLLBACK = 256 * 1024
-AGENTS = {"claude": "claude", "codex": "codex", "cursor": "cursor-agent"}
-TITLES = {"claude": "Claude Code", "codex": "Codex", "cursor": "Cursor"}
+AGENTS = {"claude": "claude", "codex": "codex", "cursor": "cursor-agent", "antigravity": "agy"}
+TITLES = {"claude": "Claude Code", "codex": "Codex", "cursor": "Cursor", "antigravity": "Antigravity"}
+TAB_FILE = (".agents", "mcp_config.json")
+TAB_HEADER = "x-formvfx-agent-token"
 
 
 class NotInstalled(RuntimeError):
@@ -384,7 +386,7 @@ def open_claude(base_url: str, prompt: str | None, resume: str | None, cols: int
     agent, mcp_file = claude_code.issue(base_url)
     try:
         argv = claude_code.argv(mcp_file, prompt, resume)
-        env = claude_code.child_env(environment(base_url))
+        env = claude_code.child_env(environment(base_url), claude_code.cli())
         session = open_session("claude", argv, env, cols, rows, "Claude Code (from Chat)" if resume else None)
     except claude_code.NotInstalled as e:
         claude_code.revoke(agent)
@@ -397,37 +399,71 @@ def open_claude(base_url: str, prompt: str | None, resume: str | None, cols: int
 
 
 def find_agent(binary: str) -> str | None:
-    found = shutil.which(binary)
-    if found:
-        return found
-    if not POSIX:
-        return None
+    kind = next((k for k, name in AGENTS.items() if name == binary), None)
+    return claude_code.located(kind).path if kind else None
+
+
+def _tab_servers(path: Path) -> dict:
+    data = json.loads(path.read_text(encoding="utf-8") or "{}") if path.exists() else {}
+    if not isinstance(data, dict) or not isinstance(data.get("mcpServers", {}), dict):
+        raise OSError(f"{path} is not an MCP servers file formvfx can read, so it was left alone")
+    return data
+
+
+def _tab_replace(path: Path, data: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    part = path.with_name(path.name + f".part-{os.getpid()}")
+    with os.fdopen(os.open(part, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w", encoding="utf-8") as f:
+        f.write(json.dumps(data, indent=2) + "\n")
+    os.replace(part, path)
+
+
+def write_tab_entry(folder: Path, base_url: str, token: str) -> None:
+    path = folder.joinpath(*TAB_FILE)
+    data = _tab_servers(path)
+    entry = {"serverUrl": base_url.rstrip("/") + "/mcp", "headers": {TAB_HEADER: token, "x-formvfx-source": "mcp:Antigravity in formvfx"}}
+    data.setdefault("mcpServers", {})[claude_code.TAB_ENTRY] = entry
+    _tab_replace(path, data)
+
+
+def remove_tab_entry(folder: Path, token: str) -> None:
+    path = folder.joinpath(*TAB_FILE)
     try:
-        out = subprocess.run(login_shell() + ["-c", f"command -v {shlex.quote(binary)}"], capture_output=True, text=True, timeout=8)
-    except (OSError, subprocess.SubprocessError):
-        return None
-    lines = out.stdout.strip().splitlines()
-    path = lines[-1] if lines else ""
-    return path if path.startswith("/") and os.path.isfile(path) else None
+        data = _tab_servers(path)
+        entry = data.get("mcpServers", {}).get(claude_code.TAB_ENTRY)
+        if not isinstance(entry, dict) or (entry.get("headers") or {}).get(TAB_HEADER) != token:
+            return
+        del data["mcpServers"][claude_code.TAB_ENTRY]
+        _tab_replace(path, data)
+    except (OSError, ValueError):
+        return
 
 
 def open_agent(kind: str, base_url: str, cols: int, rows: int) -> Session:
     binary = AGENTS.get(kind)
     if kind == "claude" or binary is None:
         raise ValueError(f"No agent called {kind}")
-    path = find_agent(binary)
-    if not path:
-        raise NotInstalled(f"{TITLES[kind]} is not installed on this computer. Install it, sign in once in a terminal, then try again.")
-    argv = [path] if not POSIX else login_shell() + ["-c", "exec " + shlex.join([path])]
-    agent = consent.issue()
-    env = environment(base_url)
-    env["FORMVFX_AGENT_TOKEN"] = agent
     try:
+        path = claude_code.usable(kind)
+    except claude_code.NotInstalled as e:
+        raise NotInstalled(str(e)) from e
+    argv = claude_code._wrap([path])
+    agent = consent.issue()
+    env = claude_code.child_env(environment(base_url), path)
+    env["FORMVFX_AGENT_TOKEN"] = agent
+    folder = workspace.ensure() if kind == "antigravity" else None
+    try:
+        if folder is not None:
+            write_tab_entry(folder, base_url, agent)
         session = open_session(kind, argv, env, cols, rows)
     except BaseException:
         consent.revoke(agent)
+        if folder is not None:
+            remove_tab_entry(folder, agent)
         raise
     session.on_close.append(lambda: consent.revoke(agent))
+    if folder is not None:
+        session.on_close.append(lambda: remove_tab_entry(folder, agent))
     return session
 
 

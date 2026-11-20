@@ -151,7 +151,7 @@ def _run(argv: list[str], reply: dict, token: int, agent: str) -> None:
         proc = subprocess.Popen(
             argv,
             cwd=str(workspace.ensure()),
-            env=claude_code.child_env(os.environ.copy()),
+            env=claude_code.child_env(os.environ.copy(), claude_code.cli()),
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,

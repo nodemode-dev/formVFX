@@ -31,6 +31,8 @@ MANIFEST = ROOT / "agents" / "manifest.json"
 APP = "formvfx"
 DOCK = {"present": True, "positions": ["bottom", "right"], "tabs": ["chat", "terminal", "claude-code", "codex", "cursor"]}
 DOCK_FOLDER = ROOT / "frontend" / "src" / "dock"
+LOOKUP = ROOT / "backend" / "app" / "agent" / "agent_lookup.py"
+LOOKUP_HASHES = {"1.0.0": "252ea9bb9419d4990f174f91914f09800497bc69e98f849f5643bbf4217cc3f3", "1.0.1": "62667f9b68b7d101e1896ce617240424e33b7e498c560bc79d45f0ab26c77d51"}
 ORDER = ["file", "edit", "project", "item", "footage", "comp", "layer", "prop", "keys", "anim", "time", "markers", "effect", "mask", "path",
          "paths", "shape", "text", "camera", "light", "material", "track", "warp", "roto", "paint", "puppet", "liquify", "contentFill", "face",
          "essential", "expr", "script", "scriptui", "render", "renderQueue", "playback", "view", "window", "editor", "scopes", "cache", "jobs",
@@ -267,6 +269,20 @@ def dock_problems() -> list[str]:
     return [f"{inside}/{name}: does not match MANIFEST.json{why}" for name in sorted(set(kept) | set(now)) if kept.get(name) != now.get(name)]
 
 
+def lookup_problems() -> list[str]:
+    import hashlib
+    rel = LOOKUP.relative_to(ROOT).as_posix() if LOOKUP.is_relative_to(ROOT) else LOOKUP.as_posix()
+    try:
+        raw = LOOKUP.read_bytes()
+    except OSError:
+        return [f"{rel}: missing (the shared finder for the agent programs)"]
+    said = re.search(rb'^VERSION = "([^"\r\n]+)"\r?$', raw, re.M)
+    version = said.group(1).decode("ascii", "replace") if said else "unknown"
+    if LOOKUP_HASHES.get(version) != hashlib.sha256(raw).hexdigest():
+        return [f"{rel}: does not match the hash recorded for version {version} (the shared finder changes only as a whole new version)"]
+    return []
+
+
 def sync_manifest(check: bool) -> bool:
     text = manifest_text()
     if MANIFEST.exists() and MANIFEST.read_text(encoding="utf-8") == text:
@@ -278,7 +294,7 @@ def sync_manifest(check: bool) -> bool:
 
 
 def sync(check: bool, manifest_only: bool = False) -> int:
-    problems = dock_problems()
+    problems = dock_problems() + lookup_problems()
     if problems:
         print("agents: " + "; ".join(problems))
         return 1
