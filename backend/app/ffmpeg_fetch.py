@@ -14,7 +14,10 @@ from pathlib import Path
 
 from .ffmpeg_record import FILES, RELEASE
 
-SOURCE = "https://github.com/nodemode-dev/formcut-binaries/releases/download"
+SOURCES = (
+    "https://github.com/nodemode-dev/formai-binaries/releases/download",
+    "https://github.com/nodemode-dev/formcut-binaries/releases/download",
+)
 DOCUMENTS = ("LGPL-2.1.txt", "THIRD-PARTY-NOTICES.txt", "ffmpeg-licence.json")
 
 log = logging.getLogger(__name__)
@@ -39,9 +42,10 @@ def folder() -> Path:
     return base / "formcut-binaries" / f"ffmpeg-{RELEASE}"
 
 
-def source() -> str:
-    base = os.environ.get("FORMCUT_FFMPEG_RELEASE") or f"{SOURCE}/ffmpeg-{RELEASE}"
-    return f"{base.rstrip('/')}/ffmpeg-lgpl-{RELEASE}-{host_triple()}.tar.gz"
+def sources() -> list[str]:
+    override = os.environ.get("FORMCUT_FFMPEG_RELEASE")
+    bases = [override] if override else [f"{base}/ffmpeg-{RELEASE}" for base in SOURCES]
+    return [f"{base.rstrip('/')}/ffmpeg-lgpl-{RELEASE}-{host_triple()}.tar.gz" for base in bases]
 
 
 def _names(program: str) -> tuple[str, str]:
@@ -90,13 +94,14 @@ def _digest(path: Path) -> str:
 
 
 def _download(url: str, target: Path) -> None:
-    import httpx
+    import ssl
+    import urllib.request
 
-    with httpx.stream("GET", url, follow_redirects=True, timeout=120) as response:
-        response.raise_for_status()
-        with target.open("wb") as out:
-            for chunk in response.iter_bytes(1 << 20):
-                out.write(chunk)
+    context = ssl.create_default_context()
+    if sys.platform == "darwin" and os.path.isfile("/etc/ssl/cert.pem"):
+        context.load_verify_locations("/etc/ssl/cert.pem")
+    with urllib.request.urlopen(url, timeout=120, context=context) as response, target.open("wb") as out:
+        shutil.copyfileobj(response, out, 1 << 20)
 
 
 def _root(unpacked: Path, first: str) -> Path:
@@ -137,11 +142,19 @@ def fetch() -> Path | None:
     pins = FILES.get(host_triple())
     if not pins:
         raise ValueError(f"no ffmpeg build is recorded for {host_triple()}")
-    with tempfile.TemporaryDirectory() as scratch:
-        archive = Path(scratch) / "ffmpeg.tar.gz"
-        _download(source(), archive)
-        _install(archive, pins, folder())
-    return prefer()
+    failures: list[str] = []
+    for url in sources():
+        try:
+            with tempfile.TemporaryDirectory() as scratch:
+                archive = Path(scratch) / "ffmpeg.tar.gz"
+                _download(url, archive)
+                _install(archive, pins, folder())
+        except Exception as error:
+            log.info("ffmpeg could not be taken from %s: %s", url, error)
+            failures.append(f"{url}: {error}")
+            continue
+        return prefer()
+    raise ValueError("; ".join(failures))
 
 
 def _run() -> None:

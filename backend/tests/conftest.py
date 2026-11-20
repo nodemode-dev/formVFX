@@ -57,7 +57,7 @@ def tool_catalogue():
 def consent_refusals():
     return {
         "no_window": "No formvfx window is open to ask the person for permission",
-        "deny": "Outside agents are turned off",
+        "deny": "Agents are turned off in this formvfx",
     }
 
 
@@ -66,7 +66,7 @@ def set_policy(mode):
 
 
 def inapp_token():
-    return importlib.import_module("app.agent.consent").TOKEN
+    return importlib.import_module("app.agent.consent").issue()
 
 
 _SANDBOX = Path(tempfile.mkdtemp(prefix=f"{APP_ID}-tests-"))
@@ -78,11 +78,53 @@ os.environ["HOME"] = str(_SANDBOX / "home")
 os.environ["USERPROFILE"] = str(_SANDBOX / "home")
 for _key in [k for k in os.environ if k.startswith(f"{ENV_PREFIX}_") and k not in (DATA_ENV, PORT_ENV)]:
     os.environ.pop(_key)
+AGENT_STAND_INS = ("claude", "codex", "cursor-agent", "agent", "agy")
+AGENT_CALLS = _SANDBOX / "agent-calls.log"
+AGENT_SHELL = """#!/bin/sh
+login=0; inter=0; script=""
+while [ $# -gt 0 ]; do
+  case "$1" in -l) login=1 ;; -i) inter=1 ;; -c) shift; script="$1" ;; esac
+  shift
+done
+if [ "$login" = 1 ] && [ -f "$HOME/.zprofile-path" ]; then PATH="$(cat "$HOME/.zprofile-path"):$PATH"; fi
+if [ "$inter" = 1 ] && [ -f "$HOME/.zshrc-path" ]; then PATH="$(cat "$HOME/.zshrc-path"):$PATH"; fi
+export PATH
+if [ -n "$script" ]; then exec /bin/sh -c "$script"; fi
+exec /bin/sh
+"""
+_agent_calls: list[str] = []
+if os.name != "nt":
+    for _name in ("bin", "shell"):
+        (_SANDBOX / _name).mkdir()
+    for _name in AGENT_STAND_INS:
+        (_SANDBOX / "bin" / _name).write_text(f'#!/bin/sh\necho "{_name} $*" >> "{AGENT_CALLS}"\nif [ "$1" = "--version" ]; then echo "0.0.0 (stand-in)"; exit 0; fi\nexit 1\n')
+        (_SANDBOX / "bin" / _name).chmod(0o755)
+    (_SANDBOX / "shell" / "zsh").write_text(AGENT_SHELL)
+    (_SANDBOX / "shell" / "zsh").chmod(0o755)
+    os.environ["SHELL"] = str(_SANDBOX / "shell" / "zsh")
+    _kept = [d for d in os.environ.get("PATH", "").split(os.pathsep) if d and not any((Path(d) / n).exists() for n in AGENT_STAND_INS)]
+    os.environ["PATH"] = os.pathsep.join([str(_SANDBOX / "bin"), *_kept])
+    for _key in ("NPM_CONFIG_PREFIX", "npm_config_prefix", "PNPM_HOME", "VOLTA_HOME", "BUN_INSTALL", "NVM_SYMLINK"):
+        os.environ.pop(_key, None)
 sys.path.insert(0, str(BACKEND))
 
 
+@pytest.fixture(autouse=True)
+def only_stand_in_agent_programs(monkeypatch):
+    agent_lookup = importlib.import_module("app.agent.agent_lookup")
+    monkeypatch.setattr(agent_lookup, "system_folders", lambda platform=None: [])
+
+
 def pytest_sessionfinish(session, exitstatus):
+    try:
+        _agent_calls.extend(AGENT_CALLS.read_text(encoding="utf-8").splitlines())
+    except OSError:
+        pass
     shutil.rmtree(_SANDBOX, ignore_errors=True)
+
+
+def pytest_terminal_summary(terminalreporter):
+    terminalreporter.write_line(f"agent program stand-ins started {len(_agent_calls)} time(s): " + (", ".join(sorted(set(_agent_calls))) or "none"))
 
 
 def own_origin():
@@ -166,3 +208,11 @@ def engine():
         proc.wait(timeout=10)
     except subprocess.TimeoutExpired:
         proc.kill()
+
+
+@pytest.fixture(scope="session")
+def engine_window(engine):
+    req = urllib.request.Request(engine["base"] + "/api/window/key", data=b"", method="POST", headers=LOCAL_HEADER)
+    with urllib.request.urlopen(req, timeout=10) as r:
+        key = json.loads(r.read().decode("utf-8"))["key"]
+    return {"base": engine["base"], "headers": {**LOCAL_HEADER, "x-formvfx-window-key": key}}

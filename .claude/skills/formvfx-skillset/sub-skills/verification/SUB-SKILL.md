@@ -26,7 +26,7 @@ description: Verifying a change to formvfx before it ships. Use after any interf
 
 ## Agent paths
 
-Replay tool sequences through `setup/mcp_stdio.py` against a running engine (`FORMVFX_AGENTS=allow` for unattended runs, `ask` to test the consent dialog with a browser open). Save the images `render_frame` and `contact_sheet` return and look at them. A change to a tool is verified only when its output was looked at.
+Replay tool sequences through `setup/mcp_stdio.py` against a running engine (a changing call asks in the window, so for unattended runs make the changes through `/api/rpc` with the window key and use the tools for reads; `FORMVFX_AGENTS=deny` tests the refusal). Save the images `render_frame` and `contact_sheet` return and look at them. A change to a tool is verified only when its output was looked at.
 
 ## Report
 

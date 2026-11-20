@@ -39,28 +39,28 @@ def test_engine_uses_the_data_folder_it_was_given(engine):
     assert not [p.name for p in home.iterdir() if p.name.lower().startswith(APP_ID.lower())]
 
 
-def rpc(base, method, params=None, timeout=600):
+def rpc(window, method, params=None, timeout=600):
     body = json.dumps({"jsonrpc": "2.0", "id": 1, "method": method, "params": params or {}}).encode()
-    req = urllib.request.Request(base + "/api/rpc", data=body, method="POST", headers={**LOCAL_HEADER, "Content-Type": "application/json", "x-formvfx-source": "ui"})
+    req = urllib.request.Request(window["base"] + "/api/rpc", data=body, method="POST", headers={**window["headers"], "Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         reply = json.loads(r.read().decode("utf-8"))
     assert "error" not in reply, reply
     return reply["result"]
 
 
-def execute(base, command, **params):
-    return rpc(base, "command.execute", {"command": command, "params": params})
+def execute(window, command, **params):
+    return rpc(window, "command.execute", {"command": command, "params": params})
 
 
-def test_health_answers_while_a_long_render_runs(engine, tmp_path):
-    base = engine["base"]
-    execute(base, "comp.new", name="Long", width=960, height=540, frameRate=30, duration=4.0, background="#203040")
+def test_health_answers_while_a_long_render_runs(engine_window, tmp_path):
+    window, base = engine_window, engine_window["base"]
+    execute(window, "comp.new", name="Long", width=960, height=540, frameRate=30, duration=4.0, background="#203040")
     for i in range(3):
-        execute(base, "engine.batch", steps=[{"command": "layer.newSolid", "params": {"name": f"S{i}", "color": "#ff8000", "width": 400, "height": 300}}, {"command": "effect.apply", "params": {"effect": "fx.blur.gaussian", "layers": ["$1.layer"]}}])
-        execute(base, "prop.set", layer=f"S{i}", path="effects/#1/blurriness", value=60)
-    execute(base, "renderQueue.add", format="png", output=str(tmp_path / "f_[#####].png"))
+        execute(window, "engine.batch", steps=[{"command": "layer.newSolid", "params": {"name": f"S{i}", "color": "#ff8000", "width": 400, "height": 300}}, {"command": "effect.apply", "params": {"effect": "fx.blur.gaussian", "layers": ["$1.layer"]}}])
+        execute(window, "prop.set", layer=f"S{i}", path="effects/#1/blurriness", value=60)
+    execute(window, "renderQueue.add", format="png", output=str(tmp_path / "f_[#####].png"))
     with concurrent.futures.ThreadPoolExecutor(1) as pool:
-        render = pool.submit(execute, base, "renderQueue.render", wait=True)
+        render = pool.submit(execute, window, "renderQueue.render", wait=True)
         answered = 0
         while not render.done():
             status, body = get_json(base + HEALTH_PATH, timeout=1)

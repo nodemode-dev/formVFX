@@ -22,6 +22,10 @@
   --fx-row-h: 24px;
   --fx-gutter: 4px;
 }
+:root[data-oled] {
+  --fx-pasteboard: #000000;
+  --fx-track-bg: #000000;
+}
 
 #app { height: 100%; }
 .fx-app { grid-template-rows: var(--cv-titlebar-h) var(--cv-options-h) minmax(0, 1fr) var(--cv-status-h); }

@@ -117,19 +117,24 @@ def send(base_url: str, text: str, context: str | None = None, note: str | None 
         raise ValueError("Type a message first.")
     ctx = (context or "").strip()
     prompt = f"{shown}\n\n[formvfx context: {ctx}]" if ctx else shown
-    argv = claude_code.headless(base_url, prompt, STATE["session"], NOTE)
-    label = (note or "").strip()
-    user = {"role": "user", "text": shown, "note": label}
-    reply: dict[str, Any] = {"role": "assistant", "parts": [], "error": "", "meta": {}}
-    with _lock:
-        if STATE["busy"]:
-            raise RuntimeError("Claude is still answering. Wait for it, or press Stop.")
-        STATE.update(busy=True, cancelled=False, run=STATE["run"] + 1)
-        token = STATE["run"]
-        STATE["messages"] += [user, reply]
-        del STATE["messages"][:-MAX_MESSAGES]
+    agent, mcp_file = claude_code.issue(base_url)
+    try:
+        argv = claude_code.headless(mcp_file, prompt, STATE["session"], NOTE)
+        label = (note or "").strip()
+        user = {"role": "user", "text": shown, "note": label}
+        reply: dict[str, Any] = {"role": "assistant", "parts": [], "error": "", "meta": {}}
+        with _lock:
+            if STATE["busy"]:
+                raise RuntimeError("Claude is still answering. Wait for it, or press Stop.")
+            STATE.update(busy=True, cancelled=False, run=STATE["run"] + 1)
+            token = STATE["run"]
+            STATE["messages"] += [user, reply]
+            del STATE["messages"][:-MAX_MESSAGES]
+    except BaseException:
+        claude_code.revoke(agent)
+        raise
     _emit("start", text=shown, note=label)
-    threading.Thread(target=_run, args=(argv, reply, token), daemon=True).start()
+    threading.Thread(target=_run, args=(argv, reply, token, agent), daemon=True).start()
     return {"ok": True}
 
 
@@ -137,7 +142,7 @@ def _live(token: int) -> bool:
     return STATE["run"] == token
 
 
-def _run(argv: list[str], reply: dict, token: int) -> None:
+def _run(argv: list[str], reply: dict, token: int, agent: str) -> None:
     tail: list[str] = []
     started = time.time()
     result: dict | None = None
@@ -146,7 +151,7 @@ def _run(argv: list[str], reply: dict, token: int) -> None:
         proc = subprocess.Popen(
             argv,
             cwd=str(workspace.ensure()),
-            env=claude_code.child_env(os.environ.copy()),
+            env=claude_code.child_env(os.environ.copy(), claude_code.cli()),
             stdin=subprocess.DEVNULL,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
@@ -180,6 +185,7 @@ def _run(argv: list[str], reply: dict, token: int) -> None:
     except Exception as e:
         error = f"Claude Code chat failed: {e}"
     finally:
+        claude_code.revoke(agent)
         if STATE["proc"] is not None and _live(token):
             STATE["proc"] = None
     if not _live(token):

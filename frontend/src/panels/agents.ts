@@ -15,7 +15,7 @@ interface Activity {
 
 interface AgentStatus {
   workspace: { path: string; mcp: { command: string; args: string[] } };
-  consent: { policy: string; session: string[]; always: string[] };
+  consent: { policy: string; session: string[]; always: string[]; sealBroken?: boolean };
   clients: Record<string, boolean>;
   windows: number;
   activity: Activity[];
@@ -83,7 +83,9 @@ export class AgentsPanel implements Panel {
       setText(q(this.el, '.fx-agents-ws'), s.workspace.path);
       for (const b of Array.from(this.el.querySelectorAll<HTMLElement>('[data-install]'))) setClass(b, 'is-missing', !s.clients[b.dataset.install as string]);
       const allowed = [...s.consent.always.map((c) => `${c} (always)`), ...s.consent.session.filter((c) => !s.consent.always.includes(c)).map((c) => `${c} (this session)`)];
-      setText(q(this.el, '.fx-agents-allowed'), allowed.length ? allowed.join(', ') : `Policy: ${s.consent.policy}. Agents from the Terminal panel are always trusted; others ask once.`);
+      const none = `Policy: ${s.consent.policy}. Agents from the Terminal panel are always trusted; others ask once.`;
+      const notice = s.consent.sealBroken ? 'The saved agent permission was changed outside FormVFX, so it is back to Ask. ' : '';
+      setText(q(this.el, '.fx-agents-allowed'), notice + (allowed.length ? allowed.join(', ') : none));
       if (!this.feed.length) this.feed = s.activity.filter((a) => a.source !== 'ui');
       this.renderFeed();
     } catch {

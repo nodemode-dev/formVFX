@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
-"""./formvfx agents: Claude Code, Codex and Cursor driving formvfx.
+"""./formvfx agents: Claude Code, Codex, Cursor and Antigravity driving formvfx.
 
-  sync [--check]    regenerate the formvfx-harness skill's generated references from the engine (commands, effects,
-                    property paths, MCP tools) and mirror .claude/skills/formvfx-harness to .agents/skills;
-                    --check exits 1 when anything drifted
-  install [--dry-run] [claude|codex|cursor ...]
-                    set the clients up for this user account: the MCP server and the skill (all three by default)
+  sync [--check] [--manifest-only]
+                    regenerate the formvfx-harness skill's generated references from the engine (commands, effects,
+                    property paths, MCP tools), mirror .claude/skills/formvfx-harness to .agents/skills and write
+                    agents/manifest.json (what formvfx offers agents); --check exits 1 when anything drifted;
+                    --manifest-only does just the manifest and needs no built engine
+  install [--dry-run] [claude|codex|cursor|antigravity ...]
+                    set the clients up for this user account: the MCP server and the skill (all four by default;
+                    Antigravity gets the MCP server only, in ~/.gemini/config/mcp_config.json)
   status            which clients are on this computer and whether the skill is in step
 """
 
@@ -24,6 +27,13 @@ BACKEND = ROOT / "backend"
 SKILL = ROOT / ".claude" / "skills" / "formvfx-harness"
 MIRROR = ROOT / ".agents" / "skills" / "formvfx-harness"
 GENERATED = ("commands.md", "effects.md", "property-paths.md", "tools.md")
+SKILLS = ROOT / ".claude" / "skills"
+MANIFEST = ROOT / "agents" / "manifest.json"
+APP = "formvfx"
+DOCK = {"present": True, "positions": ["bottom", "right"], "tabs": ["chat", "terminal", "claude-code", "codex", "cursor", "antigravity"]}
+DOCK_FOLDER = ROOT / "frontend" / "src" / "dock"
+LOOKUP = ROOT / "backend" / "app" / "agent" / "agent_lookup.py"
+LOOKUP_HASHES = {"1.0.0": "252ea9bb9419d4990f174f91914f09800497bc69e98f849f5643bbf4217cc3f3", "1.0.1": "62667f9b68b7d101e1896ce617240424e33b7e498c560bc79d45f0ab26c77d51"}
 ORDER = ["file", "edit", "project", "item", "footage", "comp", "layer", "prop", "keys", "anim", "time", "markers", "effect", "mask", "path",
          "paths", "shape", "text", "camera", "light", "material", "track", "warp", "roto", "paint", "puppet", "liquify", "contentFill", "face",
          "essential", "expr", "script", "scriptui", "render", "renderQueue", "playback", "view", "window", "editor", "scopes", "cache", "jobs",
@@ -233,9 +243,74 @@ def _files(folder: Path) -> dict:
     return {str(p.relative_to(folder)): p.read_bytes() for p in sorted(folder.rglob("*")) if p.is_file()}
 
 
-def sync(check: bool) -> int:
-    ensure_core()
+def manifest_text() -> str:
+    sys.path.insert(0, str(BACKEND))
+    from app.agent import tools
+    from app.routers import mcp
+    from app.services import formext_host
+    names = [t["name"] for t in tools.TOOLS]
+    transports = [t for t, on in (("stdio", (ROOT / "setup" / "mcp_stdio.py").is_file()), ("http", any(r.path == "/mcp" for r in mcp.router.routes))) if on]
+    skills = [{"name": s.name, "sub_skills": sorted(d.name for d in (s / "sub-skills").iterdir() if (d / "SUB-SKILL.md").is_file()) if (s / "sub-skills").is_dir() else []}
+              for s in sorted(SKILLS.iterdir()) if (s / "SKILL.md").is_file()]
+    doc = {"format": "form-agent-manifest", "version": 1, "app": APP,
+           "mcp": {"tools": names, "read_only": [n for n in names if n in tools.READ_ONLY], "approval_gated": [n for n in names if n not in tools.READ_ONLY], "transports": transports},
+           "skills": skills, "dock": DOCK, "extensions": {"host_api": formext_host.API}}
+    return json.dumps(doc, indent=2, ensure_ascii=False) + "\n"
+
+
+def dock_problems() -> list[str]:
+    import hashlib
+    why = " (the shared dock module changes only as a whole new version)"
+    inside = DOCK_FOLDER.relative_to(ROOT).as_posix()
+    try:
+        kept = json.loads((DOCK_FOLDER / "MANIFEST.json").read_text(encoding="utf-8"))["files"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return [f"{inside}/MANIFEST.json: missing or unreadable{why}"]
+    now = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(DOCK_FOLDER.iterdir()) if p.is_file() and p.name != "MANIFEST.json"}
+    return [f"{inside}/{name}: does not match MANIFEST.json{why}" for name in sorted(set(kept) | set(now)) if kept.get(name) != now.get(name)]
+
+
+def lookup_problems() -> list[str]:
+    import hashlib
+    rel = LOOKUP.relative_to(ROOT).as_posix() if LOOKUP.is_relative_to(ROOT) else LOOKUP.as_posix()
+    try:
+        raw = LOOKUP.read_bytes()
+    except OSError:
+        return [f"{rel}: missing (the shared finder for the agent programs)"]
+    said = re.search(rb'^VERSION = "([^"\r\n]+)"\r?$', raw, re.M)
+    version = said.group(1).decode("ascii", "replace") if said else "unknown"
+    if LOOKUP_HASHES.get(version) != hashlib.sha256(raw).hexdigest():
+        return [f"{rel}: does not match the hash recorded for version {version} (the shared finder changes only as a whole new version)"]
+    return []
+
+
+def sync_manifest(check: bool) -> bool:
+    text = manifest_text()
+    if MANIFEST.exists() and MANIFEST.read_text(encoding="utf-8") == text:
+        return False
+    if not check:
+        MANIFEST.parent.mkdir(parents=True, exist_ok=True)
+        MANIFEST.write_text(text, encoding="utf-8")
+    return True
+
+
+def sync(check: bool, manifest_only: bool = False) -> int:
+    problems = dock_problems() + lookup_problems()
+    if problems:
+        print("agents: " + "; ".join(problems))
+        return 1
     drift = []
+    if manifest_only:
+        if sync_manifest(check):
+            drift.append(str(MANIFEST.relative_to(ROOT)))
+        if check:
+            print("agents: manifest in step" if not drift else "agents: drifted: " + ", ".join(drift) + " (run ./formvfx agents sync)")
+            return 1 if drift else 0
+        print("agents: " + ("updated " + ", ".join(drift) if drift else "manifest already in step"))
+        return 0
+    ensure_core()
+    if sync_manifest(check):
+        drift.append(str(MANIFEST.relative_to(ROOT)))
     for name, text in generate().items():
         ref = SKILL / "references" / name
         if not ref.exists() or ref.read_text(encoding="utf-8") != text:
@@ -278,7 +353,7 @@ def main(argv: list[str]) -> int:
         print(__doc__)
         return 0
     if argv[0] == "sync":
-        return sync("--check" in argv[1:])
+        return sync("--check" in argv[1:], "--manifest-only" in argv[1:])
     if argv[0] == "install":
         return install(argv[1:])
     if argv[0] == "status":

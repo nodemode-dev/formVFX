@@ -1,13 +1,14 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import secrets
 import time
 
-from ..core import config
+from ..core import config, seal
 from ..engine.host import host
 
-TOKEN = secrets.token_urlsafe(24)
+TOKENS: set[str] = set()
 _session: set[str] = set()
 _declined: dict[str, float] = {}
 _QUERY_IDS = {
@@ -20,22 +21,57 @@ _QUERY_IDS = {
     "essential.list", "essential.templates", "effect.plugins.list", "face.models", "file.scripts.list", "scriptui.list",
 }
 _READ_RPC = {"command.list", "command.describe", "ui.state", "ui.overlays", "ui.graph", "ui.flowchart", "text.library", "roto.objectPreview", "menu.bar", "menu.titles", "effects.catalog", "frame.png", "engine.info", "activity.list", "project.json", "link.info", "render.status", "formext.list"}
+ASK_SECONDS = 180
+HANGUP_POLL = 0.5
+GONE = "The caller went away before the person answered."
+ANSWERS = ["deny", "once", "session", "always"]
+SCOPE = "agent"
+BLOCKED = ("Agents are turned off in this formvfx (FORMVFX_AGENTS=deny), its own Chat and agent tabs included. "
+           "Tell the person: they can make the change in the window, or start formvfx again without that setting.")
+_PLAIN = {"cli": "The formvfx command line", "terminal": "A program in a formvfx terminal tab"}
 
 
 def _store():
     return config.data_dir() / "agents.json"
 
 
-def _always() -> set[str]:
+def issue() -> str:
+    token = secrets.token_urlsafe(32)
+    TOKENS.add(token)
+    return token
+
+
+def revoke(token: str) -> None:
+    TOKENS.discard(token)
+
+
+def in_app(value: str | None) -> bool:
+    if not isinstance(value, str) or not value:
+        return False
+    return any(secrets.compare_digest(value.encode("utf-8"), t.encode("utf-8")) for t in list(TOKENS))
+
+
+def _stored() -> dict:
     try:
-        return set(json.loads(_store().read_text(encoding="utf-8")).get("allowed", []))
+        raw = json.loads(_store().read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        return set()
+        return {}
+    return raw if isinstance(raw, dict) else {}
+
+
+def _checked() -> dict:
+    stored = _stored()
+    allowed = stored.get("allowed")
+    return seal.effective({**stored, "allowed": sorted(str(a) for a in allowed) if isinstance(allowed, list) else []})
+
+
+def _always() -> set[str]:
+    return set(_checked()["allowed"])
 
 
 def _remember(client: str) -> None:
     allowed = _always() | {client}
-    _store().write_text(json.dumps({"allowed": sorted(allowed)}, indent=2), encoding="utf-8")
+    _store().write_text(json.dumps(seal.sign({"allowed": sorted(allowed)}), indent=2), encoding="utf-8")
 
 
 def forget_all() -> None:
@@ -67,18 +103,69 @@ def client_key(source: str) -> str:
     return source.split(":", 1)[-1].strip().lower() or "agent"
 
 
+def agent_name(source: str) -> str:
+    name = source.split(":", 1)[-1].strip()
+    return _PLAIN.get(name.lower()) or name or "An outside agent"
+
+
+def asked_tool(name: str, args: dict) -> str:
+    command = args.get("command") if name == "execute" else None
+    return f"Run the command {command} (tool {name})" if isinstance(command, str) and command else f"Use the tool {name}"
+
+
+def asked_rpc(message) -> str:
+    calls = [m for m in (message if isinstance(message, list) else [message]) if isinstance(m, dict) and mutating_rpc(m)]
+    if not calls:
+        return ""
+    first = calls[0]
+    command = (first.get("params") or {}).get("command") if first.get("method") == "command.execute" else None
+    what = f"Run the command {command}" if isinstance(command, str) and command else f"Call {first.get('method') or 'the engine'}"
+    return what if len(calls) == 1 else f"{what} and {len(calls) - 1} more"
+
+
+def answer_of(reply: dict | None) -> str | None:
+    if not reply:
+        return None
+    if not reply.get("allow"):
+        return "deny"
+    remember = reply.get("remember")
+    return remember if remember in ("once", "always") else "session"
+
+
 def state() -> dict:
-    return {"policy": config.agents_policy(), "session": sorted(_session), "always": sorted(_always())}
+    checked = _checked()
+    return {"policy": config.agents_policy(), "session": sorted(_session), "always": sorted(checked["allowed"]), "seal": checked["seal"], "sealBroken": checked["sealBroken"],
+            "answers": list(ANSWERS), "scope": SCOPE, "timeoutSec": ASK_SECONDS}
 
 
-async def gate(source: str, token: str | None, mutating: bool, detail: str = "") -> str | None:
-    if token and secrets.compare_digest(token, TOKEN):
+class _Gone(Exception):
+    pass
+
+
+async def _held(asking, gone):
+    if gone is None:
+        return await asking
+    task = asyncio.ensure_future(asking)
+    try:
+        while True:
+            done, _ = await asyncio.wait({task}, timeout=HANGUP_POLL)
+            if done:
+                return task.result()
+            if await gone():
+                raise _Gone()
+    finally:
+        if not task.done():
+            task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
+
+
+async def gate(source: str, token: str | None, mutating: bool, detail: str = "", what: str = "", gone=None) -> str | None:
+    if not mutating:
         return None
-    policy = config.agents_policy()
-    if policy == "allow" or not mutating:
+    if config.agents_policy() == "deny":
+        return BLOCKED
+    if in_app(token):
         return None
-    if policy == "deny":
-        return "Outside agents are turned off (FORMVFX_AGENTS=deny). Start the agent from formvfx's Terminal panel instead."
     key = client_key(source)
     if key in _session or key in _always():
         return None
@@ -86,16 +173,26 @@ async def gate(source: str, token: str | None, mutating: bool, detail: str = "")
         return "The person declined edits from this agent a moment ago. Ask them in chat before trying again."
     if not host.bus.windows():
         return ("No formvfx window is open to ask the person for permission. Open formvfx (./formvfx boot, then http://localhost:5250, "
-                "or the desktop app) and allow this agent, or start the agent from formvfx's Terminal panel. For headless agent work, "
-                "the person can start the engine with agents allowed: stop this engine, then run FORMVFX_AGENTS=allow ./formvfx serve "
-                "in the formvfx folder (FORMVFX_AGENTS is read by the engine when it starts, not by the agent's command).")
-    reply = await host.bus.ask_window({"type": "consent", "client": source, "detail": detail}, timeout=180)
+                "or the desktop app) and allow this agent, or start the agent from formvfx's Terminal panel.")
+    rid = host.bus.ticket()
+    request = {"type": "consent", "client": source, "detail": detail, "requestId": rid, "agent": agent_name(source), "agentKey": key,
+               "what": what or "Change the project", "answers": list(ANSWERS), "scope": SCOPE, "timeoutSec": ASK_SECONDS,
+               "expiresAt": int((time.time() + ASK_SECONDS) * 1000)}
+    reply, reason = None, "cancelled"
+    try:
+        reply = await _held(host.bus.ask_window(request, timeout=ASK_SECONDS), gone)
+        reason = "expired" if reply is None else "answered"
+    except _Gone:
+        return GONE
+    finally:
+        host.bus.publish({"type": "consentClosed", "requestId": rid, "reason": reason, "answer": answer_of(reply), "agentKey": key}, kinds=("ui",))
     if not reply:
         return "Nobody answered the permission request in the formvfx window. Ask the person to allow the agent there, then retry."
     if reply.get("allow"):
         if reply.get("remember") == "always":
             _remember(key)
-        _session.add(key)
+        if reply.get("remember") != "once":
+            _session.add(key)
         return None
     _declined[key] = time.monotonic() + 600
     return "The person declined edits from this agent. Ask them in chat what they want instead."

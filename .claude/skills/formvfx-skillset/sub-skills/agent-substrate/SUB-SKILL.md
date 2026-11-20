@@ -12,11 +12,12 @@ description: How agents reach formvfx. Use to add or change an MCP tool or guide
 | MCP tools, guides, instructions, prompt | `backend/app/agent/tools.py` | `TOOLS` (schemas and annotations), `GUIDES`, `INSTRUCTIONS`, `call()` |
 | MCP transport | `backend/app/routers/mcp.py` | Streamable HTTP at `/mcp`, protocol versions 2025-03-26 to 2026-07-28 |
 | stdio relay | `backend/app/agent/stdio.py`, `setup/mcp_stdio.py` | `./formvfx mcp`; finds or starts the engine, forwards each line |
-| Consent | `backend/app/agent/consent.py` | per-boot `TOKEN` (Terminal agents), `FORMVFX_AGENTS` policy, ask-once dialog through the bus, remembered clients |
+| Consent | `backend/app/agent/consent.py` | one token per Claude Code, Codex or Cursor tab and per Chat run (`issue()`, `revoke()`), `FORMVFX_AGENTS` policy (`deny` or ask; `deny` stops every agent's changes, the app's own tabs included), the question through the bus (`consent` event with `requestId`, `agent`, `what`, `answers`, `scope`, `expiresAt`; answers `deny`, `once`, `session`, `always`; `consentClosed` when it is answered or runs out), remembered clients sealed in `agents.json` |
+| Agent programs | `backend/app/agent/programs.py` | `GET /api/terminal/agents`: Claude Code, Codex and Cursor found or not, version, signed in when the engine can tell, the install line |
 | Workspace | `backend/app/agent/workspace.py`, `templates/` | `~/Formvfx/agent-workspace`: CLAUDE.md, AGENTS.md, `.mcp.json`, `.claude/settings.json`, `.codex/config.toml`, `.cursor/mcp.json`, `bin/formvfx`, the harness skill |
 | Client setup | `backend/app/agent/connect.py`, `setup/agents.py install` | user-scope MCP entries and skill copies, backups before changes |
 | CLI | `backend/app/agent/cli.py`, `setup/fx.py` | `state`, `commands`, `describe`, `exec`, `batch`, `frame`, `render` |
-| Skill generator | `setup/agents.py sync` | writes `references/commands.md`, `effects.md`, `property-paths.md`, `tools.md` from the native engine and `TOOLS`, mirrors to `.agents/skills` |
+| Skill generator | `setup/agents.py sync` | writes `references/commands.md`, `effects.md`, `property-paths.md`, `tools.md` from the native engine and `TOOLS`, mirrors to `.agents/skills`, and writes `agents/manifest.json` (tools, read-only and approval-gated tools, skills; `--manifest-only` needs no built engine) |
 
 ## Adding a tool
 

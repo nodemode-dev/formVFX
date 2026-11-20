@@ -58,12 +58,13 @@ jobs:
         run: ./formvfx agents sync --check
       - name: Boot the engine, probe HTTP and MCP
         env:
-          FORMVFX_AGENTS: allow
           FORMVFX_DATA_DIR: ${{ runner.temp }}/fxdata
         run: |
           source backend/venv/bin/activate
           (cd backend && python -m uvicorn app.main:app --host 127.0.0.1 --port 8250 &)
           for i in $(seq 1 60); do curl -sf -H 'x-formvfx-local: 1' http://127.0.0.1:8250/api/health && break; sleep 1; done
+          KEY=$(curl -sf -X POST -H 'x-formvfx-local: 1' http://127.0.0.1:8250/api/window/key | python -c 'import json,sys; print(json.load(sys.stdin)["key"])')
+          curl -sf -X POST -H 'x-formvfx-local: 1' -H "x-formvfx-window-key: $KEY" -d '{"jsonrpc":"2.0","id":1,"method":"command.execute","params":{"command":"comp.new","params":{"name":"CI"}}}' http://127.0.0.1:8250/api/rpc
           printf '%s\n' \
             '{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":"2025-06-18","clientInfo":{"name":"ci"},"capabilities":{}}}' \
             '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' \
@@ -75,7 +76,7 @@ jobs:
           lines = [json.loads(l) for l in open('mcp.out')]
           tools = lines[1]['result']['tools']
           assert len(tools) >= 20, len(tools)
-          assert not lines[2]['result'].get('isError'), lines[2]
+          assert lines[2]['result'].get('isError') and 'No formvfx window is open' in lines[2]['result']['content'][0]['text'], lines[2]
           assert any(c['type'] == 'image' for c in lines[3]['result']['content']), lines[3]
           print('mcp ok:', len(tools), 'tools')
           PY

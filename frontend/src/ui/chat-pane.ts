@@ -77,7 +77,7 @@ export class ChatPane {
 
   constructor(ctx: Ctx) {
     this.root = el(`<div class="fx-cp" hidden>
-<div class="fx-cp-bar"><span class="fx-cp-status cv-note"></span><span class="fx-cp-usage" title="Memory: how much of Claude's working memory this conversation uses (it reads all of it again with each message). Reply: tokens written so far. Chat: everything sent and written in this conversation, and what it has cost."></span><span class="fx-tdock-spacer"></span>
+<div class="fx-cp-bar"><span class="fx-cp-status cv-note"></span><span class="fx-cp-usage" title="Memory: how much of Claude's working memory this conversation uses (it reads all of it again with each message). Reply: tokens written so far. Chat: everything sent and written in this conversation, and what it has cost."></span><span class="fx-cp-spacer"></span>
 <button type="button" class="cv-btn fx-cp-btn fx-cp-stop" hidden>Stop</button>
 <button type="button" class="cv-btn fx-cp-btn fx-cp-adopt" title="Bring a conversation you had in a Claude Code tab into this chat">From Claude Code...</button>
 <button type="button" class="cv-btn fx-cp-btn fx-cp-handoff" title="Continue this conversation in a Claude Code terminal tab">${icon('terminal', 12)}Open in Claude Code</button>

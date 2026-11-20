@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <img alt="version 0.55.4" src="https://img.shields.io/badge/version-0.55.4-eef0f4?style=flat-square">
+  <img alt="version 0.57.0" src="https://img.shields.io/badge/version-0.57.0-eef0f4?style=flat-square">
   <img alt="Rust" src="https://img.shields.io/badge/Rust-engine-b7410e?style=flat-square&logo=rust&logoColor=white">
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-Vite-3178c6?style=flat-square&logo=typescript&logoColor=white">
   <img alt="macOS, Windows, Linux" src="https://img.shields.io/badge/macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-native-2f7bf5?style=flat-square">
@@ -48,7 +48,7 @@
     <td width="25%" valign="top"><h3>Its own engine</h3>A compositing engine written in Rust, rendering on the GPU through wgpu or on the CPU, whichever is faster for the comp.</td>
     <td width="25%" valign="top"><h3>Plug-ins that load</h3>Loads OpenFX plug-ins and sandboxed WebAssembly effect plug-ins, with their on-screen handles in the viewer.</td>
     <td width="25%" valign="top"><h3>Templates open</h3>Opens <code>.mogrt</code> templates and <code>.aep</code> projects, and keeps its own <code>.fvxproj</code> projects.</td>
-    <td width="25%" valign="top"><h3>Agent-ready</h3>The same commands from the interface, the command line and an MCP server, so Claude Code, Codex and Cursor can drive every tool.</td>
+    <td width="25%" valign="top"><h3>Agent-ready</h3>The same commands from the interface, the command line and an MCP server, so Claude Code, Codex, Cursor and Antigravity can drive every tool.</td>
   </tr>
 </table>
 
@@ -85,13 +85,13 @@
 
 ## Built for agents
 
-Claude Code starts inside the app already connected, and the command line and MCP server reach the same commands as the interface.
+Claude Code starts inside the app already connected, and the command line and MCP server reach the same commands as the interface. Outside agents and the command line ask once in the app window before they change anything.
 
 ```sh
 ./formvfx state                 # the open project, active comp, selection and time
 ./formvfx exec comp.list        # list the compositions
 ./formvfx render --wait         # render the Render Queue and poll until it is done
-./formvfx mcp                   # MCP server on stdio for Claude Code, Codex and Cursor
+./formvfx mcp                   # MCP server on stdio for Claude Code, Codex, Cursor and Antigravity
 ```
 
 `.mcp.json`, `.codex/config.toml` and `.cursor/mcp.json` are already wired in this repo. See [`AGENTS.md`](AGENTS.md).
@@ -102,7 +102,7 @@ FormVFX loads Form extensions (API 1): FormPortal installs them, form.ext makes 
 
 ## Under the hood
 
-Version 0.55.4 · Apache-2.0 · compositing engine: FormVFX's own, in Rust (`native/fvx-core`)
+Version 0.57.0 · Apache-2.0 · compositing engine: FormVFX's own, in Rust (`native/fvx-core`)
 
 - **Engine:** `native/fvx-core` is the compositing engine, Rust with PyO3, loaded by the engine service as the `fvx_core` extension.
 - **Service:** a FastAPI engine service in `backend`, with the MCP server and the embedded terminal.
@@ -114,11 +114,11 @@ Version 0.55.4 · Apache-2.0 · compositing engine: FormVFX's own, in Rust (`nat
 
 | Platform | Download | Release |
 |---|---|---|
-| macOS | [Download FormVFX for macOS](https://formai.studio/get/formvfx/macos) | [FormVFX releases on FormCompiler](https://github.com/nodemode-dev/formcompiler/releases?q=formvfx-v&expanded=true) |
-| Windows | [Download FormVFX for Windows](https://formai.studio/get/formvfx/windows) | [FormVFX releases on FormCompiler](https://github.com/nodemode-dev/formcompiler/releases?q=formvfx-v&expanded=true) |
-| Linux | [Download FormVFX for Linux](https://formai.studio/get/formvfx/linux) | [FormVFX releases on FormCompiler](https://github.com/nodemode-dev/formcompiler/releases?q=formvfx-v&expanded=true) |
+| macOS | [Download FormVFX for macOS](https://formai.studio/get/formvfx/macos) | [FormVFX releases](https://github.com/nodemode-dev/formvfx/releases) |
+| Windows | [Download FormVFX for Windows](https://formai.studio/get/formvfx/windows) | [FormVFX releases](https://github.com/nodemode-dev/formvfx/releases) |
+| Linux | [Download FormVFX for Linux](https://formai.studio/get/formvfx/linux) | [FormVFX releases](https://github.com/nodemode-dev/formvfx/releases) |
 
-All FormVFX builds are compiled and released from [FormCompiler](https://github.com/nodemode-dev/formcompiler); this repo holds the source.
+All FormVFX builds are compiled by [FormCompiler](https://github.com/nodemode-dev/formcompiler) and released on this repository's Releases page; this repo holds the source.
 
 ## Demo
 

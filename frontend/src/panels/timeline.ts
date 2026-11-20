@@ -141,6 +141,7 @@ export class TimelinePanel implements Panel {
     this.buildCompSwitches();
     this.bind();
     ctx.store.watch((st) => this.onState(st));
+    document.addEventListener('nm:ui-settings-changed', () => this.draw());
     ctx.playback.events.on('time', (t) => this.drawTime(t));
     ctx.playback.events.on('state', () => {
       if (this.rulerRaf) return;

@@ -3,6 +3,7 @@ import json
 from fastapi import APIRouter, Request, Response
 
 from ..agent import consent
+from ..core import window_key
 from ..engine import rpc
 
 router = APIRouter(tags=["rpc"])
@@ -14,9 +15,12 @@ async def call(request: Request) -> Response:
         message = json.loads(await request.body())
     except ValueError:
         return Response(json.dumps({"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "Parse error"}}), media_type="application/json", status_code=400)
-    source = request.headers.get("x-formvfx-source", "cli")[:60] or "cli"
-    if source != "ui":
-        denied = await consent.gate(source, request.headers.get("x-formvfx-agent-token"), mutating=consent.mutating_rpc(message))
+    window = window_key.valid(request.headers.get(window_key.HEADER))
+    source = "ui" if window else request.headers.get("x-formvfx-source", "cli")[:60] or "cli"
+    if source == "ui" and not window:
+        source = "cli"
+    if not window:
+        denied = await consent.gate(source, request.headers.get("x-formvfx-agent-token"), mutating=consent.mutating_rpc(message), what=consent.asked_rpc(message), gone=request.is_disconnected)
         if denied:
             rid = message.get("id") if isinstance(message, dict) else None
             return Response(json.dumps({"jsonrpc": "2.0", "id": rid, "error": {"code": -32003, "message": denied}}), media_type="application/json")

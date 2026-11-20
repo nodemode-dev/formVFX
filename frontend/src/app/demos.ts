@@ -1,6 +1,8 @@
 // The browser demos (demo/, demos/keying, demos/motion) opened inside the app: each one is rebuilt by
 // the real engine as a new project from the same media the page ships (frontend/public/demos/<id>/).
 
+import { keyHeaders } from '../engine/window-key';
+
 export type DemoId = 'coastline' | 'keying' | 'motion';
 
 export interface DemoInfo {
@@ -342,7 +344,7 @@ async function upload(paths: string[]): Promise<string[]> {
     if (!res.ok) throw new Error(`demo media ${p} is missing (${res.status})`);
     fd.append('files', new File([await res.blob()], p.split('/').pop() ?? p));
   }
-  const res = await fetch('/api/fs/upload', { method: 'POST', body: fd, headers: { 'x-formvfx-local': '1' } });
+  const res = await fetch('/api/fs/upload', { method: 'POST', body: fd, headers: { 'x-formvfx-local': '1', ...keyHeaders() } });
   if (!res.ok) throw new Error(`the demo media could not be copied (${res.status})`);
   return ((await res.json()) as { paths: string[] }).paths;
 }

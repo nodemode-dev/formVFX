@@ -16,8 +16,8 @@ usage: ./formvfx [command] [options]
   frontend              boot the interface only
   build                 production build of the interface into frontend/dist
   serve                 serve the built interface from the engine on 127.0.0.1:8250 (FORMVFX_PORT changes the port)
-                        headless agents: FORMVFX_AGENTS=allow ./formvfx serve lets outside agents edit with no window open
-                        (ask is the default and needs a window to answer; deny refuses outside agents)
+                        outside agents ask in the formvfx window before they change anything; FORMVFX_AGENTS=deny
+                        refuses them (it cannot be used to skip the question)
   freeze                freeze the engine service and the compositing engine into the Tauri sidecar binary
   desktop dev|build     run the desktop app, or build and install it (build is the same as ./build_app)
   doctor                check the toolchain, installs and ports

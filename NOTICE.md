@@ -18,7 +18,7 @@ formvfx is licensed under the Apache License 2.0 (`LICENSE`). It includes or dep
 | Foxit standard fonts (through hayro-interpret, from PDFium; Copyright 2014 PDFium Authors, original code Copyright 2014 Foxit Software Inc.) | the 14 standard PDF fonts | BSD-3-Clause |
 | CGATS001Compat and LAB ICC profiles (through hayro-interpret) | CMYK and Lab colour in PDF pages | CC0-1.0 |
 | miniz_oxide, brotli-decompressor | zip data in PSD documents and `.lottie` archives; PDF streams | MIT OR Zlib OR Apache-2.0, BSD-3-Clause/MIT |
-| FFmpeg 7.1.5 and ffprobe (not bundled: an installed FFmpeg is used as before, and when none is found the engine downloads the LGPL build from the nodemode-dev/formcut-binaries release on first run, checks every file's SHA-256 against `backend/app/ffmpeg_record.py`, and runs it as a separate program) | video and audio decoding and movie encoding in `native/fvx-core` | LGPL-2.1-or-later for the downloaded build (`--disable-gpl --disable-nonfree`; libopus and libvpx BSD-3-Clause; source attached to the release); an installed one keeps its distributor's licence |
+| FFmpeg 7.1.5 and ffprobe (not bundled: an installed FFmpeg is used as before, and when none is found the engine downloads the LGPL build from the nodemode-dev/formai-binaries release on first run (builds made before the rename use the older name, nodemode-dev/formcut-binaries, which keeps working and is tried second), checks every file's SHA-256 against `backend/app/ffmpeg_record.py`, and runs it as a separate program) | video and audio decoding and movie encoding in `native/fvx-core` | LGPL-2.1-or-later for the downloaded build (`--disable-gpl --disable-nonfree`; libopus and libvpx BSD-3-Clause; source attached to the release); an installed one keeps its distributor's licence |
 | SAM 2.1 tiny weights (`sam2.1_hiera_tiny.pt`), by Meta (not bundled: downloaded on request from `dl.fbaipublicfiles.com` and checked against their SHA-256) | roto and Object Matte segmentation with a memory of earlier frames, run by formvfx's own implementation | Apache-2.0 (the SAM 2 repository states that its model checkpoints are licensed under Apache 2.0) |
 | MobileSAM weights, by Chaoning Zhang et al. (not bundled: downloaded on request and checked against their SHA-256) | Roto Paint and Object Matte segmentation, run by formvfx's own implementation | Apache-2.0 |
 | MediaPipe Face Landmarker (BlazeFace short-range detector and Face Mesh V2), by Google (not bundled: downloaded on request and checked against its SHA-256) | face tracking, run by formvfx's own TensorFlow Lite interpreter | Apache-2.0 |
@@ -53,6 +53,8 @@ The engine is frozen with PyInstaller `--onefile` (`setup/freeze_backend`). Thes
 | pydantic, pydantic_core, annotated-types, annotated-doc, typing-inspection, anyio, h11, httptools, PyYAML, watchfiles | MIT |
 | uvloop | MIT or Apache-2.0 |
 | click, idna, python-dotenv, websockets | BSD-3-Clause |
+| keyring 25.7.0 (keeps the key that seals the agent allow list in the system keychain), jaraco.classes, jaraco.context, jaraco.functools, more-itertools, jeepney (Linux) | MIT |
+| SecretStorage (Linux), pywin32-ctypes (Windows), keychain access for keyring | BSD-3-Clause |
 | fvx-core (formvfx's own compositing engine) | Apache-2.0 |
 
 certifi is not installed in the engine's environment and is not frozen.

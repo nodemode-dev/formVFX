@@ -1,5 +1,6 @@
 import type { Ctx } from '../app/ctx';
 import type { Item, UiState } from '../engine/types';
+import { keyHeaders } from '../engine/window-key';
 import type { Panel } from '../ui/dock';
 import { el, q, setClass, setHidden, setHtml, setText, swapMedia } from '../ui/dom';
 import { icon } from '../ui/icons';
@@ -151,7 +152,7 @@ export class ProjectPanel implements Panel {
     e.preventDefault();
     const fd = new FormData();
     for (const f of files) fd.append('files', f, f.name);
-    const res = await fetch('/api/fs/upload', { method: 'POST', body: fd, headers: { 'x-formvfx-local': '1' } });
+    const res = await fetch('/api/fs/upload', { method: 'POST', body: fd, headers: { 'x-formvfx-local': '1', ...keyHeaders() } });
     const { paths } = await res.json();
     await this.ctx.run('file.import', { paths });
   }

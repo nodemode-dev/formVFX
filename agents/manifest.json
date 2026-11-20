@@ -1,0 +1,125 @@
+{
+  "format": "form-agent-manifest",
+  "version": 1,
+  "app": "formvfx",
+  "mcp": {
+    "tools": [
+      "status",
+      "list_commands",
+      "describe_command",
+      "execute",
+      "batch",
+      "get_comp",
+      "get_layer",
+      "get_property",
+      "set_property",
+      "set_keyframes",
+      "apply_effect",
+      "list_effects",
+      "text_preset",
+      "shapes_from_svg",
+      "planar_track",
+      "object_matte",
+      "render_frame",
+      "contact_sheet",
+      "render",
+      "dynamic_link",
+      "project",
+      "import_files",
+      "run_script",
+      "history",
+      "ui",
+      "wait",
+      "guide",
+      "extensions_list",
+      "extension_command"
+    ],
+    "read_only": [
+      "status",
+      "list_commands",
+      "describe_command",
+      "get_comp",
+      "get_layer",
+      "get_property",
+      "list_effects",
+      "render_frame",
+      "contact_sheet",
+      "wait",
+      "guide",
+      "extensions_list"
+    ],
+    "approval_gated": [
+      "execute",
+      "batch",
+      "set_property",
+      "set_keyframes",
+      "apply_effect",
+      "text_preset",
+      "shapes_from_svg",
+      "planar_track",
+      "object_matte",
+      "render",
+      "dynamic_link",
+      "project",
+      "import_files",
+      "run_script",
+      "history",
+      "ui",
+      "extension_command"
+    ],
+    "transports": [
+      "stdio",
+      "http"
+    ]
+  },
+  "skills": [
+    {
+      "name": "formvfx-harness",
+      "sub_skills": [
+        "animation-and-keyframes",
+        "camera-lights-3d",
+        "compositions-and-layers",
+        "effects-and-presets",
+        "expressions-and-scripting",
+        "harness-director",
+        "masks-roto-paint",
+        "recipes",
+        "render-and-export",
+        "session-and-connection",
+        "text-and-shapes",
+        "tracking-and-stabilizing",
+        "ui-automation",
+        "verification"
+      ]
+    },
+    {
+      "name": "formvfx-skillset",
+      "sub_skills": [
+        "agent-substrate",
+        "desktop-and-release",
+        "engine-core",
+        "engine-service",
+        "interface",
+        "verification"
+      ]
+    }
+  ],
+  "dock": {
+    "present": true,
+    "positions": [
+      "bottom",
+      "right"
+    ],
+    "tabs": [
+      "chat",
+      "terminal",
+      "claude-code",
+      "codex",
+      "cursor",
+      "antigravity"
+    ]
+  },
+  "extensions": {
+    "host_api": "1"
+  }
+}

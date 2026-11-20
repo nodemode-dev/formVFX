@@ -18,7 +18,7 @@ Clone the repository and run `./formvfx install`, then `./formvfx` (or
 `formvfx.bat install` and `formvfx.bat` on Windows). The first sets up the engine,
 builds the Rust compositing engine and installs the interface; the second starts the
 engine and the interface. `./formvfx doctor` checks Node, Python, the Rust version and
-the ports, and the README's Quick start has the details and the requirements.
+the ports, and the README's "Run it from source" section has the details and the requirements.
 
 The code lives in:
 

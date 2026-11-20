@@ -11,6 +11,7 @@ from . import __version__, ffmpeg_fetch
 from .agent import workspace
 from .core import config, discovery
 from .core.security import LocalOnly
+from .core.window_key import WindowKeyGuard
 from .engine import rpc as engine_rpc
 from .engine.host import host
 from .engine import link as engine_link
@@ -51,6 +52,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="formvfx engine", version=__version__, lifespan=lifespan)
 app.add_middleware(CORSMiddleware, allow_origins=config.cors_origins(), allow_credentials=False, allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(WindowKeyGuard)
 app.add_middleware(LocalOnly)
 for r in ROUTERS:
     app.include_router(r)
