@@ -20,6 +20,7 @@ class Bus:
         self._ids = itertools.count(1)
         self._replies: dict[int, asyncio.Future] = {}
         self._asked: dict[int, set[Client]] = {}
+        self._open: dict[int, dict] = {}
 
     def bind(self, loop: asyncio.AbstractEventLoop) -> None:
         self.loop = loop
@@ -70,6 +71,8 @@ class Bus:
         self._replies[rid] = fut
         self._asked[rid] = set(windows)
         payload = {**message, "requestId": rid}
+        if message.get("type") == "consent":
+            self._open[rid] = payload
         for w in windows:
             try:
                 w.queue.put_nowait(payload)
@@ -82,6 +85,21 @@ class Bus:
         finally:
             self._replies.pop(rid, None)
             self._asked.pop(rid, None)
+            self._open.pop(rid, None)
+
+    def admit(self, client: Client) -> int:
+        sent = 0
+        for rid, payload in list(self._open.items()):
+            asked = self._asked.get(rid)
+            if asked is None or client in asked:
+                continue
+            asked.add(client)
+            try:
+                client.queue.put_nowait(payload)
+                sent += 1
+            except asyncio.QueueFull:
+                pass
+        return sent
 
     def answer(self, rid: int, value: dict, client: Client) -> bool:
         fut = self._replies.get(rid)

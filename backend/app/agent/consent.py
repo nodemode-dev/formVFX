@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import secrets
 import time
@@ -21,6 +22,8 @@ _QUERY_IDS = {
 }
 _READ_RPC = {"command.list", "command.describe", "ui.state", "ui.overlays", "ui.graph", "ui.flowchart", "text.library", "roto.objectPreview", "menu.bar", "menu.titles", "effects.catalog", "frame.png", "engine.info", "activity.list", "project.json", "link.info", "render.status", "formext.list"}
 ASK_SECONDS = 180
+HANGUP_POLL = 0.5
+GONE = "The caller went away before the person answered."
 ANSWERS = ["deny", "once", "session", "always"]
 SCOPE = "agent"
 BLOCKED = ("Agents are turned off in this formvfx (FORMVFX_AGENTS=deny), its own Chat and agent tabs included. "
@@ -135,7 +138,28 @@ def state() -> dict:
             "answers": list(ANSWERS), "scope": SCOPE, "timeoutSec": ASK_SECONDS}
 
 
-async def gate(source: str, token: str | None, mutating: bool, detail: str = "", what: str = "") -> str | None:
+class _Gone(Exception):
+    pass
+
+
+async def _held(asking, gone):
+    if gone is None:
+        return await asking
+    task = asyncio.ensure_future(asking)
+    try:
+        while True:
+            done, _ = await asyncio.wait({task}, timeout=HANGUP_POLL)
+            if done:
+                return task.result()
+            if await gone():
+                raise _Gone()
+    finally:
+        if not task.done():
+            task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
+
+
+async def gate(source: str, token: str | None, mutating: bool, detail: str = "", what: str = "", gone=None) -> str | None:
     if not mutating:
         return None
     if config.agents_policy() == "deny":
@@ -156,8 +180,10 @@ async def gate(source: str, token: str | None, mutating: bool, detail: str = "",
                "expiresAt": int((time.time() + ASK_SECONDS) * 1000)}
     reply, reason = None, "cancelled"
     try:
-        reply = await host.bus.ask_window(request, timeout=ASK_SECONDS)
+        reply = await _held(host.bus.ask_window(request, timeout=ASK_SECONDS), gone)
         reason = "expired" if reply is None else "answered"
+    except _Gone:
+        return GONE
     finally:
         host.bus.publish({"type": "consentClosed", "requestId": rid, "reason": reason, "answer": answer_of(reply), "agentKey": key}, kinds=("ui",))
     if not reply:

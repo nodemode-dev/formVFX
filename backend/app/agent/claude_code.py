@@ -12,12 +12,13 @@ from pathlib import Path
 from ..core import config
 from . import consent, workspace
 
+TAB_ENTRY = "formvfx_tab"
 NOTE = (
-    "You are running inside formvfx, the motion graphics and visual effects app. The formvfx MCP server is connected and "
+    "You are running inside formvfx, the motion graphics and visual effects app. The formvfx_tab MCP server is connected and "
     "is the way to read and change the open project; do not use Bash or the formvfx command line for that. Its tools are "
-    "deferred: load them first with ToolSearch, query \"select:mcp__formvfx__status,mcp__formvfx__batch,"
-    "mcp__formvfx__execute,mcp__formvfx__list_commands,mcp__formvfx__describe_command,mcp__formvfx__get_comp,"
-    "mcp__formvfx__render_frame,mcp__formvfx__guide\" (others: \"+formvfx\"). Start with status, build with one batch so a "
+    "deferred: load them first with ToolSearch, query \"select:mcp__formvfx_tab__status,mcp__formvfx_tab__batch,"
+    "mcp__formvfx_tab__execute,mcp__formvfx_tab__list_commands,mcp__formvfx_tab__describe_command,mcp__formvfx_tab__get_comp,"
+    "mcp__formvfx_tab__render_frame,mcp__formvfx_tab__guide\" (others: \"+formvfx_tab\"). Start with status, build with one batch so a "
     "multi-step edit undoes as one step, and look at the result with render_frame before saying an edit is done. Every "
     "change appears live in the person's window and is undoable."
 )
@@ -104,7 +105,7 @@ def info(fresh: bool = False) -> dict:
 def mcp_config(base_url: str, token: str) -> str:
     return json.dumps({
         "mcpServers": {
-            "formvfx": {
+            TAB_ENTRY: {
                 "type": "http",
                 "url": base_url.rstrip("/") + "/mcp",
                 "headers": {"x-formvfx-agent-token": token, "x-formvfx-source": "mcp:Claude Code in formvfx"},
@@ -156,7 +157,7 @@ def argv(mcp_file: str, prompt: str | None = None, resume: str | None = None) ->
     path = cli()
     if not path:
         raise NotInstalled(INSTALL)
-    cmd = [path, "--mcp-config", mcp_file, "--allowedTools", "mcp__formvfx", "ToolSearch", "--append-system-prompt", NOTE]
+    cmd = [path, "--mcp-config", mcp_file, "--strict-mcp-config", "--allowedTools", "mcp__" + TAB_ENTRY, "ToolSearch", "--append-system-prompt", NOTE]
     if resume:
         cmd += ["--resume", resume]
     if prompt:
@@ -170,7 +171,7 @@ def headless(mcp_file: str, prompt: str, resume: str | None = None, note: str = 
         raise NotInstalled(INSTALL)
     cmd = [
         path, "-p", prompt, "--output-format", "stream-json", "--verbose", "--include-partial-messages",
-        "--mcp-config", mcp_file, "--allowedTools", "mcp__formvfx", "ToolSearch", "--append-system-prompt", note,
+        "--mcp-config", mcp_file, "--strict-mcp-config", "--allowedTools", "mcp__" + TAB_ENTRY, "ToolSearch", "--append-system-prompt", note,
     ]
     if resume:
         cmd += ["--resume", resume]

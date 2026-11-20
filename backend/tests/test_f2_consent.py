@@ -225,3 +225,64 @@ def test_the_question_from_the_command_line_names_it_in_plain_words(client, wind
 def test_the_state_says_which_answers_the_engine_takes(client):
     state = client.get("/api/agents/consent").json()
     assert state["answers"] == ["deny", "once", "session", "always"] and state["scope"] == "agent" and state["timeoutSec"] == 180
+
+
+def test_a_window_that_opens_while_a_question_waits_is_asked_too_and_may_answer():
+    import asyncio
+
+    from app.engine.bus import Bus
+
+    async def run():
+        bus = Bus()
+        first = bus.join("ui")
+        asking = asyncio.ensure_future(bus.ask_window({"type": "consent", "requestId": bus.ticket(), "agent": "Late"}, timeout=5))
+        await asyncio.sleep(0)
+        sent = first.queue.get_nowait()
+        late = bus.join("watch")
+        assert bus.answer(sent["requestId"], {"allow": True}, late) is False
+        late.kind = "ui"
+        assert bus.answer(sent["requestId"], {"allow": True}, late) is False
+        assert bus.admit(late) == 1 and late.queue.get_nowait() == sent
+        assert bus.admit(late) == 0
+        other = asyncio.ensure_future(bus.ask_window({"type": "uiRequest", "what": "state"}, timeout=5))
+        await asyncio.sleep(0)
+        fresh = bus.join("ui")
+        assert bus.admit(fresh) == 1 and fresh.queue.get_nowait() == sent
+        assert bus.answer(sent["requestId"], {"allow": True, "remember": "once"}, late) is True
+        assert await asking == {"allow": True, "remember": "once"}
+        other.cancel()
+        await asyncio.gather(other, return_exceptions=True)
+        assert bus.admit(bus.join("ui")) == 0
+
+    asyncio.run(run())
+
+
+def test_a_caller_that_hangs_up_ends_its_question_and_is_not_barred(monkeypatch):
+    import asyncio
+
+    from app.agent import consent
+    from app.engine.bus import Bus
+    from app.engine.host import host
+
+    async def run():
+        bus = Bus()
+        bus.bind(asyncio.get_running_loop())
+        window = bus.join("ui")
+        monkeypatch.setattr(host, "bus", bus)
+        monkeypatch.setattr(consent, "HANGUP_POLL", 0.01)
+        gone = {"now": False}
+
+        async def hung_up():
+            return gone["now"]
+
+        waiting = asyncio.ensure_future(consent.gate("mcp:Hang Up", None, True, detail="execute", what="Use the tool execute", gone=hung_up))
+        await asyncio.sleep(0.05)
+        asked = window.queue.get_nowait()
+        assert asked["type"] == "consent" and not waiting.done()
+        gone["now"] = True
+        assert await asyncio.wait_for(waiting, 2) == consent.GONE
+        assert window.queue.get_nowait() == {"type": "consentClosed", "requestId": asked["requestId"], "reason": "cancelled", "answer": None, "agentKey": "hang up"}
+        assert bus.admit(bus.join("ui")) == 0
+        assert consent._declined == {} and consent.state()["session"] == []
+
+    asyncio.run(run())

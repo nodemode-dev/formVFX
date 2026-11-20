@@ -200,7 +200,10 @@ def test_a_claude_code_tab_gets_its_own_token_in_a_private_file_that_dies_with_t
     try:
         assert session.argv[-1].count("--mcp-config") == 1
         config_file = session.argv[-1].split("--mcp-config ", 1)[1].split(" ", 1)[0]
-        token = json.loads(open(config_file, encoding="utf-8").read())["mcpServers"]["formvfx"]["headers"]["x-formvfx-agent-token"]
+        servers = json.loads(open(config_file, encoding="utf-8").read())["mcpServers"]
+        assert list(servers) == ["formvfx_tab"]
+        assert "--strict-mcp-config" in session.argv[-1] and "--allowedTools mcp__formvfx_tab " in session.argv[-1]
+        token = servers["formvfx_tab"]["headers"]["x-formvfx-agent-token"]
         assert stat.S_IMODE(os.stat(config_file).st_mode) == 0o600
         assert token not in " ".join(session.argv) and token not in session.env.values()
         assert consent.in_app(token)

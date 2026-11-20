@@ -29,7 +29,8 @@ GENERATED = ("commands.md", "effects.md", "property-paths.md", "tools.md")
 SKILLS = ROOT / ".claude" / "skills"
 MANIFEST = ROOT / "agents" / "manifest.json"
 APP = "formvfx"
-DOCK = {"present": True, "positions": ["bottom"], "tabs": ["chat", "terminal", "claude-code", "codex", "cursor"]}
+DOCK = {"present": True, "positions": ["bottom", "right"], "tabs": ["chat", "terminal", "claude-code", "codex", "cursor"]}
+DOCK_FOLDER = ROOT / "frontend" / "src" / "dock"
 ORDER = ["file", "edit", "project", "item", "footage", "comp", "layer", "prop", "keys", "anim", "time", "markers", "effect", "mask", "path",
          "paths", "shape", "text", "camera", "light", "material", "track", "warp", "roto", "paint", "puppet", "liquify", "contentFill", "face",
          "essential", "expr", "script", "scriptui", "render", "renderQueue", "playback", "view", "window", "editor", "scopes", "cache", "jobs",
@@ -254,6 +255,18 @@ def manifest_text() -> str:
     return json.dumps(doc, indent=2, ensure_ascii=False) + "\n"
 
 
+def dock_problems() -> list[str]:
+    import hashlib
+    why = " (the shared dock module changes only as a whole new version)"
+    inside = DOCK_FOLDER.relative_to(ROOT).as_posix()
+    try:
+        kept = json.loads((DOCK_FOLDER / "MANIFEST.json").read_text(encoding="utf-8"))["files"]
+    except (OSError, ValueError, KeyError, TypeError):
+        return [f"{inside}/MANIFEST.json: missing or unreadable{why}"]
+    now = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in sorted(DOCK_FOLDER.iterdir()) if p.is_file() and p.name != "MANIFEST.json"}
+    return [f"{inside}/{name}: does not match MANIFEST.json{why}" for name in sorted(set(kept) | set(now)) if kept.get(name) != now.get(name)]
+
+
 def sync_manifest(check: bool) -> bool:
     text = manifest_text()
     if MANIFEST.exists() and MANIFEST.read_text(encoding="utf-8") == text:
@@ -265,6 +278,10 @@ def sync_manifest(check: bool) -> bool:
 
 
 def sync(check: bool, manifest_only: bool = False) -> int:
+    problems = dock_problems()
+    if problems:
+        print("agents: " + "; ".join(problems))
+        return 1
     drift = []
     if manifest_only:
         if sync_manifest(check):

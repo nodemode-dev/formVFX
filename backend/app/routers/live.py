@@ -49,6 +49,7 @@ async def live(socket: WebSocket) -> None:
             if message.get("method") == "window":
                 if client.kind != "ui" and window_key.valid(params.get("key")):
                     client.kind = "ui"
+                    host.bus.admit(client)
                 continue
             if message.get("method") == "reply":
                 if client.kind == "ui":

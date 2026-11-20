@@ -20,7 +20,7 @@ async def call(request: Request) -> Response:
     if source == "ui" and not window:
         source = "cli"
     if not window:
-        denied = await consent.gate(source, request.headers.get("x-formvfx-agent-token"), mutating=consent.mutating_rpc(message), what=consent.asked_rpc(message))
+        denied = await consent.gate(source, request.headers.get("x-formvfx-agent-token"), mutating=consent.mutating_rpc(message), what=consent.asked_rpc(message), gone=request.is_disconnected)
         if denied:
             rid = message.get("id") if isinstance(message, dict) else None
             return Response(json.dumps({"jsonrpc": "2.0", "id": rid, "error": {"code": -32003, "message": denied}}), media_type="application/json")
