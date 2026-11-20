@@ -23,7 +23,7 @@ description: How an agent reaches formvfx. Use when the formvfx MCP server or it
 ## Permission
 
 - Reads (status, get_comp, get_layer, render_frame, contact_sheet, list_commands and every query command) never ask.
-- The first change from an outside agent opens a dialog in the formvfx window: **Allow** (this session), **Allow Always** (remembered), **Don't Allow**. Tell the person a prompt is waiting in formvfx when you make the first change.
+- The first change from an outside agent opens a dialog in the formvfx window: **Deny**, **Allow once** (that call only; your next change asks again), **Always allow** (you, remembered). Tell the person a prompt is waiting in formvfx when you make the first change.
 - `FORMVFX_AGENTS=deny` on the engine refuses every agent's changes without asking, even from one the person set to Allow Always, and also from formvfx's own Chat and its Claude Code, Codex and Cursor tabs; reads still work. Nothing else changes the policy: there is no setting that skips the question, so an outside agent with no window open cannot change anything; the person opens formvfx, or starts the agent from formvfx's Claude Code, Codex or Cursor button.
 - The Agents panel shows who is allowed and can forget them.
 
