@@ -426,3 +426,10 @@ Living context for the interface. Code carries almost no comments; the reasoning
 - Found with a search for "Cursor" across `src`: the other hits name one program each (menu items, button labels). One table key, "Claude Code starts here already connected ... Codex and Cursor read the MCP server ...", is used by no source file, so nothing a person sees carries it; left as it is.
 - Checked: every table parses as JSON, `setup/lint_text.py` has no finding. Not seen in a browser in a language other than English.
 
+## The shared dock is module 2.2.1: its guide names Codex, Cursor and Antigravity (0.59.0)
+
+- Kind: change. Logged: 2026-11-20. Refers to `src/dock/` and `backend/tests/test_dock_manifest.py`.
+- What changed: `CONTRACT.md`, `MANIFEST.json` and `strings.ts` copied byte for byte from FormVis commit 23b01889 (the commit named in the wave's dock note); the other 13 files of the folder were already the same as there. The guide's two sentences for a computer with Claude Code end with "Codex, Cursor and Antigravity each get a button of their own here when they are on this computer." The manifest test expects 2.2.1.
+- No translation was added: this app's language tables carry none of the panel's sentences, so the guide shows in English, as it did before.
+- Checked: `tests/test_dock_manifest.py` 9 passed; `./formvfx agents sync --check` says in step. Not seen in a browser.
+
