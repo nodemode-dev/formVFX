@@ -6,7 +6,7 @@ formvfx 0.29.0 measured line by line against the reference compositor as it stoo
 - **Partial** · present but narrower than the reference compositor, or reachable only as a command form where the reference compositor gives direct manipulation.
 - **None** · nothing found.
 
-Full counts 1, Partial one half, None 0. The platform rows at the end are shown but not scored. **Verified** says whether the capability was run end to end in this build (built through the MCP tools or the interface and checked on rendered frames or files); unverified rows are graded from the engine command and its interface path alone.
+Full counts 1, Partial one half, None 0. The platform rows at the end are shown but not scored. **Verified** records whether the capability was run end to end when its row was graded (built through the MCP tools or the interface and checked on rendered frames or files): in the release a cell names, and for a cell that names none, when the table was measured at 0.29.0 or regraded through 0.44.0. A row marked no was graded from the engine command and its interface path alone. The column is that record and was not run again row by row for later releases; formvfx today is released, built and bundled for macOS, Windows and Linux, and tested on all three.
 
 The reference compositor's side comes from its vendor's public documentation and release notes and is the vendor's claim. formvfx's side was read from this tree at the version above; its engine is formvfx's own, written in Rust (`native/fvx-core`).
 
